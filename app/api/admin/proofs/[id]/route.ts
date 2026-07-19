@@ -35,48 +35,88 @@ export async function PATCH(req: NextRequest, props: Params) {
     }
 
     if (body.status === 'approved') {
-      const invitation = await invitations.findById(proof.invitation_id)
-      const tier = (invitation?.package_tier || 'popular') as PackageTier
-      const pkg = PACKAGES[tier] ?? PACKAGES.popular
-      const expiresAt = new Date()
-      expiresAt.setMonth(expiresAt.getMonth() + pkg.activeMonths)
+      // Klaim status DILAKUKAN LEBIH DULU (di atas) dan itu memang disengaja:
+      // affiliates.recordConversion() TIDAK idempoten — ia membuat baris
+      // Referral baru dan menaikkan penghitung, jadi kalau dijalankan dua kali
+      // komisinya dibayar dua kali. Klaim atomik itulah yang menjamin
+      // sekali-jalan.
+      //
+      // Konsekuensinya: kalau efek sampingnya gagal di tengah, statusnya
+      // terlanjur 'approved' dan percobaan ulang akan dibalas 409 — approval
+      // terkunci permanen tanpa langganan pernah dibuat. Karena itu blok ini
+      // MENGEMBALIKAN status ke 'pending' saat gagal, supaya bisa dicoba lagi.
+      try {
+        const invitation = await invitations.findById(proof.invitation_id)
+        const tier = (invitation?.package_tier || 'popular') as PackageTier
+        const pkg = PACKAGES[tier]
+        if (!pkg) {
+          throw new Error(`Paket "${tier}" tidak dikenal — approval dibatalkan`)
+        }
 
-      await invitations.update(proof.invitation_id, {
-        is_paid: true,
-        is_published: true,
-        expires_at: expiresAt.toISOString(),
-      })
+        const expiresAt = new Date()
+        expiresAt.setMonth(expiresAt.getMonth() + pkg.activeMonths)
 
-      if (invitation) {
-        await subscriptions.create({
-          invitationId: proof.invitation_id,
-          userId: proof.user_id,
-          tier,
+        await invitations.update(proof.invitation_id, {
+          is_paid: true,
+          is_published: true,
+          expires_at: expiresAt.toISOString(),
         })
-      }
-      if (invitation?.referred_by) {
-        const affiliate = await affiliates.findByCode(invitation.referred_by)
-        if (affiliate && affiliate.isActive) {
-          // Nilai penjualan diambil dari harga paket menurut server, BUKAN dari
-          // proof.amount. proof.amount berasal dari pembeli
-          // (api/payment/proof: `Number(amount) || 0`, tanpa validasi apa pun),
-          // jadi afiliator bisa mereferensikan dirinya sendiri, mengaku
-          // mentransfer Rp 100 juta, lalu dibayari komisi atas angka fiktif itu.
-          const appSettings = await settings.get()
-          const priceTier = appSettings.priceTiers.find(t => t.id === tier)
-          const saleAmount = priceTier?.price ?? pkg.price
-          const commission = Math.round(saleAmount * (affiliate.commissionRate / 100))
-          if (commission > 0) {
-            const buyer = await users.findById(invitation.user_id)
-            await affiliates.recordConversion(affiliate.id, {
+
+        if (invitation) {
+          // Pakai ulang kalau sudah ada, supaya percobaan ulang tidak
+          // menghasilkan langganan ganda.
+          const existing = await subscriptions.findByInvitation(proof.invitation_id)
+          if (!existing) {
+            await subscriptions.create({
               invitationId: proof.invitation_id,
-              buyerEmail: buyer?.email || proof.user_email || '',
-              packageTier: invitation.package_tier || 'popular',
-              saleAmount,
-              commission,
+              userId: proof.user_id,
+              tier,
             })
           }
         }
+
+        if (invitation?.referred_by) {
+          const affiliate = await affiliates.findByCode(invitation.referred_by)
+          if (affiliate && affiliate.isActive) {
+            // Nilai penjualan diambil dari harga paket menurut server, BUKAN dari
+            // proof.amount. proof.amount berasal dari pembeli
+            // (api/payment/proof: `Number(amount) || 0`, tanpa validasi apa pun),
+            // jadi afiliator bisa mereferensikan dirinya sendiri, mengaku
+            // mentransfer Rp 100 juta, lalu dibayari komisi atas angka fiktif itu.
+            //
+            // TIDAK ada fallback ke harga Popular: menebak harga berarti
+            // membayar komisi atas nilai yang tidak pernah terjadi.
+            const appSettings = await settings.get()
+            const priceTier = appSettings.priceTiers.find(t => t.id === tier)
+            if (!priceTier) {
+              throw new Error(`Tier "${tier}" tidak ada di priceTiers — komisi tidak bisa dihitung`)
+            }
+
+            const commission = Math.round(priceTier.price * (affiliate.commissionRate / 100))
+            if (commission > 0) {
+              const buyer = await users.findById(invitation.user_id)
+              await affiliates.recordConversion(affiliate.id, {
+                invitationId: proof.invitation_id,
+                buyerEmail: buyer?.email || proof.user_email || '',
+                packageTier: invitation.package_tier || 'popular',
+                saleAmount: priceTier.price,
+                commission,
+              })
+            }
+          }
+        }
+      } catch (sideEffectError) {
+        // Buka kembali klaimnya supaya admin bisa mencoba lagi. Tanpa ini,
+        // buktinya tetap 'approved' selamanya padahal tidak ada yang tersedia.
+        await paymentProofs
+          .update(params.id, { status: 'pending', admin_notes: '', reviewed_at: null })
+          .catch(() => {
+            console.error(
+              `Gagal mengembalikan status bukti ${params.id} ke pending — ` +
+              'perlu diperbaiki manual di database.'
+            )
+          })
+        throw sideEffectError
       }
     }
 

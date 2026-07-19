@@ -198,8 +198,48 @@ export const users = {
   async delete(id: string): Promise<void> {
     await prisma.user.delete({ where: { id } })
   },
+  /**
+   * Ganti password DAN cabut seluruh sesi lama sekaligus.
+   *
+   * Menaikkan sessionEpoch membuat semua token JWT yang sudah beredar untuk
+   * user ini tidak berlaku lagi. Tanpa itu, token stateless berumur 30 hari
+   * yang sudah dicuri tetap bisa dipakai SETELAH korban mereset passwordnya —
+   * yaitu justru saat korban mengira dirinya sudah aman.
+   *
+   * Keduanya dalam satu update supaya tidak mungkin password berganti tanpa
+   * sesinya ikut dicabut.
+   */
   async updatePassword(id: string, passwordHash: string): Promise<void> {
-    await prisma.user.update({ where: { id }, data: { passwordHash } })
+    await prisma.user.update({
+      where: { id },
+      data: { passwordHash, sessionEpoch: { increment: 1 } },
+    })
+  },
+  /** Cabut semua sesi tanpa mengganti password. */
+  async revokeSessions(id: string): Promise<void> {
+    await prisma.user.update({ where: { id }, data: { sessionEpoch: { increment: 1 } } })
+  },
+  /**
+   * Baca generasi sesi TANPA cache.
+   *
+   * Sengaja `$queryRaw` dan bukan findUnique: Hyperdrive meng-cache query SELECT
+   * non-mutasi, dan itu terbukti membuat pencabutan sesi tertunda ~60 detik —
+   * diuji langsung, token lama masih diterima 7 kali sebelum akhirnya ditolak.
+   * Untuk kontrol autentikasi, lubang selama satu menit justru jatuh tepat pada
+   * saat akun sedang disalahgunakan.
+   *
+   * NOW() bersifat volatile, dan Hyperdrive tidak meng-cache query yang memuat
+   * fungsi volatile — itulah gunanya kolom itu di sini, nilainya sendiri tidak dipakai.
+   *
+   * Biayanya satu round-trip database per request terautentikasi. Masih murah
+   * karena request terautentikasi hanya dashboard/admin; halaman undangan publik
+   * tidak memanggil getSession() sama sekali.
+   */
+  async sessionEpoch(id: string): Promise<number | null> {
+    const rows = await prisma.$queryRaw<{ session_epoch: number }[]>`
+      SELECT session_epoch, NOW() AS uncached_marker FROM users WHERE id = ${id} LIMIT 1
+    `
+    return rows.length > 0 ? Number(rows[0].session_epoch) : null
   },
   async updateRole(id: string, role: UserRole): Promise<void> {
     await prisma.user.update({ where: { id }, data: { role } })

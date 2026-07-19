@@ -40,6 +40,12 @@ model User {
   referralCode String?  @unique @map("referral_code")
   createdAt    DateTime @default(now()) @map("created_at")
 
+  /// Penanda generasi sesi. Dinaikkan setiap kali password diganti/direset.
+  /// Token JWT membawa nilai ini; kalau tidak cocok lagi, token ditolak.
+  /// Tanpa ini, JWT stateless 30 hari yang dicuri tetap berlaku SETELAH korban
+  /// mereset passwordnya — reset password tidak menutup akses penyerang.
+  sessionEpoch Int      @default(0) @map("session_epoch")
+
   invitations    Invitation[]
   paymentProofs  PaymentProof[]
   articles       Article[]

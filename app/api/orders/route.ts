@@ -65,6 +65,14 @@ export async function POST(req: NextRequest) {
     //
     // Sumber kebenaran harga adalah settings.priceTiers (bisa diubah admin),
     // BUKAN konstanta PACKAGES — kalau admin mengubah harga, keduanya berbeda.
+    // Harus salah satu paket yang benar-benar bisa disediakan. settings.priceTiers
+    // bisa memuat tier kustom buatan admin yang tidak ada di PACKAGES; pesanan
+    // dengan tier seperti itu akan gagal saat penyediaan — setelah pelanggan
+    // terlanjur membayar. Halaman /order sendiri hanya menawarkan ketiga ini.
+    if (!(package_tier in PACKAGES)) {
+      return NextResponse.json({ error: 'Paket tidak valid' }, { status: 400 })
+    }
+
     const appSettings = await settings.get()
     const tier = appSettings.priceTiers.find(t => t.id === package_tier)
     if (!tier) {

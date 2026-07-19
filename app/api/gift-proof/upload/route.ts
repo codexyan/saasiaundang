@@ -3,6 +3,7 @@ import { uploadToStorage } from '@/lib/supabase'
 import { invitations } from '@/lib/db'
 import { getSession } from '@/lib/session-server'
 import { fileExtension } from '@/lib/upload-utils'
+import { allowRequest } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -50,6 +51,19 @@ export async function POST(req: NextRequest) {
       const inv = await invitations.findById(invitationId)
       if (!inv || !inv.is_published) {
         return NextResponse.json({ error: 'Undangan tidak ditemukan' }, { status: 404 })
+      }
+
+      // Tamu memang tidak perlu login untuk mengirim bukti hadiah — itu
+      // disengaja. Tapi tanpa batas, siapa pun yang tahu slug undangan publik
+      // bisa mengunggah berkas 10 MB berulang-ulang ke Supabase Storage yang
+      // berbayar. Dibatasi per undangan, bukan per IP: yang perlu dilindungi
+      // adalah kuota penyimpanan undangan itu, dan tamu satu resepsi bisa saja
+      // berbagi jaringan yang sama.
+      if (!(await allowRequest('UPLOAD_RATE_LIMIT', `gift-proof:${invitationId}`))) {
+        return NextResponse.json(
+          { error: 'Terlalu banyak unggahan. Coba lagi sebentar lagi.' },
+          { status: 429 }
+        )
       }
     }
 

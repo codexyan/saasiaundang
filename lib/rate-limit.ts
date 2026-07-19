@@ -19,7 +19,7 @@ interface RateLimiterBinding {
   limit(options: { key: string }): Promise<{ success: boolean }>
 }
 
-export type RateLimitName = 'LOGIN_RATE_LIMIT' | 'EMAIL_RATE_LIMIT'
+export type RateLimitName = 'LOGIN_RATE_LIMIT' | 'EMAIL_RATE_LIMIT' | 'UPLOAD_RATE_LIMIT'
 
 /**
  * Mengembalikan true kalau permintaan boleh lanjut.

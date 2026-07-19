@@ -42,8 +42,13 @@ export async function POST(req: NextRequest) {
 
   const role: SessionRole = (user.role as SessionRole) ?? (user.email === getAdminEmail() ? 'admin' : 'user')
 
-  const token = await createSessionToken({ userId: user.id, email: user.email, role })
-  const sessionPayload = { userId: user.id, email: user.email, role }
+  // Generasi sesi ikut ditanam ke token. getSession() mencocokkannya dengan
+  // kolom users.session_epoch; kalau password direset, epoch-nya naik dan semua
+  // token lama langsung tidak berlaku.
+  const epoch = (await users.sessionEpoch(user.id)) ?? 0
+
+  const token = await createSessionToken({ userId: user.id, email: user.email, role, epoch })
+  const sessionPayload = { userId: user.id, email: user.email, role, epoch }
 
   return NextResponse.json(
     {

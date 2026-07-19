@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { invitations, wishes } from '@/lib/db'
+import { getSession } from '@/lib/session-server'
 import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
@@ -34,9 +35,30 @@ export async function POST(req: NextRequest) {
   }
 }
 
+/**
+ * Ucapan memang publik — tamu saling melihat ucapan di halaman undangan, jadi
+ * endpoint ini sengaja tidak menuntut login.
+ *
+ * Yang diperbaiki: dulu `is_published` tidak diperiksa sama sekali, sehingga
+ * ucapan pada undangan yang MASIH DRAF pun bisa dibaca siapa saja yang tahu
+ * invitationId (dan id itu tampil di markup halaman undangan). Sekarang undangan
+ * yang belum terbit hanya bisa dilihat pemiliknya sendiri.
+ */
 export async function GET(req: NextRequest) {
   try {
     const invitationId = req.nextUrl.searchParams.get('invitationId') || ''
+    if (!invitationId) return NextResponse.json({ wishes: [] })
+
+    const inv = await invitations.findById(invitationId)
+    if (!inv) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+    if (!inv.is_published) {
+      const session = await getSession()
+      if (!session || inv.user_id !== session.userId) {
+        return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      }
+    }
+
     return NextResponse.json({ wishes: await wishes.findByInvitationId(invitationId) })
   } catch (error) {
     console.error('Wishes GET error:', error)

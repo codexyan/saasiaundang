@@ -110,11 +110,22 @@ export default function AffiliatesTab() {
   async function handleWithdrawalAction(id: string, action: 'approve' | 'reject') {
     const adminNotes = action === 'reject' ? prompt('Alasan penolakan:') : ''
     if (action === 'reject' && !adminNotes) return
-    await fetch(`/api/admin/affiliates/withdrawals/${id}`, {
+    // Hasil fetch DULU diabaikan sepenuhnya, jadi UI selalu melaporkan sukses —
+    // termasuk saat server membalas 409 karena permintaannya sudah diproses
+    // (mis. admin mengklik dua kali). Admin lalu mengira klik keduanya berhasil.
+    const res = await fetch(`/api/admin/affiliates/withdrawals/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, adminNotes }),
     })
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      toast.error(data.error || 'Gagal memproses pencairan')
+      await fetchData()
+      return
+    }
+
     toast.success(action === 'approve' ? 'Pencairan disetujui' : 'Pencairan ditolak')
     await fetchData()
   }

@@ -79,6 +79,14 @@
       "name": "EMAIL_RATE_LIMIT",
       "namespace_id": "1002",
       "simple": { "limit": 3, "period": 60 }
+    },
+    {
+      // Unggahan bukti hadiah dari tamu, dikunci per undangan. Longgar karena
+      // satu resepsi bisa punya banyak tamu yang mengirim hampir bersamaan;
+      // tujuannya menghentikan penyalahgunaan berulang, bukan tamu yang wajar.
+      "name": "UPLOAD_RATE_LIMIT",
+      "namespace_id": "1003",
+      "simple": { "limit": 20, "period": 60 }
     }
   ],
 

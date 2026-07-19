@@ -12,14 +12,19 @@ export async function POST(req: NextRequest) {
   const body = await readJsonBody(req)
   const { score, comment, page, type } = body
 
-  if (score === undefined || score < 0 || score > 10) {
-    return NextResponse.json({ error: 'Score harus 0-10' }, { status: 400 })
+  // Dikonversi DULU baru dibandingkan. Dulu perbandingannya dilakukan pada
+  // nilai JSON mentah: `null < 0` bernilai false dan `null > 10` juga false,
+  // jadi null lolos dan tersimpan sebagai 0; sementara string non-numerik lolos
+  // lalu menjadi NaN saat Number() di bawah.
+  const numericScore = Number(score)
+  if (!Number.isFinite(numericScore) || numericScore < 0 || numericScore > 10) {
+    return NextResponse.json({ error: 'Score harus angka 0-10' }, { status: 400 })
   }
 
   const feedback = await userFeedback.create({
     user_id: session.userId,
     type: type || 'nps',
-    score: Number(score),
+    score: numericScore,
     comment: comment || '',
     page: page || '',
   })

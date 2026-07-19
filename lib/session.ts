@@ -47,6 +47,19 @@ export interface SessionPayload {
   /** Optional untuk backward-compat dengan token lama yang belum punya role.
    *  Helper isAdmin() di lib/auth.ts fallback ke email match jika undefined. */
   role?: SessionRole
+  /**
+   * Generasi sesi saat token dibuat, dicocokkan dengan users.session_epoch.
+   *
+   * Diverifikasi di getSession() (lib/session-server.ts), BUKAN di sini:
+   * modul ini juga dipakai middleware yang berjalan tanpa akses database, dan
+   * mengimpor Prisma ke sana akan menyeret seluruh lapisan database ke bundle
+   * middleware. Konsekuensinya token yang sudah dicabut masih lolos pemeriksaan
+   * kasar di middleware, tapi ditolak begitu ada kode yang benar-benar membaca
+   * sesi — dan setiap halaman/route terproteksi memanggil getSession().
+   *
+   * Token lama tanpa field ini dianggap epoch 0, sama dengan default kolomnya.
+   */
+  epoch?: number
 }
 
 export async function createSessionToken(payload: SessionPayload): Promise<string> {

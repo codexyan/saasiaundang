@@ -90,10 +90,16 @@ export async function POST(req: NextRequest) {
     const salt = await bcrypt.genSalt(10)
     const passwordHash = await bcrypt.hash(password, salt)
 
+    // sessionEpoch dinaikkan bersamaan dengan passwordnya — dalam transaksi yang
+    // sama, supaya mustahil password berganti tanpa sesi lama ikut dicabut.
+    //
+    // Ini inti perbaikannya: tanpa kenaikan epoch, token JWT stateless berumur
+    // 30 hari yang sudah dicuri tetap berlaku SETELAH korban mereset password.
+    // Justru di saat korban mengira dirinya sudah aman, penyerang masih masuk.
     await prisma.$transaction([
       prisma.user.update({
         where: { id: resetToken.userId },
-        data: { passwordHash },
+        data: { passwordHash, sessionEpoch: { increment: 1 } },
       }),
       prisma.passwordResetToken.delete({ where: { id: resetToken.id } }),
     ])
