@@ -118,10 +118,24 @@ export function orderCreatedTemplate(d: EmailData): string {
 }
 
 export function orderApprovedTemplate(d: EmailData): string {
+  // Kredensial hanya disertakan untuk akun yang BARU dibuat (jalur pembayaran
+  // otomatis Mayar, di mana tidak ada admin yang meneruskannya manual). Akun
+  // yang sudah ada tetap memakai password lamanya dan tidak boleh dikirimi apa pun.
+  const credentials = d.password
+    ? `
+    <div style="margin:20px 0;padding:16px;background:#f5f2ed;border:1px solid #e0d9cc;border-radius:8px;">
+      <p style="margin:0 0 8px;font-weight:600;color:#1a4a1a;">Akun kamu sudah dibuat</p>
+      <p style="margin:0 0 4px;">Email: <strong>${str(d.email)}</strong></p>
+      <p style="margin:0 0 12px;">Password: <strong>${str(d.password)}</strong></p>
+      <p style="margin:0;font-size:13px;color:#6b6b6b;">Segera ganti passwordnya setelah masuk.</p>
+    </div>`
+    : ''
+
   return baseTemplate(`
     <h2 style="margin:0 0 16px;color:#1a4a1a;">Pembayaran Berhasil</h2>
     <p>Halo ${str(d.name, 'Kak')},</p>
     <p>Pesanan <strong>${str(d.orderNumber)}</strong> sudah aktif. Undangan kamu siap digunakan.</p>
+    ${credentials}
     ${button(invitationUrl(d.slug), 'Lihat Undangan')}
   `)
 }

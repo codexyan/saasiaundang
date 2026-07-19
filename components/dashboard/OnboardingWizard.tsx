@@ -34,7 +34,6 @@ interface FormData {
 
 interface Props {
   onInvitationCreated: (inv: Invitation) => void
-  onSimulatePay?: () => void
   invitation?: Invitation | null
   allTemplates: TemplateInfo[]
 }

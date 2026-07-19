@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import toast from 'react-hot-toast'
 import dynamic from 'next/dynamic'
 import {
@@ -118,20 +119,16 @@ export default function DashboardClient({ user, invitation, selectedTemplateId, 
     toast.success(updated.is_published ? 'Undangan dipublikasikan!' : 'Undangan disembunyikan')
   }
 
-  async function handleSimulatePay() {
-    if (!inv) return
-    const expiresAt = new Date()
-    expiresAt.setFullYear(expiresAt.getFullYear() + 1)
-    const res = await fetch(`/api/invitations/${inv.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ is_paid: true, expires_at: expiresAt.toISOString() }),
-    })
-    if (!res.ok) { toast.error('Gagal'); return }
-    const { invitation: updated } = await res.json()
-    setInv(updated)
-    toast.success('Simulasi pembayaran berhasil!')
-  }
+  // handleSimulatePay() DIHAPUS.
+  //
+  // Fungsi itu mengirim `{ is_paid: true, expires_at: <+1 tahun> }` langsung dari
+  // browser ke /api/invitations/[id] — jalan pintas pengembangan yang memberi
+  // paket berbayar setahun secara gratis. Servernya dulu meneruskan body mentah
+  // ke invitations.update(), jadi ini benar-benar berfungsi.
+  //
+  // Sisi server sudah ditutup (allowlist field di route PATCH: hanya slug,
+  // template_id, data, is_published). Pemanggilnya ikut dihapus supaya tidak ada
+  // yang menyambungkannya kembali dan mengira endpointnya masih menerima.
 
   async function openFullPreview() {
     if (!inv) return
@@ -323,7 +320,6 @@ export default function DashboardClient({ user, invitation, selectedTemplateId, 
                 <OnboardingWizard
                   invitation={null}
                   onInvitationCreated={setInv}
-                  onSimulatePay={handleSimulatePay}
                   allTemplates={allTemplates}
                 />
               )}
@@ -333,7 +329,6 @@ export default function DashboardClient({ user, invitation, selectedTemplateId, 
                   {!isPaid && !isAdmin && tab === 'overview' && (
                     <UpgradeBanner
                       invitation={inv}
-                      onSimulatePay={handleSimulatePay}
                     />
                   )}
 
@@ -482,7 +477,6 @@ export default function DashboardClient({ user, invitation, selectedTemplateId, 
 
 function UpgradeBanner({}: {
   invitation: Invitation
-  onSimulatePay: () => void
 }) {
   return (
     <div className="mb-6 relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#1a1a1a] to-[#2d2d2d] p-6 text-white">
@@ -511,13 +505,13 @@ function UpgradeBanner({}: {
             </span>
           </div>
         </div>
-        <a
+        <Link
           href="/templates"
           className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-5 py-3 rounded-xl hover:shadow-lg hover:shadow-amber-500/25 transition-all shrink-0 no-underline"
         >
           <Sparkles size={14} />
           Pilih Template & Upgrade
-        </a>
+        </Link>
       </div>
     </div>
   )

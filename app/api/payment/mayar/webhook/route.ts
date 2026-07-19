@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyMayarWebhook } from '@/lib/mayar'
 import { prisma } from '@/lib/prisma'
-import { subscriptions } from '@/lib/subscription'
 import { notifyUser } from '@/lib/notifications'
 import { runAfterResponse } from '@/lib/after-response'
-import { PACKAGES, type PackageTier } from '@/lib/packages'
+import { provisionPaidOrder } from '@/lib/provision-order'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,58 +54,40 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, message: 'Order not found' })
     }
 
-    if (order.status === 'approved') {
-      return NextResponse.json({ ok: true, message: 'Already processed' })
+    // CATATAN: pemeriksaan `order.status === 'approved'` yang dulu ada di sini
+    // sengaja DIHAPUS. Pesanan yang terlanjur ditandai "approved" oleh webhook
+    // versi lama TIDAK punya undangan sama sekali; kalau langsung dibalas
+    // "Already processed", pesanan rusak itu tidak akan pernah pulih.
+    // provisionPaidOrder() sendiri yang memutuskan: ia hanya menganggap selesai
+    // kalau statusnya approved DAN invitation_id-nya sudah terisi.
+
+    // Penyediaan LENGKAP — akun, undangan, langganan — lewat jalur yang sama
+    // dengan approve admin.
+    //
+    // Dulu di sini status langsung diubah jadi "approved", lalu penyediaannya
+    // dibungkus `if (order.invitationId && pkg)`. Pesanan dari /api/orders
+    // SELALU punya invitationId null (undangannya baru dibuat saat approve),
+    // jadi blok itu tidak pernah jalan: pelanggan bayar, ordernya "approved",
+    // tapi tidak ada akun, undangan, maupun langganan — dan admin tidak bisa
+    // membetulkan karena jalur manual menolak dengan 409 "sudah diapprove".
+    const outcome = await provisionPaidOrder(order.id)
+
+    if (outcome.status === 'not-found') {
+      return NextResponse.json({ ok: true, message: 'Order not found' })
     }
 
-    await prisma.order.update({
-      where: { id: order.id },
-      data: { status: 'approved', reviewedAt: new Date() },
-    })
+    if (outcome.status === 'invalid-tier') {
+      // Jangan tandai selesai. Balas 500 supaya Mayar mengirim ulang, dan
+      // pesanannya tetap "pending" sehingga admin masih bisa memprosesnya.
+      console.error(
+        `Mayar webhook: order=${order.orderNumber} tidak bisa disediakan (${outcome.tier}). ` +
+        'Status dibiarkan pending untuk penanganan manual.'
+      )
+      return NextResponse.json({ error: 'Provisioning gagal' }, { status: 500 })
+    }
 
-    const tier = order.packageTier as PackageTier
-    const pkg = PACKAGES[tier]
-    if (order.invitationId && pkg) {
-      const existingSub = await subscriptions.findByInvitation(order.invitationId)
-
-      if (existingSub) {
-        await subscriptions.renew(existingSub.id, tier)
-      } else {
-        // Dulu di sini `userId: order.email` — ALAMAT EMAIL disimpan ke kolom
-        // userId. Akibatnya subscriptions.findByUser(session.userId) tidak
-        // pernah cocok: pelanggan membayar lewat Mayar, order jadi "approved",
-        // tapi di dashboard langganannya tidak muncul sama sekali.
-        // Pemilik undangan adalah sumber kebenarannya.
-        const invitationRecord = await prisma.invitation.findUnique({
-          where: { id: order.invitationId },
-          select: { userId: true },
-        })
-        const ownerUserId =
-          invitationRecord?.userId ??
-          (await prisma.user.findUnique({
-            where: { email: order.email.toLowerCase() },
-            select: { id: true },
-          }))?.id
-
-        if (ownerUserId) {
-          await subscriptions.create({
-            invitationId: order.invitationId,
-            userId: ownerUserId,
-            orderId: order.id,
-            tier,
-          })
-        } else {
-          console.error(
-            `Mayar webhook: tidak menemukan user untuk order=${order.orderNumber} ` +
-            `email=${order.email} — langganan TIDAK dibuat, perlu tindakan manual.`
-          )
-        }
-      }
-
-      await prisma.invitation.update({
-        where: { id: order.invitationId },
-        data: { isPaid: true },
-      })
+    if (outcome.status === 'already-provisioned') {
+      return NextResponse.json({ ok: true, message: 'Already processed' })
     }
 
     runAfterResponse(
@@ -114,6 +95,10 @@ export async function POST(req: NextRequest) {
         orderNumber: order.orderNumber,
         email: customerEmail || order.email,
         name: customerName || `${order.groomName} & ${order.brideName}`,
+        // Pada jalur Mayar tidak ada admin yang meneruskan kredensial secara
+        // manual, jadi akun yang BARU dibuat harus menerima passwordnya lewat
+        // email ini — kalau tidak, pelanggan sudah membayar tapi tidak bisa masuk.
+        ...(outcome.plainPassword ? { password: outcome.plainPassword } : {}),
         packageTier: order.packageTier,
         slug: order.subdomain,
       }),

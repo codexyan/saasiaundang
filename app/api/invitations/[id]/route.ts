@@ -40,7 +40,24 @@ export async function PATCH(req: NextRequest, props: Params) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
-    const body = await readJsonBody(req)
+    const rawBody = await readJsonBody(req)
+
+    // ALLOWLIST — jangan pernah meneruskan body mentah ke invitations.update().
+    //
+    // update() menerima package_tier, is_paid, dan expires_at. Karena dulu
+    // seluruh body diteruskan apa adanya, pemilik undangan gratis cukup mengirim
+    // `{ is_paid: true, expires_at: "2099-01-01" }` ke endpoint miliknya sendiri
+    // untuk membuka semua fitur berbayar tanpa membayar — dan
+    // `{ package_tier: "eksklusif" }` untuk naik ke paket tertinggi.
+    //
+    // Ketiga field itu HANYA boleh diubah oleh jalur penyediaan pesanan
+    // (lib/provision-order.ts) setelah pembayaran terverifikasi.
+    // Tipe dibiarkan longgar seperti sebelumnya supaya penanganan body.data.*
+    // di bawah tidak berubah; yang penting isinya sudah disaring.
+    const body: Record<string, any> = {}
+    for (const field of ['slug', 'template_id', 'data', 'is_published'] as const) {
+      if (rawBody[field] !== undefined) body[field] = rawBody[field]
+    }
 
     if (body.slug && body.slug !== inv.slug && (await invitations.slugExists(body.slug, params.id))) {
       return NextResponse.json({ error: 'Slug sudah dipakai' }, { status: 409 })
