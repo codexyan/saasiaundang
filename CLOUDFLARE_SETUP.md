@@ -184,7 +184,17 @@ npx wrangler tail
 
 ---
 
-## 5. DNS dan routing domain ⚠️
+## 5. DNS dan routing domain — ✅ SELESAI 20 Jul 2026
+
+Domain `iaundang.online` sudah dilayani Worker. Nameserver di Hostinger
+menunjuk `bowen`/`cheryl.ns.cloudflare.com`, zona aktif, Universal SSL valid,
+ketiga route terpasang, dan record Resend selamat.
+
+SATU LANGKAH TERSISA: lihat 5g — record A masih menunjuk Vercel sebagai
+jaring pengaman dan sebaiknya diganti `100::`.
+
+<details><summary>Langkah lengkap (arsip)</summary>
+
 
 Langkah paling berisiko. Baca sampai habis sebelum mulai.
 
@@ -397,6 +407,10 @@ curl -s "https://dns.google/resolve?name=send.iaundang.online&type=MX"
 ```
 
 Lalu cek dashboard Resend → Domains: statusnya harus tetap *Verified*.
+
+</details>
+
+---
 
 ## 6. Cron
 

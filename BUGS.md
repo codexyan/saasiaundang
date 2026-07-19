@@ -118,7 +118,30 @@ kalau nanti caching dinyalakan.
 
 ## Belum terverifikasi
 
-- **Pembatas laju** — binding terpasang dan tidak ada error di log, tapi 14 percobaan login berturut-turut TIDAK memicu 429. Konfigurasinya benar, penerapannya belum terbukti. Uji ulang setelah DNS pindah.
-- **Rewrite subdomain** (`*.iaundang.online` → `/invitation/<slug>`) — tidak bisa diuji sebelum DNS pindah. Header Host yang dipalsukan ditolak 403 oleh edge Cloudflare.
-- **Alur berbayar ujung-ke-ujung** — order → bayar → approve → login belum pernah dijalankan sungguhan di Cloudflare.
-- **Upload gambar** ke Supabase Storage dari Worker (resize browser + magic byte) belum diuji dengan sesi login sungguhan.
+Dua dari empat butir di sini sudah TERBUKTI setelah cutover DNS 20 Jul 2026 —
+lihat bagian "Terverifikasi di produksi" di bawah.
+
+- **Alur berbayar ujung-ke-ujung** — order → bayar Mayar → provisioning otomatis
+  → login belum pernah dijalankan dengan transaksi sungguhan.
+- **Upload gambar** ke Supabase Storage dari Worker (resize browser + magic byte)
+  belum diuji dengan sesi login sungguhan.
+
+---
+
+## Terverifikasi di produksi (20 Jul 2026, iaundang.online)
+
+- **Routing subdomain undangan** — `demo.iaundang.online` → 200, dan isinya
+  benar "Undangan Belum Aktif" (undangan itu memang `is_published: false`).
+  Rewrite host→slug di `middleware.ts` bekerja di domain asli.
+- **Pembatas laju** — 12 percobaan login berturut-turut: percobaan ke-12 dibalas
+  **429**. Di workers.dev ini tidak pernah terpicu; di zona domain asli aktif.
+- **Worker yang melayani, bukan Vercel** — kelima header keamanan yang hanya ada
+  di kode baru (`X-Content-Type-Options`, `X-Frame-Options`, HSTS,
+  `Permissions-Policy`, `Referrer-Policy`) muncul di respons `iaundang.online`.
+- **Universal SSL** terbit dan valid (`ssl_verify_result=0`), termasuk untuk
+  subdomain — CAA yang membatasi CA ternyata tidak menghalangi.
+- **Database lewat Hyperdrive** — `/api/payment/config` mengembalikan data asli,
+  `/templates` merender ketiga template dari database.
+- **Proteksi API** — `/api/auth/me`, `/api/admin/users`, `/api/gift-proof`
+  semuanya 401 tanpa sesi.
+- **Record Resend utuh** setelah pindah nameserver (DKIM, SPF, MX `send`).
