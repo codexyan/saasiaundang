@@ -4,14 +4,15 @@ import { DEMO_INVITATION, DEMO_GALLERIES, DEMO_WISHES, DEMO_GUESTS } from '@/lib
 import DemoPreviewClient from './DemoPreviewClient'
 
 interface Props {
-  params: { template: string }
+  params: Promise<{ template: string }>
 }
 
 export function generateStaticParams() {
   return TEMPLATES.map((t) => ({ template: t.id }))
 }
 
-export async function generateMetadata({ params }: Props) {
+export async function generateMetadata(props: Props) {
+  const params = await props.params;
   const tpl = TEMPLATES.find((t) => t.id === params.template)
   if (!tpl) return {}
   return {
@@ -20,7 +21,8 @@ export async function generateMetadata({ params }: Props) {
   }
 }
 
-export default function DemoPage({ params }: Props) {
+export default async function DemoPage(props: Props) {
+  const params = await props.params;
   if (!TEMPLATES.find((t) => t.id === params.template)) notFound()
 
   return (

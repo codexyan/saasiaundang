@@ -856,7 +856,7 @@ function ArticleEditor({ article, isNew, onBack }: { article: ArticleData; isNew
 
 function WritePanel({ form, set, titleRef, onInsertLink }: {
   form: ArticleData; set: (k: keyof ArticleData, v: unknown) => void
-  titleRef: React.RefObject<HTMLInputElement>
+  titleRef: React.RefObject<HTMLInputElement | null>
   onInsertLink: (url: string, internal: boolean) => void
 }) {
   return (

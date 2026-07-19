@@ -5,9 +5,10 @@ import { templateRecords } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
-interface Params { params: { id: string } }
+interface Params { params: Promise<{ id: string }> }
 
-export async function PATCH(req: NextRequest, { params }: Params) {
+export async function PATCH(req: NextRequest, props: Params) {
+  const params = await props.params;
   const session = await getSession()
   if (!isAdmin(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -35,7 +36,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   return NextResponse.json({ record: updated })
 }
 
-export async function DELETE(_req: NextRequest, { params }: Params) {
+export async function DELETE(_req: NextRequest, props: Params) {
+  const params = await props.params;
   const session = await getSession()
   if (!isAdmin(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

@@ -75,7 +75,7 @@ export default function InvitationWizard({ invitation, onSaved }: Props) {
   })
 
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
-  const timer = useRef<ReturnType<typeof setTimeout>>()
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const set = useCallback((key: keyof InvitationData, value: string) => {
     setForm(prev => {

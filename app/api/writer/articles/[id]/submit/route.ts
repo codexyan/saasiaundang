@@ -8,7 +8,8 @@ export const dynamic = 'force-dynamic'
 // Writer submits an article for publication. Trusted writers (and admins)
 // publish immediately; everyone else lands in 'pending_review' awaiting an
 // admin approval — enforced server-side regardless of what the UI requests.
-export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getSession()
   if (!isWriter(session)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

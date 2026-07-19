@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
 
   // Validate template exists (legacy or new)
   const isLegacy = (LEGACY_TEMPLATE_IDS as string[]).includes(template_id)
-  const isNewTemplate = !isLegacy && !!await templateRecords.findById(template_id)
+  const isNewTemplate = !isLegacy && !!(await templateRecords.findById(template_id))
   if (!isLegacy && !isNewTemplate) {
     return NextResponse.json({ error: 'Template tidak ditemukan' }, { status: 400 })
   }
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Slug sudah dipakai' }, { status: 409 })
   }
 
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const referralCode = cookieStore.get('ref')?.value || null
 
   const trialExpiresAt = new Date()

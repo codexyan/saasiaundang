@@ -8,10 +8,11 @@ export const dynamic = 'force-dynamic'
 import type { Invitation } from '@/lib/types'
 
 interface Props {
-  searchParams: { template?: string; payment?: string; order?: string }
+  searchParams: Promise<{ template?: string; payment?: string; order?: string }>
 }
 
-export default async function DashboardPage({ searchParams }: Props) {
+export default async function DashboardPage(props: Props) {
+  const searchParams = await props.searchParams;
   const session = await getSession()
   if (!session) redirect('/login')
 

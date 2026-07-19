@@ -7,9 +7,10 @@ import type { PackageTier } from '@/lib/packages'
 
 export const dynamic = 'force-dynamic'
 
-interface Params { params: { id: string } }
+interface Params { params: Promise<{ id: string }> }
 
-export async function DELETE(_req: NextRequest, { params }: Params) {
+export async function DELETE(_req: NextRequest, props: Params) {
+  const params = await props.params;
   try {
     const session = await getSession()
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -27,7 +28,8 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   }
 }
 
-export async function PATCH(req: NextRequest, { params }: Params) {
+export async function PATCH(req: NextRequest, props: Params) {
+  const params = await props.params;
   try {
     const session = await getSession()
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -39,7 +41,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     const body = await req.json()
 
-    if (body.slug && body.slug !== inv.slug && await invitations.slugExists(body.slug, params.id)) {
+    if (body.slug && body.slug !== inv.slug && (await invitations.slugExists(body.slug, params.id))) {
       return NextResponse.json({ error: 'Slug sudah dipakai' }, { status: 409 })
     }
 

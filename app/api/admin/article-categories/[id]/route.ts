@@ -6,7 +6,8 @@ import { slugify } from '@/lib/article-markdown'
 
 export const dynamic = 'force-dynamic'
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getSession()
   if (!isAdmin(session)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -25,7 +26,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getSession()
   if (!isAdmin(session)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

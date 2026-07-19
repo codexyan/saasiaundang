@@ -10,7 +10,8 @@ export const dynamic = 'force-dynamic'
 //   reject   → status 'needs_revision' with review notes back to the writer
 //   schedule → status 'scheduled', auto-published later by the cron
 //   archive  → status 'archived', unpublished
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getSession()
   if (!isAdmin(session)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

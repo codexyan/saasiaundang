@@ -181,7 +181,8 @@ function TemplateCard({ rec, tier, flashSale }: {
   )
 }
 
-export default async function TemplatesPage({ searchParams }: { searchParams: { kategori?: string } }) {
+export default async function TemplatesPage(props: { searchParams: Promise<{ kategori?: string }> }) {
+  const searchParams = await props.searchParams;
   const [activeTemplates, appSettings] = await Promise.all([
     templateRecords.findActive(),
     settings.get(),

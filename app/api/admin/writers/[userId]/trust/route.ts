@@ -8,7 +8,8 @@ export const dynamic = 'force-dynamic'
 
 // Toggle whether a writer is "trusted" (can publish without admin review).
 // Backed by the WriterProfile upsert from Tahap 1.
-export async function PATCH(req: NextRequest, { params }: { params: { userId: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ userId: string }> }) {
+  const params = await props.params;
   const session = await getSession()
   if (!isAdmin(session)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

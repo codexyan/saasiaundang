@@ -130,7 +130,7 @@ export default function OrderForm({ templateId, templateName, tiers, paymentConf
   const [copied, setCopied] = useState<string | null>(null)
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null)
 
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const checkSubdomain = useCallback((slug: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current)

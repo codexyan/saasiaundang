@@ -6,12 +6,13 @@ import DemoEditorClient from './DemoEditorClient'
 import type { NewInvitationData, Wish } from '@/lib/types'
 
 interface Props {
-  searchParams: { id?: string }
+  searchParams: Promise<{ id?: string }>
 }
 
 export const dynamic = 'force-dynamic'
 
-export async function generateMetadata({ searchParams }: Props) {
+export async function generateMetadata(props: Props) {
+  const searchParams = await props.searchParams;
   if (!searchParams.id) return { title: 'Demo Tema - iaundang' }
   const rec = await templateRecords.findById(searchParams.id)
   return { title: `Preview: ${rec?.name ?? 'Tema'} - iaundang` }
@@ -90,7 +91,8 @@ const DEMO_WISHES: Wish[] = [
   { id: '3', invitation_id: 'demo', name: 'Hendra Wijaya', message: 'Semoga menjadi keluarga yang bahagia dunia akhirat. Aamiin!', created_at: new Date(Date.now() - 8 * 3600000).toISOString() },
 ]
 
-export default async function DemoRendererPage({ searchParams }: Props) {
+export default async function DemoRendererPage(props: Props) {
+  const searchParams = await props.searchParams;
   let template = JAVANESE_GOLD
 
   if (searchParams.id) {

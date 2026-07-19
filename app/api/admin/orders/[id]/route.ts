@@ -16,7 +16,8 @@ function generatePassword(length = 8): string {
   return pw
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getSession()
   if (!session || !isAdmin(session)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

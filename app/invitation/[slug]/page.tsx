@@ -20,10 +20,11 @@ import InvitationRenderer from '@/components/renderer/InvitationRenderer'
 import ViewTracker from '@/components/analytics/ViewTracker'
 
 interface Props {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }
 
-export async function generateMetadata({ params }: Props) {
+export async function generateMetadata(props: Props) {
+  const params = await props.params;
   const inv = await invitations.findBySlug(params.slug)
   if (!inv?.is_published) return {}
 
@@ -44,7 +45,8 @@ export async function generateMetadata({ params }: Props) {
   }
 }
 
-export default async function InvitationPage({ params }: Props) {
+export default async function InvitationPage(props0: Props) {
+  const params = await props0.params;
   const invitation = await invitations.findBySlug(params.slug)
 
   if (!invitation) notFound()

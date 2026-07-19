@@ -9,7 +9,8 @@ import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const article = await articles.findBySlug(params.slug)
   if (!article) return {}
   return {
@@ -23,7 +24,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   }
 }
 
-export default async function BlogArticlePage({ params }: { params: { slug: string } }) {
+export default async function BlogArticlePage(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const article = await articles.findBySlug(params.slug)
   if (!article || !article.isPublished) notFound()
 
