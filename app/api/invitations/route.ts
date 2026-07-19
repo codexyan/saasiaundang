@@ -5,6 +5,7 @@ import { getSession } from '@/lib/session-server'
 import { invitations, templateRecords } from '@/lib/db'
 import { subscriptions } from '@/lib/subscription'
 import { notifyUser } from '@/lib/notifications'
+import { runAfterResponse } from '@/lib/after-response'
 import { LEGACY_TEMPLATE_IDS } from '@/lib/types'
 import type { InvitationData } from '@/lib/types'
 
@@ -71,7 +72,10 @@ export async function POST(req: NextRequest) {
   })
 
   await subscriptions.createTrial(inv.id, session.userId)
-  notifyUser('trial_started', session.email, { slug, name: session.email }).catch(() => {})
+  runAfterResponse(
+    notifyUser('trial_started', session.email, { slug, name: session.email }),
+    'notifyUser(trial_started)'
+  )
 
   return NextResponse.json({ invitation: inv }, { status: 201 })
 }

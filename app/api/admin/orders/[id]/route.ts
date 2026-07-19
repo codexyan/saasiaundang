@@ -6,6 +6,7 @@ import { orders, users, invitations } from '@/lib/db'
 import { subscriptions } from '@/lib/subscription'
 import { PACKAGES, type PackageTier } from '@/lib/packages'
 import { notifyUser } from '@/lib/notifications'
+import { runAfterResponse } from '@/lib/after-response'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,10 +38,13 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
         admin_notes: admin_notes || '',
         reviewed_at: new Date().toISOString(),
       })
-      notifyUser('order_rejected', order.email, {
-        orderNumber: order.order_number,
-        reason: admin_notes || '',
-      }).catch(() => {})
+      runAfterResponse(
+        notifyUser('order_rejected', order.email, {
+          orderNumber: order.order_number,
+          reason: admin_notes || '',
+        }),
+        `notifyUser(order_rejected) order=${order.order_number}`
+      )
       return NextResponse.json({ success: true })
     }
 
@@ -105,13 +109,16 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
         invitation_id: inv.id,
       })
 
-      notifyUser('order_approved', order.email, {
-        orderNumber: order.order_number,
-        slug: order.subdomain,
-        email: order.email,
-        tierName: pkg.name,
-        expiresAt: expiresAt.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
-      }).catch(() => {})
+      runAfterResponse(
+        notifyUser('order_approved', order.email, {
+          orderNumber: order.order_number,
+          slug: order.subdomain,
+          email: order.email,
+          tierName: pkg.name,
+          expiresAt: expiresAt.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+        }),
+        `notifyUser(order_approved) order=${order.order_number}`
+      )
 
       return NextResponse.json({
         success: true,

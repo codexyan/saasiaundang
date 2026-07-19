@@ -12,7 +12,7 @@ import {
   Layers, Search, Users, CalendarDays, Quote, Heart,
 } from 'lucide-react'
 import type { TemplateRecord, TemplateCategory, PriceTier, TierFeatures, FlashSale, Coupon, PromoScope } from '@/lib/types'
-import { BUILT_IN_CATEGORIES, BUILT_IN_PRICE_TIERS } from '@/lib/db'
+import { BUILT_IN_CATEGORIES, BUILT_IN_PRICE_TIERS } from '@/lib/built-in-data'
 import { countActiveSections } from '@/lib/packages'
 import type { PackageTier } from '@/lib/packages'
 

@@ -1,0 +1,64 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+
+  "name": "iaundang",
+
+  // Entry kustom: membungkus handler Next hasil build dan menambah scheduled()
+  // untuk cron. Lihat custom-worker.ts.
+  "main": "./custom-worker.ts",
+
+  // nodejs_compat WAJIB (Buffer, crypto, pg). Tanggal harus >= 2024-09-23.
+  "compatibility_date": "2026-07-18",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+
+  "observability": {
+    "enabled": true
+  },
+
+  // ─── Database ────────────────────────────────────────────────────────────
+  // GANTI "id" dengan output dari:
+  //   npx wrangler hyperdrive create iaundang-db --connection-string="<DATABASE_URL Supabase>"
+  // Sebelum diganti, `wrangler deploy` akan gagal — ini disengaja supaya tidak
+  // ada deploy yang diam-diam jalan tanpa database.
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "GANTI_DENGAN_HYPERDRIVE_ID"
+    }
+  ],
+
+  // ─── Cron ────────────────────────────────────────────────────────────────
+  // Semua jadwal dalam UTC. "0 1 * * *" dipertahankan persis dari vercel.json.
+  // publish-scheduled BELUM PERNAH terjadwal di Vercel (vercel.json hanya
+  // mendaftarkan satu cron) — artikel berstatus "scheduled" tidak pernah terbit.
+  // Didaftarkan di sini supaya fiturnya benar-benar hidup.
+  "triggers": {
+    "crons": [
+      "0 1 * * *",
+      "*/15 * * * *"
+    ]
+  },
+
+  // ─── Vars non-rahasia ────────────────────────────────────────────────────
+  // Yang RAHASIA tidak boleh ada di sini — pakai `wrangler secret put`.
+  // Daftar lengkapnya ada di CLOUDFLARE_SETUP.md.
+  //
+  // Catatan: NEXT_PUBLIC_* di-inline saat build, jadi nilainya juga HARUS
+  // diset sebagai build variable di Workers Builds, bukan hanya di sini.
+  "vars": {
+    "NEXT_PUBLIC_APP_DOMAIN": "iaundang.online",
+    "NEXT_PUBLIC_APP_URL": "https://iaundang.online",
+    "ADMIN_EMAIL": "admin@iaundang.online",
+    "EMAIL_FROM": "iaundang <halo@iaundang.online>"
+  }
+
+  // Opsional — aktifkan kalau profiling menunjukkan latency didominasi
+  // round-trip DB. Smart Placement memindahkan eksekusi Worker mendekati
+  // Supabase. Jangan diaktifkan tanpa mengukur dulu.
+  // "placement": { "mode": "smart" }
+}

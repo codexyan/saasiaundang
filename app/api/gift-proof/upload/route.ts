@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import path from 'path'
 import { uploadToStorage } from '@/lib/supabase'
 import { invitations } from '@/lib/db'
+import { fileExtension } from '@/lib/upload-utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,7 +15,7 @@ const IMAGE_MAGIC: { type: string; bytes: number[] }[] = [
   { type: 'image/webp', bytes: [0x52, 0x49, 0x46, 0x46] },
 ]
 
-function validateMagicBytes(buffer: Buffer, declaredType: string): boolean {
+function validateMagicBytes(buffer: Uint8Array, declaredType: string): boolean {
   if (declaredType === 'image/heic') return true
   const sig = IMAGE_MAGIC.find(m => m.type === declaredType)
   if (!sig) return false
@@ -51,13 +51,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Format tidak didukung. Gunakan JPG, PNG, atau WebP' }, { status: 400 })
     }
 
-    const ext = path.extname(file.name).toLowerCase()
+    const ext = fileExtension(file.name)
     if (!ALLOWED_EXTS.includes(ext)) {
       return NextResponse.json({ error: 'Ekstensi file tidak valid' }, { status: 400 })
     }
 
     const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
+    const buffer = new Uint8Array(bytes)
 
     if (!validateMagicBytes(buffer, file.type)) {
       return NextResponse.json({ error: 'Konten file tidak sesuai dengan format yang dideklarasikan' }, { status: 400 })

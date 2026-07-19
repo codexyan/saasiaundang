@@ -1,20 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { randomBytes } from 'crypto'
 import { getSession } from '@/lib/session-server'
 import { isAdmin, getAdminEmail } from '@/lib/auth'
 import { users } from '@/lib/db'
+import { randomString } from '@/lib/random'
 
 export const dynamic = 'force-dynamic'
 
+// Tanpa karakter yang mudah tertukar (0/O, 1/l/I) karena password ini
+// dibacakan/disalin manual oleh admin.
+const PASSWORD_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
+
 function generatePassword(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
-  const bytes = randomBytes(10)
-  let password = ''
-  for (let i = 0; i < 10; i++) {
-    password += chars[bytes[i] % chars.length]
-  }
-  return password
+  return randomString(10, PASSWORD_ALPHABET)
 }
 
 export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {

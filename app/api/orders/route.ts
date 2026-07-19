@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { orders, invitations } from '@/lib/db'
 import { notifyUser } from '@/lib/notifications'
+import { runAfterResponse } from '@/lib/after-response'
 import { createMayarPayment } from '@/lib/mayar'
 import { PACKAGES, type PackageTier } from '@/lib/packages'
 
@@ -79,10 +80,13 @@ export async function POST(req: NextRequest) {
       payment_method: null,
     })
 
-    notifyUser('order_created', order.email, {
-      orderNumber: order.order_number,
-      amount: order.total_amount.toLocaleString('id-ID'),
-    }).catch(() => {})
+    runAfterResponse(
+      notifyUser('order_created', order.email, {
+        orderNumber: order.order_number,
+        amount: order.total_amount.toLocaleString('id-ID'),
+      }),
+      `notifyUser(order_created) order=${order.order_number}`
+    )
 
     // Call Mayar payment gateway
     let paymentUrl: string | null = null

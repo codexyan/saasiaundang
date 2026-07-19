@@ -1,4 +1,6 @@
-import { BUILT_IN_PRICE_TIERS } from './db'
+// Sengaja dari './built-in-data', BUKAN './db' — lib/packages.ts diimpor oleh
+// 5 komponen client, dan lewat './db' seluruh Prisma + pg ikut masuk bundle browser.
+import { BUILT_IN_PRICE_TIERS } from './built-in-data'
 import type { TierFeatures, SectionConfig } from './types'
 
 export type PackageTier = 'starter' | 'popular' | 'eksklusif'

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { randomBytes } from 'crypto'
+import { randomHex } from '@/lib/random'
 import { prisma } from '@/lib/prisma'
 import { sendNotification } from '@/lib/notifications'
 import { SITE_URL } from '@/lib/config'
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    const token = randomBytes(32).toString('hex')
+    const token = randomHex(32)
 
     await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } })
 

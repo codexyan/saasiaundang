@@ -1,0 +1,8 @@
+# Salin ke .dev.vars (file itu digitignore).
+#
+# Untuk pengembangan lokal, variabel aplikasi tetap dibaca dari .env.local
+# seperti biasa — baik saat `next dev` maupun `wrangler dev`. File ini hanya
+# untuk hal yang khusus Workers.
+
+# Memberi tahu Next environment mana yang dipakai saat jalan di atas Worker lokal.
+NEXTJS_ENV=development

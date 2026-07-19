@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import path from 'path'
 import { getSession } from '@/lib/session-server'
 import { uploadToStorage } from '@/lib/supabase'
-import { processArticleImage } from '@/lib/image-process'
+import { fileExtension, matchesMagic, numberField, type MagicSignature } from '@/lib/upload-utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,7 +13,7 @@ const VIDEO_EXTS = ['.mp4', '.webm', '.mov']
 const AUDIO_EXTS = ['.mp3', '.m4a', '.wav', '.ogg', '.aac']
 const ALLOWED_FOLDERS = ['user', 'music', 'photos', 'videos']
 
-const MAGIC_SIGS: { kind: string; bytes: number[]; offset?: number }[] = [
+const MAGIC_SIGS: MagicSignature[] = [
   { kind: 'image', bytes: [0xFF, 0xD8, 0xFF] },
   { kind: 'image', bytes: [0x89, 0x50, 0x4E, 0x47] },
   { kind: 'image', bytes: [0x52, 0x49, 0x46, 0x46] },
@@ -26,15 +25,6 @@ const MAGIC_SIGS: { kind: string; bytes: number[]; offset?: number }[] = [
   { kind: 'audio', bytes: [0x4F, 0x67, 0x67, 0x53] },
   { kind: 'audio', bytes: [0x52, 0x49, 0x46, 0x46] },
 ]
-
-function validateMagic(buffer: Buffer, kind: string): boolean {
-  const sigs = MAGIC_SIGS.filter(s => s.kind === kind)
-  if (sigs.length === 0) return true
-  return sigs.some(s => {
-    const off = s.offset ?? 0
-    return s.bytes.every((b, i) => buffer[off + i] === b)
-  })
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -48,7 +38,7 @@ export async function POST(req: NextRequest) {
 
     if (!file) return NextResponse.json({ error: 'File wajib diisi' }, { status: 400 })
 
-    const ext = path.extname(file.name).toLowerCase()
+    const ext = fileExtension(file.name)
     const isVideo = VIDEO_EXTS.includes(ext) || file.type.startsWith('video/')
     const isAudio = AUDIO_EXTS.includes(ext) || file.type.startsWith('audio/')
     const isImage = IMAGE_EXTS.includes(ext) || file.type.startsWith('image/')
@@ -65,24 +55,20 @@ export async function POST(req: NextRequest) {
 
     const kind = isVideo ? 'video' : isAudio ? 'audio' : 'image'
     const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
+    const buffer = new Uint8Array(bytes)
 
-    if (!validateMagic(buffer, kind)) {
+    if (!matchesMagic(buffer, MAGIC_SIGS, kind)) {
       return NextResponse.json({ error: 'Konten file tidak sesuai dengan format yang dideklarasikan' }, { status: 400 })
     }
 
-    // Article images (writer editor) get auto-resized/compressed via `process`.
-    let outBuffer: Buffer | Uint8Array = buffer
-    let outExt = ext || (isVideo ? '.mp4' : isAudio ? '.mp3' : '.jpg')
-    let outType = file.type || 'application/octet-stream'
-    let width: number | undefined
-    let height: number | undefined
-    let lowRes = false
-    const processVariant = formData.get('process') as string | null
-    if (kind === 'image' && (processVariant === 'cover' || processVariant === 'inline')) {
-      const p = await processArticleImage(buffer, processVariant)
-      if (p.ext) { outBuffer = p.buffer; outExt = p.ext; outType = p.contentType; width = p.width; height = p.height; lowRes = p.lowRes }
-    }
+    // Gambar artikel sudah di-resize di browser (lib/image-resize.ts); server
+    // hanya menerima dimensi hasilnya untuk ditampilkan kembali ke editor.
+    const outBuffer: Uint8Array = buffer
+    const outExt = ext || (isVideo ? '.mp4' : isAudio ? '.mp3' : '.jpg')
+    const outType = file.type || 'application/octet-stream'
+    const width = numberField(formData.get('width'))
+    const height = numberField(formData.get('height'))
+    const lowRes = formData.get('lowRes') === 'true'
 
     const safeName = `${session.userId.slice(0, 8)}-${Date.now()}${outExt}`
     const storagePath = `${folder}/${safeName}`

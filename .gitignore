@@ -31,8 +31,12 @@ SUPERADMIN_PASSWORD.txt
 .env.test.local
 .env.production.local
 
-# vercel
-.vercel
+# cloudflare workers
+/.open-next/
+/.wrangler/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
 
 # local database dan uploads — jangan commit data user
 /data/
@@ -44,5 +48,3 @@ SUPERADMIN_PASSWORD.txt
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-.vercel

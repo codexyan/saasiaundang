@@ -3,7 +3,6 @@ import { getSession } from '@/lib/session-server'
 import { isAdmin } from '@/lib/auth'
 import { templateRecords } from '@/lib/db'
 import type { TemplateRecord } from '@/lib/types'
-import crypto from 'crypto'
 
 export const dynamic = 'force-dynamic'
 

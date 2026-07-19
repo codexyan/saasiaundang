@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { Upload, X, Loader2, Link as LinkIcon, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { resizeArticleImage } from '@/lib/image-resize'
 
 interface UploadMeta { width?: number; height?: number; bytes?: number; lowRes?: boolean }
 
@@ -14,7 +15,7 @@ interface Props {
   folder?: string
   /** Tailwind height class for the preview image, e.g. "h-48" (cover) or "h-32" (modal). */
   previewHeightClass?: string
-  /** Article image variant → triggers server-side resize + shows size guidance. */
+  /** Article image variant → triggers browser-side resize + shows size guidance. */
   variant?: 'cover' | 'inline'
 }
 
@@ -34,7 +35,8 @@ const HELP: Record<'cover' | 'inline', string> = {
  * Generic image input reused for article cover images and the "Sisipkan Gambar"
  * modal, in both the admin ArticlesTab and the writer dashboard. Supports uploading
  * a real file (drag-drop / click) or pasting an external URL via a small tab toggle.
- * When `variant` is set the server auto-resizes/compresses and returns dimensions.
+ * When `variant` is set the file is resized/compressed in the browser before
+ * upload (see lib/image-resize.ts) and the resulting dimensions are reported.
  */
 export default function ImagePicker({
   value,
@@ -58,10 +60,19 @@ export default function ImagePicker({
 
     setUploading(true)
     try {
+      // Resize di browser (dulu dikerjakan server pakai sharp). Kalau gagal,
+      // `resized` null dan file asli yang diupload — upload tidak pernah gagal
+      // gara-gara langkah ini.
+      const resized = variant ? await resizeArticleImage(file, variant) : null
+
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('file', resized?.file ?? file)
       formData.append('folder', folder)
-      if (variant) formData.append('process', variant)
+      if (resized) {
+        formData.append('width', String(resized.width))
+        formData.append('height', String(resized.height))
+        formData.append('lowRes', String(resized.lowRes))
+      }
       const res = await fetch(uploadUrl, { method: 'POST', body: formData })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Upload gagal')

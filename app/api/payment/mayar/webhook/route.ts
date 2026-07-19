@@ -3,6 +3,7 @@ import { verifyMayarWebhook } from '@/lib/mayar'
 import { prisma } from '@/lib/prisma'
 import { subscriptions } from '@/lib/subscription'
 import { notifyUser } from '@/lib/notifications'
+import { runAfterResponse } from '@/lib/after-response'
 import { PACKAGES, type PackageTier } from '@/lib/packages'
 
 export const dynamic = 'force-dynamic'
@@ -79,13 +80,16 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    notifyUser('order_approved', order.email, {
-      orderNumber: order.orderNumber,
-      email: customerEmail || order.email,
-      name: customerName || `${order.groomName} & ${order.brideName}`,
-      packageTier: order.packageTier,
-      slug: order.subdomain,
-    }).catch(() => {})
+    runAfterResponse(
+      notifyUser('order_approved', order.email, {
+        orderNumber: order.orderNumber,
+        email: customerEmail || order.email,
+        name: customerName || `${order.groomName} & ${order.brideName}`,
+        packageTier: order.packageTier,
+        slug: order.subdomain,
+      }),
+      `notifyUser(order_approved) order=${order.orderNumber}`
+    )
 
     console.log(`Mayar webhook processed: order=${order.orderNumber} email=${order.email}`)
     return NextResponse.json({ ok: true })

@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import path from 'path'
 import { getSession } from '@/lib/session-server'
 import { isAdmin } from '@/lib/auth'
 import { uploadToStorage } from '@/lib/supabase'
-import { processArticleImage } from '@/lib/image-process'
+import { fileExtension, matchesMagic, numberField, type MagicSignature } from '@/lib/upload-utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,39 +23,31 @@ const MAX_FONT_SIZE = 5 * 1024 * 1024  // 5 MB
 
 const ALLOWED_FOLDERS = ['covers', 'thumbnails', 'assets', 'templates', 'decorations', 'music', 'fonts']
 
-const MAGIC_SIGS: { type: string; bytes: number[]; offset?: number }[] = [
-  { type: 'image/jpeg', bytes: [0xFF, 0xD8, 0xFF] },
-  { type: 'image/png',  bytes: [0x89, 0x50, 0x4E, 0x47] },
-  { type: 'image/webp', bytes: [0x52, 0x49, 0x46, 0x46] },
-  { type: 'video/mp4',  bytes: [0x66, 0x74, 0x79, 0x70], offset: 4 },
-  { type: 'video/webm', bytes: [0x1A, 0x45, 0xDF, 0xA3] },
-  { type: 'audio/mpeg', bytes: [0xFF, 0xFB] },
-  { type: 'audio/mpeg', bytes: [0x49, 0x44, 0x33] },
-  { type: 'audio/ogg',  bytes: [0x4F, 0x67, 0x67, 0x53] },
-  { type: 'audio/wav',  bytes: [0x52, 0x49, 0x46, 0x46] },
+const MAGIC_SIGS: MagicSignature[] = [
+  { kind: 'image', bytes: [0xFF, 0xD8, 0xFF] },              // jpeg
+  { kind: 'image', bytes: [0x89, 0x50, 0x4E, 0x47] },        // png
+  { kind: 'image', bytes: [0x52, 0x49, 0x46, 0x46] },        // webp (RIFF)
+  { kind: 'video', bytes: [0x66, 0x74, 0x79, 0x70], offset: 4 }, // mp4 (ftyp)
+  { kind: 'video', bytes: [0x1A, 0x45, 0xDF, 0xA3] },        // webm
+  { kind: 'audio', bytes: [0xFF, 0xFB] },                    // mp3
+  { kind: 'audio', bytes: [0x49, 0x44, 0x33] },              // mp3 (ID3)
+  { kind: 'audio', bytes: [0x4F, 0x67, 0x67, 0x53] },        // ogg
+  { kind: 'audio', bytes: [0x52, 0x49, 0x46, 0x46] },        // wav (RIFF)
+  // Font dulu dilewati begitu saja (selalu lolos). Sekarang diperiksa juga —
+  // folder "fonts" ikut disajikan publik dari bucket Supabase.
+  { kind: 'font',  bytes: [0x77, 0x4F, 0x46, 0x32] },        // woff2 (wOF2)
+  { kind: 'font',  bytes: [0x77, 0x4F, 0x46, 0x46] },        // woff  (wOFF)
+  { kind: 'font',  bytes: [0x00, 0x01, 0x00, 0x00] },        // ttf
+  { kind: 'font',  bytes: [0x74, 0x72, 0x75, 0x65] },        // ttf   (true)
+  { kind: 'font',  bytes: [0x4F, 0x54, 0x54, 0x4F] },        // otf   (OTTO)
 ]
-
-function validateMagic(buffer: Buffer, kind: string): boolean {
-  if (kind === 'font') return true
-  const sigs = MAGIC_SIGS.filter(s => {
-    if (kind === 'image') return s.type.startsWith('image/')
-    if (kind === 'video') return s.type.startsWith('video/')
-    if (kind === 'audio') return s.type.startsWith('audio/')
-    return false
-  })
-  if (sigs.length === 0) return true
-  return sigs.some(s => {
-    const off = s.offset ?? 0
-    return s.bytes.every((b, i) => buffer[off + i] === b)
-  })
-}
 
 function fileKind(file: File): 'image' | 'video' | 'audio' | 'font' | null {
   if (IMAGE_TYPES.includes(file.type)) return 'image'
   if (VIDEO_TYPES.includes(file.type)) return 'video'
   if (AUDIO_TYPES.includes(file.type)) return 'audio'
   if (FONT_TYPES.includes(file.type))  return 'font'
-  const ext = path.extname(file.name).toLowerCase()
+  const ext = fileExtension(file.name)
   if (IMAGE_EXTS.includes(ext)) return 'image'
   if (VIDEO_EXTS.includes(ext)) return 'video'
   if (AUDIO_EXTS.includes(ext)) return 'audio'
@@ -91,32 +82,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `File terlalu besar (maks ${label})` }, { status: 400 })
     }
 
-    const ext = path.extname(file.name).toLowerCase()
+    const ext = fileExtension(file.name)
     const allowedExts = kind === 'video' ? VIDEO_EXTS : kind === 'audio' ? AUDIO_EXTS : kind === 'font' ? FONT_EXTS : IMAGE_EXTS
     if (!allowedExts.includes(ext)) {
       return NextResponse.json({ error: 'Ekstensi file tidak valid' }, { status: 400 })
     }
 
     const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
+    const buffer = new Uint8Array(bytes)
 
-    if (!validateMagic(buffer, kind)) {
+    if (!matchesMagic(buffer, MAGIC_SIGS, kind)) {
       return NextResponse.json({ error: 'Konten file tidak sesuai dengan format yang dideklarasikan' }, { status: 400 })
     }
 
-    // Article images get auto-resized/compressed (scoped via the `process`
-    // field so other uploaders — studio, decorations — are untouched).
-    let outBuffer: Buffer | Uint8Array = buffer
-    let outExt = ext
-    let outType = file.type || 'application/octet-stream'
-    let width: number | undefined
-    let height: number | undefined
-    let lowRes = false
-    const processVariant = formData.get('process') as string | null
-    if (kind === 'image' && (processVariant === 'cover' || processVariant === 'inline')) {
-      const p = await processArticleImage(buffer, processVariant)
-      if (p.ext) { outBuffer = p.buffer; outExt = p.ext; outType = p.contentType; width = p.width; height = p.height; lowRes = p.lowRes }
-    }
+    // Gambar artikel sudah di-resize di browser (lib/image-resize.ts); server
+    // hanya menerima dimensi hasilnya untuk ditampilkan kembali ke editor.
+    const outBuffer: Uint8Array = buffer
+    const outExt = ext
+    const outType = file.type || 'application/octet-stream'
+    const width = numberField(formData.get('width'))
+    const height = numberField(formData.get('height'))
+    const lowRes = formData.get('lowRes') === 'true'
 
     const timestamp = Date.now()
     const random = Math.random().toString(36).substring(2, 9)

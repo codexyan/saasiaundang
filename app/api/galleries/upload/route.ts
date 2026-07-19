@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import path from 'path'
 import { getSession } from '@/lib/session-server'
 import { galleries, invitations } from '@/lib/db'
 import { uploadToStorage } from '@/lib/supabase'
+import { fileExtension } from '@/lib/upload-utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,7 +17,7 @@ const IMAGE_MAGIC: { bytes: number[] }[] = [
   { bytes: [0x52, 0x49, 0x46, 0x46] },
 ]
 
-function validateImageMagic(buffer: Buffer): boolean {
+function validateImageMagic(buffer: Uint8Array): boolean {
   return IMAGE_MAGIC.some(s => s.bytes.every((b, i) => buffer[i] === b))
 }
 
@@ -52,18 +52,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Format tidak didukung. Gunakan JPG, PNG, atau WebP' }, { status: 400 })
     }
 
-    const ext = path.extname(file.name).toLowerCase() || '.jpg'
+    const ext = fileExtension(file.name) || '.jpg'
     if (!ALLOWED_EXTS.includes(ext)) {
       return NextResponse.json({ error: 'Ekstensi file tidak valid' }, { status: 400 })
     }
 
     const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
+    const buffer = new Uint8Array(bytes)
 
     if (!validateImageMagic(buffer)) {
       return NextResponse.json({ error: 'Konten file tidak sesuai dengan format gambar' }, { status: 400 })
     }
-    const filename = `${session.userId}-${Date.now()}${ext}`
+    // Suffix acak: uploadToStorage memakai upsert:true, jadi dua upload dalam
+    // milidetik yang sama akan saling menimpa kalau namanya hanya userId+waktu.
+    const filename = `${session.userId}-${Date.now()}-${crypto.randomUUID().slice(0, 8)}${ext}`
     const storagePath = `galleries/${filename}`
 
     const publicUrl = await uploadToStorage(buffer, storagePath, file.type || 'image/jpeg')
