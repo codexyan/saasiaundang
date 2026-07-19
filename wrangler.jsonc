@@ -20,6 +20,26 @@
     "enabled": true
   },
 
+  // ─── Routing domain ──────────────────────────────────────────────────────
+  // AKTIFKAN SETELAH nameserver iaundang.online pindah ke Cloudflare.
+  // Sebelum itu, deploy dulu ke <name>.workers.dev untuk uji asap.
+  //
+  // Wildcard WAJIB berupa "routes", bukan "Custom Domain" — Custom Domain tidak
+  // mendukung pola wildcard. Subdomain undangan (mira-dani.iaundang.online)
+  // bergantung penuh pada baris *.iaundang.online: middleware.ts membaca header
+  // host lalu me-rewrite ke /invitation/<slug>. Tanpa route ini semua undangan
+  // pelanggan mati, sementara halaman utama tetap hidup — jadi mudah terlewat.
+  //
+  // Perlu juga record DNS wildcard yang di-proxy (orange cloud):
+  //   AAAA   *   100::   (proxied)
+  // Lihat CLOUDFLARE_SETUP.md langkah 5.
+  //
+  // "routes": [
+  //   { "pattern": "iaundang.online/*",   "zone_name": "iaundang.online" },
+  //   { "pattern": "www.iaundang.online/*", "zone_name": "iaundang.online" },
+  //   { "pattern": "*.iaundang.online/*", "zone_name": "iaundang.online" }
+  // ],
+
   // ─── Database ────────────────────────────────────────────────────────────
   // GANTI "id" dengan output dari:
   //   npx wrangler hyperdrive create iaundang-db --connection-string="<DATABASE_URL Supabase>"

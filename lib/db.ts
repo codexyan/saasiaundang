@@ -1790,19 +1790,21 @@ export const invitationViews = {
     return Array.from(map.entries()).map(([date, count]) => ({ date, count }))
   },
 
+  /**
+   * Dulu SETIAP baris view ditarik lalu dikelompokkan di JS — untuk undangan
+   * yang ramai itu bisa puluhan ribu baris masuk memori Worker hanya untuk
+   * mengambil 10 teratas. groupBy menyerahkan penghitungan, pengurutan, dan
+   * pembatasan ke Postgres.
+   */
   async topReferrers(invitationId: string, limit: number = 10): Promise<{ referrer: string; count: number }[]> {
-    const views = await prisma.invitationView.findMany({
+    const grouped = await prisma.invitationView.groupBy({
+      by: ['referrer'],
       where: { invitationId, referrer: { not: '' } },
-      select: { referrer: true },
+      _count: { _all: true },
+      orderBy: { _count: { referrer: 'desc' } },
+      take: limit,
     })
-    const map = new Map<string, number>()
-    for (const v of views) {
-      map.set(v.referrer, (map.get(v.referrer) ?? 0) + 1)
-    }
-    return Array.from(map.entries())
-      .map(([referrer, count]) => ({ referrer, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, limit)
+    return grouped.map(row => ({ referrer: row.referrer, count: row._count._all }))
   },
 }
 

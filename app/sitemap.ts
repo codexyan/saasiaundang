@@ -12,10 +12,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/terms`, lastModified: new Date(), changeFrequency: 'yearly', priority: 0.3 },
   ]
 
+  // Dibatasi seperti query undangan di bawah. Tanpa `take`, jumlah barisnya
+  // tumbuh tanpa batas seiring blog bertambah, dan sitemap dirender di tiap
+  // permintaan (force-dynamic) di dalam Worker yang punya batas CPU & memori.
+  // 5.000 URL juga masih di bawah batas 50.000 per file sitemap.
   const articles = await prisma.article.findMany({
     where: { isPublished: true },
     select: { slug: true, updatedAt: true },
     orderBy: { updatedAt: 'desc' },
+    take: 5000,
   })
 
   const blogPages: MetadataRoute.Sitemap = articles.map(a => ({

@@ -124,9 +124,14 @@ export const experiments = {
     const exp = await prisma.experiment.findUnique({ where: { id } })
     if (!exp) return null
 
-    const events = await prisma.experimentEvent.findMany({
+    // Dulu SETIAP baris event ditarik lalu dihitung di JS. Untuk eksperimen
+    // yang berjalan lama itu bisa ratusan ribu baris masuk memori Worker hanya
+    // untuk menghasilkan beberapa angka. groupBy membuat Postgres yang
+    // menghitung, dan yang kembali hanya satu baris per (variant, event).
+    const grouped = await prisma.experimentEvent.groupBy({
+      by: ['variant', 'event'],
       where: { experimentId: id },
-      select: { variant: true, event: true },
+      _count: { _all: true },
     })
 
     const variantMap = new Map<string, { views: number; conversions: number }>()
@@ -134,11 +139,11 @@ export const experiments = {
       variantMap.set(key, { views: 0, conversions: 0 })
     }
 
-    for (const ev of events) {
-      const stats = variantMap.get(ev.variant) ?? { views: 0, conversions: 0 }
-      if (ev.event === 'view') stats.views++
-      if (ev.event === 'conversion') stats.conversions++
-      variantMap.set(ev.variant, stats)
+    for (const row of grouped) {
+      const stats = variantMap.get(row.variant) ?? { views: 0, conversions: 0 }
+      if (row.event === 'view') stats.views += row._count._all
+      if (row.event === 'conversion') stats.conversions += row._count._all
+      variantMap.set(row.variant, stats)
     }
 
     const stats: VariantStats[] = Array.from(variantMap.entries()).map(([variant, s]) => ({
@@ -148,6 +153,11 @@ export const experiments = {
       conversionRate: s.views > 0 ? Math.round((s.conversions / s.views) * 10000) / 100 : 0,
     }))
 
-    return { experiment: mapExperiment(exp), stats, totalEvents: events.length }
+    // Dulu `events.length` (jumlah baris yang ditarik). Sekarang barisnya tidak
+    // ditarik lagi, jadi totalnya dijumlahkan dari hasil groupBy — angkanya
+    // sama, tanpa memuat satu pun baris event ke memori.
+    const totalEvents = grouped.reduce((sum, row) => sum + row._count._all, 0)
+
+    return { experiment: mapExperiment(exp), stats, totalEvents }
   },
 }

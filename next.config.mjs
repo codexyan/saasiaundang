@@ -24,6 +24,32 @@ const nextConfig = {
       },
     ],
   },
+
+  // Header keamanan. Sengaja TANPA Content-Security-Policy untuk sekarang:
+  // CSP yang benar butuh audit inline script/style lebih dulu, dan CSP asal
+  // pasang justru merusak halaman diam-diam. Yang di bawah ini aman diterapkan
+  // menyeluruh dan menjadi lapis kedua di belakang perbaikan XSS markdown
+  // (lib/html-safe.ts).
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          // Jangan menebak-nebak tipe konten — penting karena upload
+          // pengguna disajikan dari bucket publik.
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          // Cegah clickjacking pada dashboard/admin.
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          // Tidak ada fitur ini yang dipakai; matikan semuanya.
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()' },
+          // 2 tahun, seluruh subdomain — undangan pelanggan juga berjalan di
+          // subdomain, jadi harus ikut terlindungi.
+          { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+        ],
+      },
+    ]
+  },
 }
 
 export default nextConfig
