@@ -188,15 +188,47 @@ npx wrangler tail
 
 Langkah paling berisiko. Baca sampai habis sebelum mulai.
 
-**5a. Tambahkan zona.** Di dashboard Cloudflare: **Add a site** →
-`iaundang.online`. Cloudflare akan menyalin record DNS yang ada — **periksa
-hasil salinannya** sebelum lanjut, terutama record MX/email. Kalau ada yang
-hilang, tambahkan manual sekarang, jangan setelah nameserver pindah.
+**Situasi awal (dipetakan 19 Jul 2026 dari DNS publik, karena panel Vercel tidak
+bisa diakses):**
 
-**5b. Ganti nameserver di registrar** ke dua nameserver yang diberikan
-Cloudflare. Propagasi biasanya beberapa menit sampai beberapa jam.
+- Registrar: **Hostinger**
+- Nameserver saat ini: `ns1.vercel-dns.com`, `ns2.vercel-dns.com`
+  → DNS dikelola **Vercel DNS**, bukan Hostinger. Semua record ada di panel
+  Vercel yang terkunci, jadi record di bawah ini HARUS dibuat ulang manual.
+- Apex dan `www` mengarah ke IP Vercel.
+- Sudah ada **wildcard** `*` yang mengarah ke Vercel — itulah yang membuat
+  subdomain undangan hidup sekarang.
 
-**5c. Record DNS yang dibutuhkan** (semuanya **Proxied / orange cloud**):
+### 5a. Record yang WAJIB diselamatkan
+
+Tidak ada MX, SPF, maupun DMARC di apex — **domain ini tidak menerima email**,
+jadi tidak ada inbox yang bisa rusak. Tapi ada tiga record Resend untuk
+MENGIRIM email. Kalau hilang, verifikasi domain di Resend gugur dan email
+transaksional (kredensial akun, notifikasi pesanan) berhenti terkirim:
+
+| Tipe | Nama | Nilai | Proxy |
+|---|---|---|---|
+| TXT | `resend._domainkey` | `p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQConcID4AWiOwswnYqg5uBEnC7FKRPOcS+8aGEaOKVNalE7rCcWY89GwLeUUm2Y54WN+bQ4AXmOoSIbmKiLQxkpF7C4K+Rpxge7YQvS6qtwrJ1L4bp7c7zjAu0FYpnkjWc6Y6okF1JPPUzo2hS5HR7lo44E7XNejMX1fnhjfD0juwIDAQAB` | DNS only |
+| TXT | `send` | `v=spf1 include:amazonses.com ~all` | DNS only |
+| MX | `send` | `feedback-smtp.ap-northeast-1.amazonses.com` prioritas `10` | DNS only |
+
+TXT dan MX memang tidak bisa di-proxy — biarkan abu-abu (DNS only).
+
+> Salin nilai DKIM di atas apa adanya, satu baris tanpa spasi. Kalau ragu,
+> Resend juga menampilkannya lagi di dashboard → Domains → iaundang.online.
+
+### 5b. Tambahkan zona ke Cloudflare
+
+Dashboard Cloudflare → **Add a site** → `iaundang.online` → pilih paket **Free**.
+
+Cloudflare akan memindai DNS publik dan menyalin apa yang ketemu. **Periksa
+hasil salinannya terhadap tabel 5a** — pemindaian otomatis sering melewatkan
+record di nama tak lazim seperti `resend._domainkey`. Yang belum ada, tambahkan
+manual SEKARANG, sebelum nameserver dipindah.
+
+### 5c. Record untuk Worker
+
+Semuanya **Proxied** (awan oranye):
 
 | Tipe | Nama | Isi | Proxy |
 |---|---|---|---|
@@ -206,11 +238,34 @@ Cloudflare. Propagasi biasanya beberapa menit sampai beberapa jam.
 
 `100::` adalah alamat IPv6 pembuangan. Isinya tidak pernah dihubungi — record
 ini hanya perlu ada supaya Cloudflare mau menerima permintaannya, lalu route
-Worker yang menanganinya. Record `*` inilah yang membuat subdomain undangan
-hidup.
+Worker yang menanganinya.
 
-**5d. Nyalakan route.** Buka blok `routes` di `wrangler.jsonc` (hapus tanda
-komentarnya), lalu deploy ulang:
+Record `*` inilah yang menghidupkan subdomain undangan. Wildcard tidak berlaku
+untuk nama yang sudah punya record lain, jadi `send` (yang punya MX dan TXT)
+tidak akan ikut tertimpa — aman.
+
+### 5d. Ganti nameserver di Hostinger
+
+hPanel Hostinger → **Domains** → `iaundang.online` → **DNS / Nameservers** →
+pilih *Change nameservers* / *Use custom nameservers*, lalu ganti
+
+```
+ns1.vercel-dns.com
+ns2.vercel-dns.com
+```
+
+menjadi dua nameserver yang diberikan Cloudflare (bentuknya seperti
+`xxx.ns.cloudflare.com`).
+
+Propagasi biasanya 5 menit sampai beberapa jam. Cloudflare mengirim email
+begitu zonanya aktif.
+
+Sejak titik ini Vercel tidak lagi menerima trafik. Deployment lamanya boleh
+dibiarkan — tidak mengganggu.
+
+### 5e. Nyalakan route Worker
+
+Buka blok `routes` di `wrangler.jsonc` (hapus tanda komentarnya), lalu:
 
 ```bash
 npm run deploy
@@ -226,15 +281,22 @@ Yang terakhir sering terlupakan, dan gagalnya tidak kentara: situs utama tetap
 normal sementara SETIAP undangan pelanggan mati. `middleware.ts` membaca header
 host, mengambil slug dari subdomain, lalu me-rewrite ke `/invitation/<slug>`.
 
-**5e. Verifikasi:**
+Wildcard WAJIB memakai "routes", bukan "Custom Domain" — Custom Domain tidak
+mendukung pola wildcard.
+
+### 5f. Verifikasi
 
 ```bash
 curl -sI https://iaundang.online | head -3
 curl -sI https://www.iaundang.online | head -3
-curl -sI https://<slug-yang-ada>.iaundang.online | head -3   # harus 200, bukan 404
+curl -sI https://demo.iaundang.online | head -3   # harus 200, bukan 404
+
+# email masih terverifikasi?
+curl -s "https://dns.google/resolve?name=resend._domainkey.iaundang.online&type=TXT"
+curl -s "https://dns.google/resolve?name=send.iaundang.online&type=MX"
 ```
 
----
+Lalu cek dashboard Resend → Domains: statusnya harus tetap *Verified*.
 
 ## 6. Cron
 
