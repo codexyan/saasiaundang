@@ -45,8 +45,33 @@ const nextConfig = {
   // jatuh ke build biner dan saat jalan errornya:
   // "Could not locate the Query Engine for runtime debian-openssl-1.1.x".
   // Menyertakan seluruh isi .prisma/client memastikan varian WASM ikut terbawa.
+  // Daftarnya SENGAJA spesifik, bukan '**/*'.
+  //
+  // `prisma generate` selalu ikut memancarkan engine native platform build
+  // (di Windows ~21 MB, plus sisa .tmp dari generate yang terputus — pernah
+  // 78 MB total). Biner itu MUSTAHIL dijalankan di Workers; yang dipakai hanya
+  // varian WASM 2,2 MB. Menyalin semuanya membengkakkan bundle dari 2,1 MB ke
+  // 3,0 MB gzip — nyaris menembus batas 3 MB paket Free.
+  //
+  // outputFileTracingExcludes TIDAK bisa dipakai untuk membuang biner itu:
+  // include menang atas exclude, jadi satu-satunya cara adalah tidak
+  // menyertakannya sejak awal.
+  //
+  // Isi daftar ini diturunkan dari rantai require yang sebenarnya:
+  //   lib/prisma.ts -> .prisma/client/wasm.js
+  //     -> ./query_engine_bg.js  -> ./query_engine_bg.wasm
+  //     -> @prisma/client/runtime/wasm-engine-edge.js (paket terpisah)
+  // package.json diperlukan karena resolusi subpath "./wasm" melewatinya.
   outputFileTracingIncludes: {
-    '**/*': ['./node_modules/.prisma/client/**/*'],
+    '**/*': [
+      './node_modules/.prisma/client/package.json',
+      './node_modules/.prisma/client/wasm.js',
+      './node_modules/.prisma/client/wasm-worker-loader.mjs',
+      './node_modules/.prisma/client/wasm-edge-light-loader.mjs',
+      './node_modules/.prisma/client/query_engine_bg.js',
+      './node_modules/.prisma/client/query_engine_bg.wasm',
+      './node_modules/.prisma/client/schema.prisma',
+    ],
   },
 
   images: {
