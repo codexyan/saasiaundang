@@ -41,14 +41,22 @@
   // ],
 
   // ─── Database ────────────────────────────────────────────────────────────
-  // GANTI "id" dengan output dari:
-  //   npx wrangler hyperdrive create iaundang-db --connection-string="<DATABASE_URL Supabase>"
-  // Sebelum diganti, `wrangler deploy` akan gagal — ini disengaja supaya tidak
-  // ada deploy yang diam-diam jalan tanpa database.
+  // Dibuat 19 Jul 2026 dengan:
+  //   npx wrangler hyperdrive create iaundang-db --connection-string="..."
+  //
+  // Memakai DIRECT connection Supabase (db.<ref>.supabase.co:5432), BUKAN
+  // pooler — Hyperdrive melakukan poolingnya sendiri, jadi menaruhnya di depan
+  // pgbouncer berarti pooling ganda. Catatan: host direct Supabase hanya
+  // beralamat IPv6 (tidak ada record A).
+  //
+  // Kalau suatu saat koneksi bermasalah, alternatifnya SESSION pooler
+  // (aws-1-ap-south-1.pooler.supabase.com:5432, user postgres.<ref>) yang
+  // beralamat IPv4 — BUKAN transaction pooler port 6543, karena mode transaksi
+  // tidak mendukung prepared statement yang dipakai Prisma.
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
-      "id": "GANTI_DENGAN_HYPERDRIVE_ID"
+      "id": "ccaa0aea299f4410a1973117d3b15dd8"
     }
   ],
 

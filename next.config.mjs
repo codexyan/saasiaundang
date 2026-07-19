@@ -1,5 +1,54 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // WAJIB untuk Cloudflare. Tanpa ini webpack membundel @prisma/client memakai
+  // kondisi resolusi "node", sehingga yang ikut adalah build engine biner dan
+  // saat jalan errornya: "Could not locate the Query Engine for runtime
+  // debian-openssl-1.1.x" — padahal build dan deploy sama sekali tidak
+  // mengeluh. Ditandai eksternal, resolusinya diserahkan ke tahap bundling
+  // OpenNext yang memakai kondisi "workerd" (-> build WASM).
+  serverExternalPackages: ['@prisma/client', '.prisma/client'],
+
+  // serverExternalPackages mencocokkan berdasarkan NAMA PAKET, jadi subpath
+  // '.prisma/client/wasm' yang diimpor lib/prisma.ts tidak ikut tercakup —
+  // webpack tetap mencoba mem-parse query_engine_bg.wasm dan build gagal
+  // ("module is not flagged as WebAssembly module"). Di sini subpath itu
+  // ditandai eksternal secara eksplisit, sehingga resolusinya diserahkan ke
+  // esbuild OpenNext yang memang bisa menangani impor .wasm untuk workerd.
+  // Build WASM tidak bisa dimuat Node biasa ("Unknown file extension .wasm"),
+  // jadi hanya dipakai untuk build produksi yang menuju Workers. `next dev`
+  // dialihkan ke build Node biasa supaya pengembangan lokal tetap normal.
+  webpack: (config, { isServer, dev }) => {
+    if (!isServer) return config
+
+    if (dev) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        '.prisma/client/wasm': '@prisma/client',
+      }
+      return config
+    }
+
+    config.externals = config.externals || []
+    config.externals.push(({ request }, callback) => {
+      if (request === '.prisma/client/wasm') {
+        return callback(null, `commonjs ${request}`)
+      }
+      return callback()
+    })
+    return config
+  },
+
+  // Penelusuran file Next mengikuti kondisi resolusi "node", jadi yang tersalin
+  // ke output hanya index.js + engine biner platform build — sementara
+  // wasm.js dan query_engine_bg.wasm ditinggal. Akibatnya esbuild OpenNext
+  // (yang memakai kondisi "workerd") tidak menemukan varian WASM-nya, lalu
+  // jatuh ke build biner dan saat jalan errornya:
+  // "Could not locate the Query Engine for runtime debian-openssl-1.1.x".
+  // Menyertakan seluruh isi .prisma/client memastikan varian WASM ikut terbawa.
+  outputFileTracingIncludes: {
+    '**/*': ['./node_modules/.prisma/client/**/*'],
+  },
+
   images: {
     // Optimizer bawaan Next memakai `sharp`, yang tidak bisa jalan di Workers.
     // Gambar disajikan apa adanya dari Supabase Storage; ukurannya sudah

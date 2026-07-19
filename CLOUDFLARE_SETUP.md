@@ -38,29 +38,51 @@ npx wrangler login
 
 ---
 
-## 1. Buat Hyperdrive
+## 1. Buat Hyperdrive — ✅ SUDAH DIKERJAKAN
 
 Hyperdrive menyatukan koneksi dari Workers ke Supabase. Tanpa ini, tiap isolate
 membuka koneksi Postgres sendiri dan pool Supabase cepat habis.
 
-Pakai **connection string pooler** Supabase (port `6543`), sama seperti yang ada
-di `DATABASE_URL` sekarang:
+Config sudah dibuat dan id-nya sudah terpasang di `wrangler.jsonc`:
+
+```
+iaundang-db  ->  ccaa0aea299f4410a1973117d3b15dd8
+```
+
+Perintah yang dipakai (untuk referensi kalau perlu dibuat ulang):
 
 ```bash
 npx wrangler hyperdrive create iaundang-db \
-  --connection-string="postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres"
+  --connection-string="postgresql://postgres:[password]@db.[ref].supabase.co:5432/postgres"
 ```
 
-Salin `id` dari outputnya ke `wrangler.jsonc`, menggantikan
-`GANTI_DENGAN_HYPERDRIVE_ID`.
+**Pakai DIRECT connection (port 5432), bukan pooler.** Hyperdrive melakukan
+poolingnya sendiri; menaruhnya di depan pgbouncer Supabase berarti pooling
+ganda. Perhatikan bedanya dengan `DATABASE_URL` di `.env.local` yang memang
+memakai transaction pooler `...pooler.supabase.com:6543` — itu untuk dev lokal
+dan `prisma migrate`, bukan untuk Hyperdrive.
 
-Placeholder itu sengaja dibuat tidak valid supaya `wrangler deploy` gagal kalau
-langkah ini terlewat — lebih baik gagal saat deploy daripada aplikasi hidup
-tanpa database.
+Catatan: host direct Supabase (`db.<ref>.supabase.co`) hanya punya record
+**IPv6**. Sudah diuji dan Hyperdrive bisa menjangkaunya. Kalau suatu saat
+bermasalah, alternatifnya **session** pooler
+(`aws-1-ap-south-1.pooler.supabase.com:5432`, user `postgres.<ref>`) yang
+ber-IPv4 — jangan transaction pooler 6543, karena mode transaksi tidak
+mendukung prepared statement.
 
 ---
 
-## 2. Set secret
+## 2. Set secret — ✅ SUDAH DIKERJAKAN
+
+Keenam secret sudah terpasang di Worker `iaundang`. `SESSION_SECRET` dan
+`CRON_SECRET` **dibuat baru** (nilai lama harus dianggap bocor);
+`SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `MAYAR_API_KEY`, dan
+`MAYAR_WEBHOOK_TOKEN` disalin dari `.env.local`.
+
+`MAYAR_WEBHOOK_TOKEN` sengaja TIDAK diputar — memutarnya tanpa memperbarui
+dashboard Mayar akan membuat webhook pembayaran berhenti bekerja. Kalau ingin
+memutarnya, lakukan bersamaan dengan langkah 7.
+
+Referensi perintahnya:
 
 Yang tidak rahasia sudah ada di `vars` dalam `wrangler.jsonc`. Yang rahasia
 dimasukkan satu per satu (nilainya tidak akan muncul di log):
@@ -109,24 +131,44 @@ Deploy dari laptop tidak perlu ini; `.env.local` sudah dibaca.
 
 ---
 
-## 4. Deploy percobaan ke workers.dev
+## 4. Deploy percobaan ke workers.dev — ✅ SUDAH JALAN
 
-Sebelum menyentuh DNS, pastikan aplikasinya benar-benar jalan:
+Live di **https://iaundang.mdcodeid.workers.dev** dan sudah diverifikasi
+memakai database produksi:
+
+| Cek | Hasil |
+|---|---|
+| Halaman depan | 200, 159 KB HTML |
+| `/api/payment/config` | 200, data asli dari DB |
+| `/templates` | 200, ketiga template dari DB tampil (Rose Garden, Midnight Luxe, Javanese Gold) |
+| `/blog` | 200 (kosong — DB memang punya 0 artikel) |
+| `/sitemap.xml` | 200, 5 URL (5 statis + 0 artikel + 0 undangan terbit) |
+| `/order?template=...` | 200 |
+| POST `/api/auth/login` password salah | 401 JSON — bcrypt jalan tanpa kena batas CPU |
+| POST `/api/orders` body kosong | 400 "Data tidak lengkap" |
+| Cron `*/15` | terpicu sesuai jadwal, handler `scheduled()` jalan dan mencatat hasilnya |
+
+### Deploy dari mesin lokal
+
+`opennextjs-cloudflare deploy` menyalakan proxy platform lokal dan menuntut
+connection string Hyperdrive lokal, walaupun deploy sendiri tidak memakainya.
+Jadi sediakan dulu:
 
 ```bash
-npm run deploy
+export CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE="<DATABASE_URL dari .env.local>"
+npx wrangler deploy
 ```
 
-Aplikasi akan hidup di `https://iaundang.<subdomain-anda>.workers.dev`.
+Tanpa itu deploy berhenti dengan:
+*"When developing locally, you should use a local Postgres connection string to
+emulate Hyperdrive functionality."*
 
-Yang perlu dicek di tahap ini:
+### Yang belum bisa diuji di sini
 
-- [ ] Halaman depan tampil
-- [ ] `/login` — bisa masuk (semua sesi lama sudah putus, jadi harus login ulang)
-- [ ] `/dashboard` — data termuat (membuktikan Hyperdrive → Prisma jalan)
-- [ ] `/templates` dan `/blog` — daftar tampil
-- [ ] Upload gambar di editor artikel — file masuk ke Supabase Storage
-- [ ] `/order` — nominal yang muncul sesuai harga paket
+- Subdomain undangan (`*.iaundang.online`) — butuh domain sungguhan, lihat langkah 5
+- Login sampai tembus dashboard — perlu kredensial pengguna
+- Upload gambar ke Supabase Storage
+- Alur pesanan sungguhan sampai pembayaran
 
 Kalau ada yang gagal:
 
@@ -282,6 +324,40 @@ npx wrangler versions list
 ---
 
 ## Catatan & jebakan
+
+**Prisma harus memakai build WASM — ini jebakan terbesar di migrasi ini.**
+Gejalanya menyesatkan: `tsc`, `next build`, `opennextjs-cloudflare build`, dan
+`wrangler deploy` SEMUA sukses tanpa satu pun peringatan, lalu setiap route yang
+menyentuh database membalas 500 dengan
+*"Could not locate the Query Engine for runtime debian-openssl-1.1.x ...
+generated for windows"*.
+
+Sebabnya: `@prisma/client` berujung ke peta export bersyarat yang urutannya
+`{ node → index.js, edge-light → wasm.js, workerd → wasm.js }`. esbuild milik
+OpenNext memang menambahkan kondisi `workerd`, tapi juga memakai
+`platform: "node"` — dan resolusi export bersyarat memilih kunci **pertama**
+yang cocok menurut urutan di package.json. `node` ada di urutan pertama, jadi
+selalu menang dan yang terpilih engine biner.
+
+`serverExternalPackages` saja TIDAK cukup (walaupun itu yang disarankan dokumen
+OpenNext) — pada Prisma 6.19 urutan petanya membuat `node` tetap menang. Tiga
+hal yang membuatnya jalan, ketiganya harus ada:
+
+1. `lib/prisma.ts` mengimpor `.prisma/client/wasm` — export `"./wasm"` TIDAK
+   bersyarat, jadi melewati seluruh persoalan urutan kondisi.
+2. `next.config.mjs` menandai subpath itu eksternal terhadap webpack
+   (`serverExternalPackages` hanya cocok per NAMA PAKET, tidak mencakup
+   subpath), supaya webpack tidak mencoba mem-parse `query_engine_bg.wasm`.
+3. `outputFileTracingIncludes` menyalin seluruh isi `.prisma/client`, karena
+   penelusuran file Next mengikuti kondisi `node` dan kalau dibiarkan hanya
+   menyalin engine biner sambil meninggalkan varian WASM-nya.
+
+Build WASM tidak bisa dimuat Node biasa, jadi `next dev` dialihkan kembali ke
+`@prisma/client` lewat alias webpack, dan `scripts/*.ts` tetap memakai
+`@prisma/client` langsung. Ringkasnya: **Workers → WASM, Node → engine biner.**
+
+Kalau nanti Prisma dinaikkan versinya, uji lagi endpoint yang menyentuh
+database SETELAH deploy — bukan cuma buildnya.
 
 **Prisma dibuat per request.** Workers melarang socket dipakai lintas request;
 satu client di module scope akan melempar *"Cannot perform I/O on behalf of a

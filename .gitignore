@@ -31,6 +31,9 @@ SUPERADMIN_PASSWORD.txt
 .env.test.local
 .env.production.local
 
+# prisma client hasil generate (dibuat ulang oleh `prisma generate` saat build)
+/lib/generated/
+
 # cloudflare workers
 /.open-next/
 /.wrangler/

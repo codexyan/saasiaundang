@@ -14,7 +14,25 @@
  * Export `prisma` sengaja berupa Proxy supaya seluruh call site
  * `prisma.<model>.<op>()` di lib/db.ts dkk tidak perlu diubah sama sekali.
  */
-import { PrismaClient } from '@prisma/client'
+// Sengaja menunjuk '.prisma/client/wasm', BUKAN '@prisma/client'.
+//
+// Kenapa: '@prisma/client' berujung ke peta export bersyarat `#main-entry-point`
+// yang urutannya { node -> index.js, edge-light -> wasm.js, workerd -> wasm.js }.
+// esbuild milik OpenNext memang menambahkan kondisi "workerd", TAPI juga
+// memakai platform "node" — dan resolusi export bersyarat memilih kunci
+// PERTAMA yang cocok sesuai urutan di package.json. "node" ada di urutan
+// pertama, jadi selalu menang dan yang terpilih adalah build engine biner.
+// Hasilnya saat runtime: "Could not locate the Query Engine for runtime
+// debian-openssl-1.1.x" — padahal build dan deploy sukses tanpa keluhan.
+//
+// Export "./wasm" TIDAK bersyarat, jadi menunjuknya langsung melewati seluruh
+// persoalan urutan kondisi itu.
+//
+// Build WASM ini TIDAK bisa dimuat Node biasa (Node menolak import .wasm:
+// "Unknown file extension"). Karena itu next.config.mjs mengalihkannya kembali
+// ke '@prisma/client' saat `next dev`, dan scripts/*.ts tetap memakai
+// '@prisma/client' langsung. Jadi: Workers -> WASM, Node -> engine biner.
+import { PrismaClient } from '.prisma/client/wasm'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { getCloudflareContext } from '@opennextjs/cloudflare'
 

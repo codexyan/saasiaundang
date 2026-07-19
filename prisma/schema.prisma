@@ -2,6 +2,26 @@
 // Dev: DATABASE_URL = direct connection Supabase
 // Prod: DATABASE_URL = pooler (pgbouncer), DIRECT_URL = direct
 
+// Generator BARU "prisma-client" + query compiler: client murni TypeScript,
+// TANPA engine Rust sama sekali (tidak ada .node biner, tidak ada .wasm).
+//
+// Kenapa bukan "prisma-client-js": generator lama selalu menyertakan engine
+// biner, dan resolusinya bergantung pada export condition. Next menelusuri
+// paketnya dengan kondisi "node", jadi yang tersalin ke bundle adalah
+// query_engine-windows.dll.node — di Workers hasilnya:
+// "Could not locate the Query Engine for runtime debian-openssl-1.1.x".
+// @opennextjs/cloudflare 1.20.1 TIDAK menambal Prisma (sudah diperiksa:
+// tidak ada satu pun rujukan "prisma" di dalam paketnya), jadi tidak ada yang
+// akan membetulkannya otomatis.
+//
+// Query compiler menghapus seluruh kelas masalah ini: tidak ada engine untuk
+// diresolusi. Konsekuensinya driver adapter jadi WAJIB — dan kita memang sudah
+// memakainya (@prisma/adapter-pg lewat Hyperdrive).
+// JANGAN tambahkan `output` di sini, dan biarkan provider "prisma-client-js".
+// Client hasil generate harus tetap di lokasi default (node_modules/.prisma/
+// client) supaya bisa ditandai eksternal terhadap webpack, lalu diresolusi oleh
+// esbuild milik OpenNext yang memakai kondisi "workerd" -> build WASM.
+// Lihat serverExternalPackages + outputFileTracingIncludes di next.config.mjs.
 generator client {
   provider = "prisma-client-js"
 }

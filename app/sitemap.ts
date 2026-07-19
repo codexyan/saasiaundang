@@ -1,6 +1,12 @@
 import type { MetadataRoute } from 'next'
 import { prisma } from '@/lib/prisma'
 
+// Sitemap membaca artikel & undangan dari database, jadi jangan diprerender
+// saat build: (a) isinya langsung basi, dan (b) build akan menjalankan query
+// Prisma di Node padahal client-nya di-generate untuk runtime workerd.
+// Konsisten dengan seluruh halaman lain yang juga force-dynamic.
+export const dynamic = 'force-dynamic'
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://iaundang.online'
 
