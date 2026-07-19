@@ -226,7 +226,60 @@ hasil salinannya terhadap tabel 5a** — pemindaian otomatis sering melewatkan
 record di nama tak lazim seperti `resend._domainkey`. Yang belum ada, tambahkan
 manual SEKARANG, sebelum nameserver dipindah.
 
-### 5c. Record untuk Worker
+### 5c. SSL/TLS — set SEBELUM aktivasi
+
+**SSL/TLS → Overview → Full (strict).**
+
+Wajib, bukan opsional. Selama transisi, record A masih menunjuk ke Vercel dan
+di-proxy Cloudflare. Kalau modenya "Flexible", Cloudflare menghubungi Vercel
+lewat HTTP, Vercel mengalihkan ke HTTPS, dan terjadi redirect loop — situs mati
+total padahal DNS-nya benar.
+
+**CAA.** Zona ini punya CAA yang membatasi CA:
+`letsencrypt.org`, `pki.goog`, `sectigo.com`. Universal SSL Cloudflare memakai
+Google Trust Services dan Let's Encrypt, jadi keduanya sudah diizinkan dan
+sertifikat akan terbit. Cloudflare kadang berpindah ke SSL.com/DigiCert —
+kalau ingin menutup risiko itu, tambahkan `0 issue "ssl.com"` dan
+`0 issue "digicert.com"`. Tidak ada `issuewild`, jadi aturan `issue` juga
+berlaku untuk sertifikat wildcard `*.iaundang.online`.
+
+Kalau Universal SSL tidak kunjung aktif setelah zona hidup, CAA adalah
+tersangka pertama.
+
+---
+
+### 5d. Record A: BIARKAN dulu menunjuk Vercel
+
+Jangan ganti ke `100::` sebelum route Worker aktif. Membiarkannya menghasilkan
+cutover TANPA DOWNTIME:
+
+1. Nameserver pindah -> Cloudflare mem-proxy ke Vercel -> situs tetap hidup
+   (kode lama)
+2. Route Worker di-deploy -> route mencegat sebelum origin -> Worker melayani
+   (kode baru)
+3. Setelah terverifikasi -> baru ganti record A menjadi AAAA `100::`
+
+Kalau `100::` dipasang lebih dulu, situs MATI sejak nameserver pindah sampai
+route selesai di-deploy.
+
+Catatan: selama jendela transisi yang melayani masih kode lama di Vercel,
+termasuk celah keamanan yang sudah diperbaiki di branch ini tapi belum aktif.
+Tidak menambah risiko baru — kondisinya sama seperti sebelum migrasi — tapi
+makin pendek jendelanya makin baik.
+
+Record yang ada saat import (dari pemindaian Cloudflare) dan statusnya:
+
+| Record | Tindakan |
+|---|---|
+| A `@`, `www`, `*` -> IP Vercel, Proxied | BIARKAN dulu, ganti di langkah 5g |
+| MX `send`, TXT `send`, TXT `resend._domainkey` | ✅ ikut ter-import, JANGAN diubah |
+| CAA (3 baris) | biarkan; lihat catatan CAA di atas |
+| CNAME `_domainconnect` | boleh dihapus — artefak Vercel, tidak dipakai |
+
+---
+
+### 5e. Record untuk Worker (dipasang di langkah 5g, SETELAH route aktif)
+
 
 Semuanya **Proxied** (awan oranye):
 
@@ -244,7 +297,7 @@ Record `*` inilah yang menghidupkan subdomain undangan. Wildcard tidak berlaku
 untuk nama yang sudah punya record lain, jadi `send` (yang punya MX dan TXT)
 tidak akan ikut tertimpa — aman.
 
-### 5d. Ganti nameserver di Hostinger
+### 5f. Ganti nameserver di Hostinger
 
 hPanel Hostinger → **Domains** → `iaundang.online` → **DNS / Nameservers** →
 pilih *Change nameservers* / *Use custom nameservers*, lalu ganti
@@ -263,7 +316,7 @@ begitu zonanya aktif.
 Sejak titik ini Vercel tidak lagi menerima trafik. Deployment lamanya boleh
 dibiarkan — tidak mengganggu.
 
-### 5e. Nyalakan route Worker
+### 5g. Nyalakan route Worker, lalu lepas Vercel
 
 Buka blok `routes` di `wrangler.jsonc` (hapus tanda komentarnya), lalu:
 
@@ -284,7 +337,25 @@ host, mengambil slug dari subdomain, lalu me-rewrite ke `/invitation/<slug>`.
 Wildcard WAJIB memakai "routes", bukan "Custom Domain" — Custom Domain tidak
 mendukung pola wildcard.
 
-### 5f. Verifikasi
+**Baru setelah verifikasi 5h lolos**, lepas Vercel dengan mengganti record A
+menjadi AAAA (semuanya Proxied):
+
+| Tipe | Nama | Isi | Proxy |
+|---|---|---|---|
+| AAAA | `@` | `100::` | Proxied |
+| AAAA | `www` | `100::` | Proxied |
+| AAAA | `*` | `100::` | Proxied |
+
+Hapus record A lama yang menunjuk IP Vercel. `100::` adalah alamat IPv6
+pembuangan — tidak pernah dihubungi; record ini hanya perlu ada supaya
+Cloudflare menerima permintaannya, lalu route Worker yang menanganinya.
+
+Wildcard DNS tidak berlaku untuk nama yang sudah punya record lain, jadi `send`
+(punya MX dan TXT Resend) TIDAK akan tertimpa AAAA wildcard. Aman.
+
+Setelah langkah ini, tidak ada lagi trafik yang bisa jatuh ke Vercel.
+
+### 5h. Verifikasi
 
 ```bash
 curl -sI https://iaundang.online | head -3
