@@ -11,30 +11,31 @@ dari perubahan migrasi.
 
 ## P1 — Blocking
 
-### Webhook Mayar menyetujui pesanan padahal invitation_id masih null
-`app/api/payment/mayar/webhook/route.ts:64` · Asal: **lama**
+Tidak ada. Dua P1 sebelumnya sudah diperbaiki (commit `fa48e4b`):
 
-Order ditandai `approved` lebih dulu; blok yang membuat langganan dan menandai
-undangan berbayar dibungkus `if (order.invitationId && pkg)`. Untuk pesanan yang
-dibuat lewat `/api/orders`, `invitation_id` SELALU null (lihat
-`app/api/orders/route.ts` — `invitation_id: null`), karena undangan baru dibuat
-saat admin approve manual.
+- **Webhook Mayar tidak menyediakan apa pun** — pesanan dari `/api/orders` selalu
+  ber-`invitation_id` null, sehingga blok penyediaan dilewati tapi status
+  terlanjur `approved` dan approve manual admin lalu menolak 409. Kini webhook
+  dan approve admin memakai satu jalur bersama (`lib/provision-order.ts`), dan
+  status pesanan baru diubah SETELAH penyediaan berhasil.
+- **Pemilik undangan bisa menaikkan paketnya sendiri** — PATCH
+  `/api/invitations/[id]` kini memakai allowlist field (`slug`, `template_id`,
+  `data`, `is_published`). `handleSimulatePay()` di dashboard, yang mengirim
+  `{ is_paid: true }` langsung dari browser, ikut dihapus.
 
-Akibatnya: pelanggan bayar lewat Mayar → webhook membalas 200 → order
-`approved` → tidak ada undangan, tidak ada langganan. Dan karena statusnya sudah
-`approved`, jalur approve manual admin menolak dengan 409 "Pesanan sudah
-diapprove". Pelanggan membayar dan tidak mendapat apa pun, tanpa jalur pemulihan
-selain intervensi database manual.
+**Sudah dicek di database produksi (19 Jul 2026): TIDAK ADA korban.** Kedua
+pesanan yang ada berstatus `pending` dengan `payment_method` null — belum pernah
+ada yang benar-benar melewati Mayar, jadi bug ini tidak sempat merugikan
+pelanggan. Query pemeriksaannya, untuk dijalankan lagi kalau perlu:
 
-Repro: buat pesanan lewat /order, bayar lewat Mayar, cek tabel invitations.
+```sql
+SELECT order_number, email, status FROM orders
+WHERE status = 'approved' AND invitation_id IS NULL;
+```
 
-### Pemilik undangan bisa menaikkan paketnya sendiri
-`app/api/invitations/[id]/route.ts:83` · Asal: **lama**
-
-PATCH menerima field dari body tanpa allowlist, termasuk `package_tier` (dan
-kemungkinan `is_paid`/`expires_at`). Pemilik undangan gratis bisa mengirim
-`{ package_tier: "eksklusif" }` dan mendapat seluruh fitur berbayar tanpa
-membayar. Perlu allowlist field yang boleh diubah pemilik.
+Kalau suatu saat muncul baris di situ, pesanan itu kini bisa dipulihkan: webhook
+yang datang lagi akan menyelesaikannya (pemeriksaan "Already processed" sudah
+dilonggarkan), atau kembalikan statusnya ke `pending` lalu approve dari panel admin.
 
 ---
 

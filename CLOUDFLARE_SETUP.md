@@ -380,9 +380,43 @@ disajikan apa adanya dari Supabase Storage, dan sudah dikecilkan di browser saat
 upload. Kalau nanti berlangganan Cloudflare Images, ganti dengan loader kustom
 dan hapus `unoptimized` di `next.config.mjs`.
 
-**Batas paket Free:** CPU 10 ms per request. `bcrypt` saat login memakan lebih
-dari itu, jadi **Workers Paid ($5/bulan) praktis wajib** untuk login yang
-konsisten. Ukuran Worker saat ini 2,17 MB gzip (batas Free 3 MB, Paid 10 MB).
+**Paket Free — muat, tapi mepet.** Semua yang dipakai app ini gratis: Workers,
+Hyperdrive, Rate Limiting, Cron Triggers (pakai 2 dari 3 jatah), dan Static
+Assets. Resize gambar dikerjakan browser, jadi Cloudflare Images tidak perlu.
+
+Yang perlu diawasi hanya **ukuran Worker**:
+
+| | |
+|---|---|
+| Sekarang | **3.025 KiB** gzip |
+| Batas Free | 3.072 KiB (3 MiB) — **terpakai 98,5%, sisa 47 KiB** |
+| Batas Paid | 10.240 KiB — terpakai 29,6% |
+
+Sudah diperiksa: tidak ada pustaka client yang bocor ke bundle server
+(framer-motion, tiptap, lucide, date-fns, react-dropzone semuanya TIDAK ikut).
+Penyumbang terbesar yang bisa ditekan adalah **engine WASM Prisma: 869 KiB gzip
+(29% dari seluruh Worker)**. Kalau suatu saat menembus batas, itulah satu-satunya
+tuas besar yang tersisa — pindah ke Prisma Accelerate (berbasis HTTP, tanpa
+engine) akan memangkasnya, dengan konsekuensi menambah layanan pihak ketiga.
+Sisanya adalah runtime Next.js dan react-dom yang praktis tidak bisa dikecilkan.
+
+Artinya: **jangan tambah dependency server-side tanpa mengecek ulang ukurannya.**
+`node scripts/with-hyperdrive-env.mjs wrangler deploy --dry-run` menampilkan
+angkanya tanpa benar-benar deploy.
+
+**CPU:** paket Free dibatasi 10 ms CPU per request. `bcrypt` saat login
+diuji langsung di deploy ini terhadap akun sungguhan dengan password salah dan
+BERHASIL (401 dalam 0,66 s) — jadi tidak terbukti bermasalah. Tetap pantau
+`wrangler tail` untuk error "Exceeded CPU" setelah trafik nyata masuk.
+
+**100 MB di `public/uploads/` — jangan ikut ter-deploy.** Isinya 49 berkas
+(mp3 dan foto) sisa era sebelum Supabase Storage. Sudah diperiksa: TIDAK dirujuk
+kode mana pun, dan di database tidak ada satu pun URL berawalan `/uploads/`
+(musicTrack, article.coverUrl, templateRecord.thumbnailUrl semuanya 0). Folder
+ini gitignore, jadi deploy dari Workers Builds/GitHub tidak akan memuatnya sama
+sekali — hanya deploy dari mesin lokal ini yang ikut mengunggahnya. Aman
+dihapus/diarsipkan; ukuran Worker tidak terpengaruh, tapi deploy jauh lebih cepat
+dan berkas lama pengguna tidak ikut tersaji publik.
 
 **Jangan impor `@/lib/db` sebagai nilai dari komponen client.** Itu menyeret
 Prisma dan `pg` ke bundle browser dan build langsung gagal dengan
