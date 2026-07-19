@@ -5,6 +5,7 @@ import { users } from '@/lib/db'
 import { createSessionToken, buildSetCookieHeader, type SessionRole } from '@/lib/session'
 import { isAdmin, isWriter, getAdminEmail } from '@/lib/auth'
 import { readJsonBody } from '@/lib/request-body'
+import { allowRequest } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,6 +22,18 @@ export async function POST(req: NextRequest) {
   }
 
   const { email, password } = parsed.data
+
+  // Dibatasi per alamat email, BUKAN per IP: kuncinya harus melindungi akun
+  // tertentu, dan satu IP bisa dipakai banyak orang (kantor, kampus, CGNAT).
+  // Dicek SEBELUM query database dan sebelum bcrypt, supaya penebakan otomatis
+  // tidak ikut menghabiskan CPU Worker.
+  if (!(await allowRequest('LOGIN_RATE_LIMIT', email.toLowerCase()))) {
+    return NextResponse.json(
+      { error: 'Terlalu banyak percobaan masuk. Coba lagi sebentar lagi.' },
+      { status: 429 }
+    )
+  }
+
   const user = await users.findByEmail(email)
 
   if (!user || !(await bcrypt.compare(password, user.password_hash))) {

@@ -131,6 +131,22 @@ export default nextConfig
 // Membuat getCloudflareContext() (binding Hyperdrive dll.) tersedia saat
 // `next dev`, bukan hanya di Worker hasil build.
 if (process.env.NODE_ENV === 'development') {
+  // WAJIB diset SEBELUM init: proxy platform lokal menolak jalan kalau binding
+  // Hyperdrive tidak punya connection string lokal, dan kegagalannya membuat
+  // `next dev` mati saat start — bukan sekadar peringatan. Nilainya hanya untuk
+  // emulasi lokal; Worker yang sesungguhnya tetap memakai binding HYPERDRIVE.
+  const BINDING_ENV = 'CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE'
+  if (!process.env[BINDING_ENV] && process.env.DATABASE_URL) {
+    process.env[BINDING_ENV] = process.env.DATABASE_URL
+  }
+
+  if (!process.env[BINDING_ENV]) {
+    console.warn(
+      `[next.config] ${BINDING_ENV} maupun DATABASE_URL tidak diset — ` +
+      'getCloudflareContext() kemungkinan gagal saat dev.'
+    )
+  }
+
   const { initOpenNextCloudflareForDev } = await import('@opennextjs/cloudflare')
   await initOpenNextCloudflareForDev()
 }

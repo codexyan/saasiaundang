@@ -3,7 +3,7 @@ import { getSession } from '@/lib/session-server'
 import { isAdmin } from '@/lib/auth'
 import { blogTypography, DEFAULT_BLOG_TYPOGRAPHY } from '@/lib/db'
 import { sanitizeFontFamily } from '@/lib/html-safe'
-import { readJsonBody } from '@/lib/request-body'
+import { readNonEmptyJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,7 +16,14 @@ export async function GET() {
 export async function PATCH(req: NextRequest) {
   const session = await getSession()
   if (!isAdmin(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const body = await readJsonBody(req)
+  // Tiap field jatuh ke DEFAULT saat tidak ada, jadi body kosong = SEMUA
+  // tipografi direset diam-diam ke bawaan lalu dibalas 200 seolah berhasil.
+  // Body yang tidak terbaca harus ditolak, bukan diperlakukan sebagai {}.
+  const body = await readNonEmptyJsonBody(req)
+  if (!body) {
+    return NextResponse.json({ error: 'Body tipografi tidak valid atau kosong' }, { status: 400 })
+  }
+
   const next = {
     // Dulu hanya `typeof === 'string'`. Nilainya ditempel mentah ke dalam
     // <style>, jadi `x</style><script>...` lolos dan jadi XSS tersimpan untuk

@@ -3,7 +3,7 @@ import { getSession } from '@/lib/session-server'
 import { isAdmin } from '@/lib/auth'
 import { settings } from '@/lib/db'
 import type { AppSettings } from '@/lib/db'
-import { readJsonBody } from '@/lib/request-body'
+import { readNonEmptyJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,8 +27,35 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   try {
-    const body = (await readJsonBody(req)) as AppSettings
-    await settings.save(body)
+    // settings.save() adalah upsert SATU RECORD UTUH — tidak ada merge dengan
+    // baris yang tersimpan. Jadi body yang tidak terbaca TIDAK BOLEH diperlakukan
+    // sebagai "{}", karena artinya menimpa seluruh pengaturan dengan objek kosong:
+    // semua template, kategori, palet warna, tier harga, kupon, flash sale, dan
+    // rekening bank buatan admin hilang permanen, dan route tetap membalas 200.
+    //
+    // Dulu `req.json()` melempar pada body rusak dan tertangkap catch di bawah
+    // (500, baris database utuh) — lemparan itulah validasinya. Pemakaian
+    // readJsonBody() di sini sempat mengubahnya jadi gagal-terbuka.
+    const body = await readNonEmptyJsonBody(req)
+    if (!body) {
+      return NextResponse.json(
+        { error: 'Body pengaturan tidak valid atau kosong' },
+        { status: 400 }
+      )
+    }
+
+    // Penjaga tambahan: pengaturan yang sah selalu membawa kunci-kunci ini.
+    // Menangkap body JSON yang valid tapi jelas bukan AppSettings.
+    const requiredKeys: (keyof AppSettings)[] = ['priceTiers', 'categories', 'templates']
+    const missing = requiredKeys.filter(k => !(k in body))
+    if (missing.length > 0) {
+      return NextResponse.json(
+        { error: `Body pengaturan tidak lengkap (hilang: ${missing.join(', ')})` },
+        { status: 400 }
+      )
+    }
+
+    await settings.save(body as unknown as AppSettings)
     return NextResponse.json({ settings: body })
   } catch (error) {
     console.error('Settings PATCH error:', error)

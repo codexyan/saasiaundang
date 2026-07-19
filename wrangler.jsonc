@@ -60,6 +60,28 @@
     }
   ],
 
+  // ─── Pembatas laju ───────────────────────────────────────────────────────
+  // Hitungannya lokal per lokasi Cloudflare (bukan global) dan `period` hanya
+  // boleh 10 atau 60 detik. Dipakai lib/rate-limit.ts.
+  "ratelimits": [
+    {
+      // Percobaan login per alamat email. 10 per menit sudah longgar untuk
+      // manusia yang salah ketik, tapi mematikan untuk penebakan otomatis.
+      "name": "LOGIN_RATE_LIMIT",
+      "namespace_id": "1001",
+      "simple": { "limit": 10, "period": 60 }
+    },
+    {
+      // Permintaan yang MENGIRIM EMAIL (lupa password). Dibatasi ketat karena
+      // tiap permintaan mengirim email sungguhan lewat Resend — tanpa batas,
+      // endpoint ini bisa dipakai membanjiri inbox orang lain sekaligus
+      // menghabiskan kuota dan merusak reputasi domain pengirim.
+      "name": "EMAIL_RATE_LIMIT",
+      "namespace_id": "1002",
+      "simple": { "limit": 3, "period": 60 }
+    }
+  ],
+
   // ─── Cron ────────────────────────────────────────────────────────────────
   // Semua jadwal dalam UTC. "0 1 * * *" dipertahankan persis dari vercel.json.
   // publish-scheduled BELUM PERNAH terjadwal di Vercel (vercel.json hanya

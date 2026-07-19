@@ -3,7 +3,7 @@ import { getSession } from '@/lib/session-server'
 import { isAdmin } from '@/lib/auth'
 import { settings } from '@/lib/db'
 import type { AdminTemplateConfig } from '@/lib/db'
-import { readJsonBody } from '@/lib/request-body'
+import { readNonEmptyJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,7 +18,19 @@ export async function POST(req: NextRequest) {
   const session = await getSession()
   if (!isAdmin(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await readJsonBody(req)
+  // Setiap field punya fallback, jadi body kosong tetap menghasilkan record
+  // "Template Baru" berisi sampah dengan id acak — dibalas 200 seolah disengaja.
+  const parsedBody = await readNonEmptyJsonBody(req)
+  if (!parsedBody) {
+    return NextResponse.json({ error: 'Body template tidak valid atau kosong' }, { status: 400 })
+  }
+  if (!parsedBody.name || typeof parsedBody.name !== 'string') {
+    return NextResponse.json({ error: 'Nama template wajib diisi' }, { status: 400 })
+  }
+  // Setelah lolos pemeriksaan di atas, akses field dibiarkan longgar seperti
+  // sebelumnya (tiap field sudah punya fallback masing-masing di bawah).
+  const body = parsedBody as Record<string, any>
+
   const s = await settings.get()
 
   const existing = s.templates.find((t) => t.id === body.id)

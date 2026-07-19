@@ -9,8 +9,8 @@
     "lint": "next lint",
     "postinstall": "prisma generate",
     "cf:build": "prisma generate && opennextjs-cloudflare build",
-    "preview": "npm run cf:build && opennextjs-cloudflare preview",
-    "deploy": "npm run cf:build && node scripts/deploy.mjs",
+    "preview": "npm run cf:build && node scripts/with-hyperdrive-env.mjs opennextjs-cloudflare preview",
+    "deploy": "npm run cf:build && node scripts/with-hyperdrive-env.mjs wrangler deploy",
     "cf:typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
