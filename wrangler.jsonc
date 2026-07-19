@@ -81,7 +81,15 @@
   "vars": {
     "NEXT_PUBLIC_APP_DOMAIN": "iaundang.online",
     "NEXT_PUBLIC_APP_URL": "https://iaundang.online",
-    "ADMIN_EMAIL": "admin@iaundang.online",
+    "NEXT_PUBLIC_SUPABASE_URL": "https://zwburqdtpxvqotpcunzh.supabase.co",
+
+    // HARUS alamat akun admin yang SEBENARNYA ada di tabel users.
+    // Bukan sekadar hiasan: app/api/admin/users/[id] memakai nilai ini untuk
+    // MELINDUNGI akun admin dari penurunan role dan reset password. Kalau
+    // isinya alamat yang tidak dimiliki siapa pun, perlindungan itu tidak
+    // pernah aktif dan akun admin asli bisa diturunkan oleh admin lain.
+    "ADMIN_EMAIL": "mdcodeid@gmail.com",
+
     "EMAIL_FROM": "iaundang <halo@iaundang.online>"
   }
 
