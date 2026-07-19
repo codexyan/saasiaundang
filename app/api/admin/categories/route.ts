@@ -3,6 +3,7 @@ import { getSession } from '@/lib/session-server'
 import { isAdmin } from '@/lib/auth'
 import { settings } from '@/lib/db'
 import type { TemplateCategory } from '@/lib/types'
+import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
   const session = await getSession()
   if (!isAdmin(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json()
+  const body = await readJsonBody(req)
   const label = String(body?.label || '').trim()
   if (!label) return NextResponse.json({ error: 'Nama kategori wajib diisi' }, { status: 400 })
 

@@ -4,6 +4,7 @@ import { invitations, musicTracks } from '@/lib/db'
 import { prisma } from '@/lib/prisma'
 import { getTierFeatures } from '@/lib/packages'
 import type { PackageTier } from '@/lib/packages'
+import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,7 +40,7 @@ export async function PATCH(req: NextRequest, props: Params) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
-    const body = await req.json()
+    const body = await readJsonBody(req)
 
     if (body.slug && body.slug !== inv.slug && (await invitations.slugExists(body.slug, params.id))) {
       return NextResponse.json({ error: 'Slug sudah dipakai' }, { status: 409 })

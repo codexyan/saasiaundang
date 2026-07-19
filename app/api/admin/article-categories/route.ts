@@ -3,6 +3,7 @@ import { getSession } from '@/lib/session-server'
 import { isAdmin } from '@/lib/auth'
 import { articleCategories } from '@/lib/db'
 import { slugify } from '@/lib/article-markdown'
+import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   try {
-    const body = await req.json()
+    const body = await readJsonBody(req)
     const name = (body.name ?? '').trim()
     if (!name) {
       return NextResponse.json({ error: 'Nama kategori wajib diisi' }, { status: 400 })

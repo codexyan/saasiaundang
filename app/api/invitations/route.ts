@@ -8,6 +8,7 @@ import { notifyUser } from '@/lib/notifications'
 import { runAfterResponse } from '@/lib/after-response'
 import { LEGACY_TEMPLATE_IDS } from '@/lib/types'
 import type { InvitationData } from '@/lib/types'
+import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json()
+  const body = await readJsonBody(req)
   const parsed = schema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json({ error: 'Data tidak valid', details: parsed.error.flatten() }, { status: 400 })

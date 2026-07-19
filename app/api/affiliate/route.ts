@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/session-server'
 import { isAffiliate } from '@/lib/auth'
 import { affiliates, referrals, affiliateWithdrawals } from '@/lib/db'
+import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,7 +28,7 @@ export async function PATCH(req: NextRequest) {
   const affiliate = await affiliates.findByUserId(session!.userId)
   if (!affiliate) return NextResponse.json({ error: 'Not an affiliate' }, { status: 404 })
 
-  const body = await req.json()
+  const body = await readJsonBody(req)
   if (body.bankName !== undefined) {
     await affiliates.updateBank(affiliate.id, {
       bankName: body.bankName || '',

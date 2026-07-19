@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/session-server'
 import { affiliates, users, userReferrals } from '@/lib/db'
+import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,7 +36,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const { code } = await req.json()
+  const { code } = await readJsonBody(req)
   if (!code) return NextResponse.json({ error: 'No code' }, { status: 400 })
 
   const affiliate = await affiliates.findByCode(code)

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/session-server'
 import { isAdmin } from '@/lib/auth'
 import { templateRecords } from '@/lib/db'
+import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,7 +16,7 @@ export async function PATCH(req: NextRequest, props: Params) {
   const existing = await templateRecords.findById(params.id)
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const body = await req.json()
+  const body = await readJsonBody(req)
 
   // Cek konflik slug kalau di-update
   if (body.slug && body.slug !== existing.slug) {

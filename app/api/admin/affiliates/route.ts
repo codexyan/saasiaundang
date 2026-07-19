@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import { getSession } from '@/lib/session-server'
 import { isAdmin } from '@/lib/auth'
 import { affiliates, referrals, affiliateWithdrawals, users } from '@/lib/db'
+import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
   if (!isAdmin(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const body = await req.json()
+    const body = await readJsonBody(req)
     const { userId, email, password, name } = body
 
     let targetUserId = userId

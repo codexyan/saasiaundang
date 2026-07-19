@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/session-server'
 import { isAdmin } from '@/lib/auth'
 import { settings } from '@/lib/db'
+import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,7 +14,7 @@ export async function PATCH(
   if (!isAdmin(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { slug } = await params
-  const body = await req.json()
+  const body = await readJsonBody(req)
   const newLabel = String(body?.label || '').trim()
   if (!newLabel) return NextResponse.json({ error: 'Nama kategori wajib diisi' }, { status: 400 })
 

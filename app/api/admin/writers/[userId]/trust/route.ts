@@ -3,6 +3,7 @@ import { getSession } from '@/lib/session-server'
 import { isAdmin } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { writerProfiles } from '@/lib/db'
+import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,7 +21,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ userId:
     return NextResponse.json({ error: 'User tidak ditemukan' }, { status: 404 })
   }
 
-  const body = await req.json()
+  const body = await readJsonBody(req)
   const isTrusted = !!body.isTrusted
   const profile = await writerProfiles.upsert(params.userId, { isTrusted })
 

@@ -5,6 +5,7 @@ import { runAfterResponse } from '@/lib/after-response'
 import { randomString } from '@/lib/random'
 import { createMayarPayment } from '@/lib/mayar'
 import { PACKAGES, type PackageTier } from '@/lib/packages'
+import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,7 +29,7 @@ function generateUniqueCode(): number {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const body = await readJsonBody(req)
     const {
       email, phone, groom_name, bride_name,
       groom_nickname, bride_nickname,

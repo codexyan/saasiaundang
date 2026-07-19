@@ -3,6 +3,7 @@ import { getSession } from '@/lib/session-server'
 import { isAdmin } from '@/lib/auth'
 import { settings } from '@/lib/db'
 import type { ColorPalette } from '@/lib/types'
+import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,7 +16,7 @@ export async function PATCH(req: NextRequest, props: Params) {
   const session = await getSession()
   if (!isAdmin(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json()
+  const body = await readJsonBody(req)
   const s = await settings.get()
   const idx = s.colorPalettes.findIndex((p) => p.id === params.id)
   if (idx === -1) return NextResponse.json({ error: 'Not found' }, { status: 404 })

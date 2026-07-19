@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/session-server'
 import { isAdmin } from '@/lib/auth'
 import { invitations } from '@/lib/db'
+import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,7 +17,7 @@ export async function PATCH(req: NextRequest, props: Params) {
   }
 
   try {
-    const body = await req.json()
+    const body = await readJsonBody(req)
     const updated = await invitations.update(params.id, body)
     if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     return NextResponse.json({ invitation: updated })

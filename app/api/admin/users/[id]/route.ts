@@ -3,6 +3,7 @@ import { getSession } from '@/lib/session-server'
 import { isAdmin, getAdminEmail } from '@/lib/auth'
 import { users } from '@/lib/db'
 import type { UserRole } from '@/lib/db'
+import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,7 +15,7 @@ export async function PATCH(req: NextRequest, props: Params) {
   if (!isAdmin(session)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  const body = await req.json()
+  const body = await readJsonBody(req)
   const validRoles: UserRole[] = ['admin', 'content_writer', 'affiliate', 'user']
   if (!body.role || !validRoles.includes(body.role)) {
     return NextResponse.json({ error: 'Invalid role' }, { status: 400 })

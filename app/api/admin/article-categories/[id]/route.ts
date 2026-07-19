@@ -3,6 +3,7 @@ import { getSession } from '@/lib/session-server'
 import { isAdmin } from '@/lib/auth'
 import { articleCategories } from '@/lib/db'
 import { slugify } from '@/lib/article-markdown'
+import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,7 +14,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   try {
-    const body = await req.json()
+    const body = await readJsonBody(req)
     const data: Partial<{ name: string; slug: string; sortOrder: number }> = {}
     if (body.name !== undefined) data.name = String(body.name).trim()
     if (body.slug !== undefined) data.slug = String(body.slug).trim() || slugify(String(body.name ?? ''))

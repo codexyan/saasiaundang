@@ -3,12 +3,13 @@ import { randomHex } from '@/lib/random'
 import { prisma } from '@/lib/prisma'
 import { sendNotification } from '@/lib/notifications'
 import { SITE_URL } from '@/lib/config'
+import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   try {
-    const { email } = await req.json()
+    const { email } = await readJsonBody(req)
 
     if (!email) {
       return NextResponse.json({ error: 'Email harus diisi' }, { status: 400 })

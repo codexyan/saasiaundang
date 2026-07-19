@@ -8,6 +8,7 @@ import { PACKAGES, type PackageTier } from '@/lib/packages'
 import { notifyUser } from '@/lib/notifications'
 import { runAfterResponse } from '@/lib/after-response'
 import { randomString } from '@/lib/random'
+import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,7 +29,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
   try {
     const { id } = params
-    const body = await req.json()
+    const body = await readJsonBody(req)
     const { action, admin_notes } = body
 
     const order = await orders.findById(id)

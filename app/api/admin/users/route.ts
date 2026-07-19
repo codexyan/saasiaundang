@@ -4,6 +4,7 @@ import { getSession } from '@/lib/session-server'
 import { isAdmin } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import type { UserRole } from '@/lib/db'
+import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,7 +72,7 @@ export async function POST(req: NextRequest) {
   const session = await getSession()
   if (!isAdmin(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { email, password, role } = await req.json() as { email?: string; password?: string; role?: UserRole }
+  const { email, password, role } = await readJsonBody(req) as { email?: string; password?: string; role?: UserRole }
 
   if (!email || !email.includes('@')) return NextResponse.json({ error: 'Email tidak valid' }, { status: 400 })
   if (!password || password.length < 6) return NextResponse.json({ error: 'Password minimal 6 karakter' }, { status: 400 })

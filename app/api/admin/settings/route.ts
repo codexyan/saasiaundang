@@ -3,6 +3,7 @@ import { getSession } from '@/lib/session-server'
 import { isAdmin } from '@/lib/auth'
 import { settings } from '@/lib/db'
 import type { AppSettings } from '@/lib/db'
+import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,7 +27,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   try {
-    const body = (await req.json()) as AppSettings
+    const body = (await readJsonBody(req)) as AppSettings
     await settings.save(body)
     return NextResponse.json({ settings: body })
   } catch (error) {

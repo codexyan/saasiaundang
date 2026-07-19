@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { invitations, giftProofs } from '@/lib/db'
+import { getSession } from '@/lib/session-server'
+import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,7 +13,7 @@ const schema = z.object({
 })
 
 export async function POST(req: NextRequest) {
-  const body   = await req.json()
+  const body   = await readJsonBody(req)
   const parsed = schema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: 'Data tidak valid' }, { status: 400 })
 
@@ -30,8 +32,27 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ proof: { id: 'preview', invitation_id: invitationId, name, proof_url: proofUrl, created_at: new Date().toISOString() } }, { status: 201 })
 }
 
+/**
+ * Daftar bukti hadiah — HANYA untuk pemilik undangan.
+ *
+ * Dulu tanpa autentikasi sama sekali: siapa pun yang tahu invitationId (dan id
+ * itu tampil di markup halaman undangan publik) bisa menarik seluruh daftar
+ * pengirim hadiah beserta URL gambar buktinya.
+ *
+ * Endpoint ini tidak dipanggil dari mana pun di aplikasi (sudah dicek: hanya
+ * POST yang dipakai GiftSection), jadi mengetatkannya tidak memutus alur apa pun.
+ */
 export async function GET(req: NextRequest) {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const invitationId = req.nextUrl.searchParams.get('invitationId') ?? ''
   if (!invitationId) return NextResponse.json({ proofs: [] })
+
+  const inv = await invitations.findById(invitationId)
+  if (!inv || inv.user_id !== session.userId) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
   return NextResponse.json({ proofs: await giftProofs.findByInvitationId(invitationId) })
 }

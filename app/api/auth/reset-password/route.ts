@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
+import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
@@ -51,7 +52,7 @@ export async function GET(req: NextRequest) {
 // POST: Reset password
 export async function POST(req: NextRequest) {
   try {
-    const { token, password } = await req.json()
+    const { token, password } = await readJsonBody(req)
 
     if (!token || !password) {
       return NextResponse.json(

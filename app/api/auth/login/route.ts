@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { users } from '@/lib/db'
 import { createSessionToken, buildSetCookieHeader, type SessionRole } from '@/lib/session'
 import { isAdmin, isWriter, getAdminEmail } from '@/lib/auth'
+import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,7 +14,7 @@ const schema = z.object({
 })
 
 export async function POST(req: NextRequest) {
-  const body = await req.json()
+  const body = await readJsonBody(req)
   const parsed = schema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json({ error: 'Data tidak valid' }, { status: 400 })

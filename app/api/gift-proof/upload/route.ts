@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { uploadToStorage } from '@/lib/supabase'
 import { invitations } from '@/lib/db'
+import { getSession } from '@/lib/session-server'
 import { fileExtension } from '@/lib/upload-utils'
 
 export const dynamic = 'force-dynamic'
@@ -32,7 +33,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'invitationId wajib diisi' }, { status: 400 })
     }
 
-    if (invitationId !== 'preview') {
+    // Undangan sungguhan: sengaja terbuka untuk tamu (tamu tidak punya akun),
+    // tapi undangannya harus benar-benar ada dan sudah terbit.
+    //
+    // invitationId 'preview' adalah nilai default milik renderer saat dipakai di
+    // studio/demo. Dulu nilai itu MELEWATI seluruh pemeriksaan, sehingga siapa
+    // pun bisa mengunggah berkas 10 MB tanpa batas ke Supabase Storage secara
+    // anonim hanya dengan mengirim invitationId=preview. Sekarang jalur preview
+    // menuntut sesi login — pengguna studio memang selalu login.
+    if (invitationId === 'preview') {
+      const session = await getSession()
+      if (!session) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+    } else {
       const inv = await invitations.findById(invitationId)
       if (!inv || !inv.is_published) {
         return NextResponse.json({ error: 'Undangan tidak ditemukan' }, { status: 404 })

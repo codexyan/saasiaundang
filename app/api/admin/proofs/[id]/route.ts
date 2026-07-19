@@ -4,6 +4,7 @@ import { isAdmin } from '@/lib/auth'
 import { paymentProofs, invitations, affiliates, users, settings } from '@/lib/db'
 import { subscriptions } from '@/lib/subscription'
 import { PACKAGES, type PackageTier } from '@/lib/packages'
+import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,7 +16,7 @@ export async function PATCH(req: NextRequest, props: Params) {
     const session = await getSession()
     if (!isAdmin(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const body = await req.json() as { status: 'approved' | 'rejected'; admin_notes?: string; packageDuration?: number }
+    const body = await readJsonBody(req) as { status: 'approved' | 'rejected'; admin_notes?: string; packageDuration?: number }
     const proof = await paymentProofs.findById(params.id)
     if (!proof) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 

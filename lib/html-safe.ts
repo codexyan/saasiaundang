@@ -79,3 +79,21 @@ export function safeUrl(raw: string): string {
 export function safeUrlAttribute(raw: string): string {
   return escapeAttribute(safeUrl(raw))
 }
+
+/**
+ * Bersihkan nilai CSS font-family sebelum ditempel ke dalam blok <style>.
+ *
+ * Tipografi blog diatur admin lalu disuntikkan mentah ke
+ * `<style dangerouslySetInnerHTML>`. Field angkanya sudah dibatasi rentang,
+ * tapi nama fontnya dulu hanya dicek `typeof === 'string'` — sehingga nilai
+ * seperti `x</style><script>...` keluar dari blok style dan menjadi XSS
+ * tersimpan untuk SETIAP pengunjung blog.
+ *
+ * Font family yang sah hanya butuh huruf, angka, spasi, tanda hubung, koma,
+ * dan tanda kutip. Karakter selain itu dibuang.
+ */
+export function sanitizeFontFamily(value: unknown, fallback: string): string {
+  if (typeof value !== 'string') return fallback
+  const cleaned = value.replace(/[^a-zA-Z0-9\s,'"-]/g, '').trim().slice(0, 120)
+  return cleaned || fallback
+}

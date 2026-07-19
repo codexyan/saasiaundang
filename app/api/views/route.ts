@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { invitationViews } from '@/lib/db'
+import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   try {
-    const { invitation_id, referrer } = await req.json()
+    const { invitation_id, referrer } = await readJsonBody(req)
     if (!invitation_id) {
       return NextResponse.json({ error: 'invitation_id required' }, { status: 400 })
     }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/session-server'
 import { isWriter, isAdmin } from '@/lib/auth'
 import { articles, writerProfiles } from '@/lib/db'
+import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,7 +22,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  const body = await req.json()
+  const body = await readJsonBody(req)
 
   // Admin keeps full control through this route (back-compat).
   if (isAdmin(session)) {
