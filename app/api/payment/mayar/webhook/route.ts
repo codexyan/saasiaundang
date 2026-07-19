@@ -14,9 +14,12 @@ export async function POST(req: NextRequest) {
       || req.headers.get('x-mayar-token')
       || ''
 
-    const body = await req.json()
+    const body = await req.json().catch(() => null)
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json({ error: 'Body tidak valid' }, { status: 400 })
+    }
 
-    const isValid = verifyMayarWebhook(token) || verifyMayarWebhook(body.token || '')
+    const isValid = (await verifyMayarWebhook(token)) || (await verifyMayarWebhook(body.token))
     if (!isValid) {
       console.warn('Mayar webhook: invalid token')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -27,6 +30,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, skipped: true })
     }
 
+    if (!body.data || typeof body.data !== 'object') {
+      return NextResponse.json({ error: 'Payload tanpa data' }, { status: 400 })
+    }
     const { customerEmail, customerName, amount } = body.data
 
     let order = await prisma.order.findFirst({
@@ -66,12 +72,35 @@ export async function POST(req: NextRequest) {
       if (existingSub) {
         await subscriptions.renew(existingSub.id, tier)
       } else {
-        await subscriptions.create({
-          invitationId: order.invitationId,
-          userId: order.email,
-          orderId: order.id,
-          tier,
+        // Dulu di sini `userId: order.email` — ALAMAT EMAIL disimpan ke kolom
+        // userId. Akibatnya subscriptions.findByUser(session.userId) tidak
+        // pernah cocok: pelanggan membayar lewat Mayar, order jadi "approved",
+        // tapi di dashboard langganannya tidak muncul sama sekali.
+        // Pemilik undangan adalah sumber kebenarannya.
+        const invitationRecord = await prisma.invitation.findUnique({
+          where: { id: order.invitationId },
+          select: { userId: true },
         })
+        const ownerUserId =
+          invitationRecord?.userId ??
+          (await prisma.user.findUnique({
+            where: { email: order.email.toLowerCase() },
+            select: { id: true },
+          }))?.id
+
+        if (ownerUserId) {
+          await subscriptions.create({
+            invitationId: order.invitationId,
+            userId: ownerUserId,
+            orderId: order.id,
+            tier,
+          })
+        } else {
+          console.error(
+            `Mayar webhook: tidak menemukan user untuk order=${order.orderNumber} ` +
+            `email=${order.email} — langganan TIDAK dibuat, perlu tindakan manual.`
+          )
+        }
       }
 
       await prisma.invitation.update({

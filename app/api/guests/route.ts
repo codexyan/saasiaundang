@@ -81,6 +81,13 @@ export async function PATCH(req: NextRequest) {
   }
 
   const { id, ...updates } = parsed.data
+
+  // Wajib: update() hanya menerima id, jadi tanpa cek ini siapa pun yang login
+  // bisa mengubah tamu milik undangan orang lain.
+  if (!(await guests.isOwnedBy(id, session.userId))) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
   const guest = await guests.update(id, updates)
   return NextResponse.json({ guest })
 }
@@ -91,6 +98,10 @@ export async function DELETE(req: NextRequest) {
 
   const id = req.nextUrl.searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
+
+  if (!(await guests.isOwnedBy(id, session.userId))) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
 
   await guests.delete(id)
   return NextResponse.json({ success: true })

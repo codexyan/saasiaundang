@@ -19,6 +19,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Data tidak valid' }, { status: 400 })
   }
 
-  await guests.markBlastSent(parsed.data.ids)
-  return NextResponse.json({ success: true })
+  // markBlastSent memfilter berdasarkan kepemilikan; id milik orang lain
+  // diabaikan diam-diam, bukan diproses.
+  const marked = await guests.markBlastSent(parsed.data.ids, session.userId)
+  return NextResponse.json({ success: true, marked })
 }

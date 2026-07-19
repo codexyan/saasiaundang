@@ -826,7 +826,13 @@ function OrdersTab({ orders: initialOrders }: { orders: AdminOrder[] }) {
       } else {
         setSelectedOrder(null)
         setAdminNotes('')
-        toast.success(action === 'approve' ? 'Pesanan disetujui!' : 'Pesanan ditolak')
+        if (action === 'approve' && data.accountAlreadyExisted) {
+          // Tidak ada kredensial baru untuk diteruskan: emailnya sudah punya
+          // akun, jadi password lamanya tetap berlaku.
+          toast.success('Pesanan disetujui. Email ini sudah punya akun — pakai password lama, atau kirim reset password.', { duration: 8000 })
+        } else {
+          toast.success(action === 'approve' ? 'Pesanan disetujui!' : 'Pesanan ditolak')
+        }
       }
     } catch { toast.error('Terjadi kesalahan') }
     finally { setProcessing(false) }

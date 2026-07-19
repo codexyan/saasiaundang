@@ -19,8 +19,16 @@ export async function POST(req: NextRequest) {
     if (!amount || amount < 50000) {
       return NextResponse.json({ error: 'Minimum pencairan Rp 50.000' }, { status: 400 })
     }
-    if (amount > affiliate.pendingBalance) {
-      return NextResponse.json({ error: 'Saldo tidak cukup' }, { status: 400 })
+    // Dibandingkan dengan saldo TERSEDIA (pendingBalance dikurangi permintaan
+    // yang masih menunggu), bukan pendingBalance mentah. Kalau memakai
+    // pendingBalance, sepuluh permintaan berturut-turut sebesar seluruh saldo
+    // semuanya lolos karena tidak ada satupun yang mengurangi saldo.
+    const available = await affiliateWithdrawals.availableBalance(affiliate.id)
+    if (amount > available) {
+      return NextResponse.json(
+        { error: `Saldo tidak cukup. Tersedia Rp ${available.toLocaleString('id-ID')} (permintaan yang masih diproses sudah dipotong).` },
+        { status: 400 }
+      )
     }
     if (!affiliate.bankName || !affiliate.accountNo) {
       return NextResponse.json({ error: 'Lengkapi data bank terlebih dahulu' }, { status: 400 })

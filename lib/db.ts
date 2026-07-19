@@ -396,11 +396,28 @@ export const guests = {
   async delete(id: string): Promise<void> {
     await prisma.guest.delete({ where: { id } })
   },
-  async markBlastSent(ids: string[]): Promise<void> {
-    await prisma.guest.updateMany({
-      where: { id: { in: ids } },
+  /**
+   * Apakah tamu ini benar milik undangan si user?
+   *
+   * update()/delete() di atas hanya menerima id, jadi route WAJIB memanggil ini
+   * lebih dulu. Sebelumnya PATCH dan DELETE di /api/guests hanya memeriksa
+   * "sudah login", tanpa memeriksa kepemilikan — siapa pun yang punya akun bisa
+   * mengubah atau menghapus daftar tamu pasangan lain hanya dengan menebak id.
+   */
+  async isOwnedBy(id: string, userId: string): Promise<boolean> {
+    const found = await prisma.guest.findFirst({
+      where: { id, invitation: { userId } },
+      select: { id: true },
+    })
+    return found !== null
+  },
+  /** Hanya menandai tamu yang benar-benar milik user. Mengembalikan jumlah yang tertandai. */
+  async markBlastSent(ids: string[], userId: string): Promise<number> {
+    const result = await prisma.guest.updateMany({
+      where: { id: { in: ids }, invitation: { userId } },
       data: { blastSentAt: new Date() },
     })
+    return result.count
   },
   async countByInvitation(invitationId: string): Promise<{ total: number; attending: number; declined: number; pending: number }> {
     const all = await prisma.guest.findMany({ where: { invitationId }, select: { attending: true } })
@@ -1187,6 +1204,28 @@ export const paymentProofs = {
     const p = await prisma.paymentProof.findUnique({ where: { id } })
     return p ? mapPaymentProof(p) : null
   },
+  /**
+   * Ubah status HANYA kalau masih 'pending'. Mengembalikan null kalau sudah
+   * pernah diproses.
+   *
+   * Guard-nya ada di dalam `where` supaya atomik: hanya satu pemanggil yang
+   * bisa memenangkan transisi. Dulu route menulis status tanpa syarat lalu
+   * menjalankan efek sampingnya, jadi menyetujui bukti yang sama dua kali
+   * membuat DUA baris langganan dan membayar komisi afiliasi DUA KALI.
+   */
+  async review(
+    id: string,
+    status: 'approved' | 'rejected',
+    adminNotes: string
+  ): Promise<PaymentProof | null> {
+    const claimed = await prisma.paymentProof.updateMany({
+      where: { id, status: 'pending' },
+      data: { status, adminNotes, reviewedAt: new Date() },
+    })
+    if (claimed.count === 0) return null
+    const p = await prisma.paymentProof.findUnique({ where: { id } })
+    return p ? mapPaymentProof(p) : null
+  },
   async create(data: Omit<PaymentProof, 'id' | 'created_at' | 'reviewed_at'>): Promise<PaymentProof> {
     const p = await prisma.paymentProof.create({
       data: {
@@ -1533,33 +1572,78 @@ export const affiliateWithdrawals = {
     return rows.map(mapWithdrawal)
   },
 
+  /**
+   * Saldo yang benar-benar bisa dicairkan = pendingBalance dikurangi seluruh
+   * permintaan yang masih menunggu.
+   *
+   * create() hanya menyisipkan baris; pendingBalance baru berubah saat admin
+   * approve/reject. Dulu route hanya membandingkan amount dengan
+   * pendingBalance, jadi afiliator bersaldo Rp 100k bisa mengirim sepuluh
+   * permintaan Rp 100k dan SEMUANYA lolos validasi. Kalau admin menyetujui
+   * tiga, Rp 300k terbayar dan saldo jadi minus.
+   */
+  async availableBalance(affiliateId: string): Promise<number> {
+    const [affiliate, pending] = await Promise.all([
+      prisma.affiliate.findUnique({ where: { id: affiliateId }, select: { pendingBalance: true } }),
+      prisma.affiliateWithdrawal.aggregate({
+        where: { affiliateId, status: 'pending' },
+        _sum: { amount: true },
+      }),
+    ])
+    if (!affiliate) return 0
+    return affiliate.pendingBalance - (pending._sum.amount ?? 0)
+  },
+
   async create(data: { affiliateId: string; amount: number; bankName: string; accountNo: string; accountName: string }): Promise<WithdrawalData> {
     const w = await prisma.affiliateWithdrawal.create({ data })
     return mapWithdrawal(w)
   },
 
-  async approve(id: string, adminNotes?: string): Promise<void> {
-    const w = await prisma.affiliateWithdrawal.update({
-      where: { id },
-      data: { status: 'approved', adminNotes: adminNotes ?? '', processedAt: new Date() },
-    })
-    await prisma.affiliate.update({
-      where: { id: w.affiliateId },
-      data: {
-        pendingBalance: { decrement: w.amount },
-        paidBalance: { increment: w.amount },
-      },
+  /**
+   * Mengembalikan false kalau permintaannya sudah tidak berstatus 'pending'.
+   *
+   * Dua perbaikan dibanding versi lama:
+   * - Guard `status: 'pending'` ADA DI DALAM where updateMany, jadi hanya satu
+   *   pemanggil yang bisa membalik pending->approved. Dulu admin yang
+   *   mengklik dua kali membuat pendingBalance berkurang DUA KALI untuk satu
+   *   pembayaran.
+   * - Kedua penulisan dibungkus satu transaksi. Dulu terpisah: kalau update
+   *   kedua gagal, statusnya terlanjur 'approved' padahal saldo tidak pernah
+   *   didebit.
+   */
+  async approve(id: string, adminNotes?: string): Promise<boolean> {
+    return prisma.$transaction(async tx => {
+      const claimed = await tx.affiliateWithdrawal.updateMany({
+        where: { id, status: 'pending' },
+        data: { status: 'approved', adminNotes: adminNotes ?? '', processedAt: new Date() },
+      })
+      if (claimed.count === 0) return false
+
+      const w = await tx.affiliateWithdrawal.findUniqueOrThrow({ where: { id } })
+      await tx.affiliate.update({
+        where: { id: w.affiliateId },
+        data: {
+          pendingBalance: { decrement: w.amount },
+          paidBalance: { increment: w.amount },
+        },
+      })
+      return true
     })
   },
 
-  async reject(id: string, adminNotes: string): Promise<void> {
-    const w = await prisma.affiliateWithdrawal.update({
-      where: { id },
-      data: { status: 'rejected', adminNotes, processedAt: new Date() },
-    })
-    await prisma.affiliate.update({
-      where: { id: w.affiliateId },
-      data: { pendingBalance: { decrement: w.amount } },
+  /** Sama seperti approve(): idempoten lewat guard status, dan atomik. */
+  async reject(id: string, adminNotes: string): Promise<boolean> {
+    return prisma.$transaction(async tx => {
+      const claimed = await tx.affiliateWithdrawal.updateMany({
+        where: { id, status: 'pending' },
+        data: { status: 'rejected', adminNotes, processedAt: new Date() },
+      })
+      if (claimed.count === 0) return false
+
+      // Ditolak = dana kembali tersedia. pendingBalance TIDAK dikurangi di sini:
+      // saldo memang tidak pernah didebit saat permintaan dibuat, jadi
+      // pengurangan pada versi lama justru menghanguskan komisi yang sah.
+      return true
     })
   },
 }

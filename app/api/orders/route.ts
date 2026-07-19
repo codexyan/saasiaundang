@@ -1,23 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { orders, invitations } from '@/lib/db'
+import { orders, invitations, settings } from '@/lib/db'
 import { notifyUser } from '@/lib/notifications'
 import { runAfterResponse } from '@/lib/after-response'
+import { randomString } from '@/lib/random'
 import { createMayarPayment } from '@/lib/mayar'
 import { PACKAGES, type PackageTier } from '@/lib/packages'
 
 export const dynamic = 'force-dynamic'
+
+// 4 karakter dari Math.random() terhadap kolom @unique: tabrakan muncul sebagai
+// error 500 ke pembeli, dan ruang tebakannya kecil (lihat GET di bawah).
+// Sekarang 8 karakter dari CSPRNG.
+const ORDER_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 
 function generateOrderNumber(): string {
   const now = new Date()
   const y = String(now.getFullYear()).slice(-2)
   const m = String(now.getMonth() + 1).padStart(2, '0')
   const d = String(now.getDate()).padStart(2, '0')
-  const rand = Math.random().toString(36).slice(2, 6).toUpperCase()
-  return `ORD-${y}${m}${d}-${rand}`
+  return `ORD-${y}${m}${d}-${randomString(8, ORDER_ALPHABET)}`
 }
 
+/** Kode unik pembeda nominal transfer (1-999). */
 function generateUniqueCode(): number {
-  return Math.floor(Math.random() * 999) + 1
+  return (crypto.getRandomValues(new Uint32Array(1))[0] % 999) + 1
 }
 
 export async function POST(req: NextRequest) {
@@ -28,11 +34,11 @@ export async function POST(req: NextRequest) {
       groom_nickname, bride_nickname,
       groom_father, groom_mother, bride_father, bride_mother,
       groom_profession, bride_profession,
-      subdomain, template_id, package_tier, amount,
+      subdomain, template_id, package_tier,
       referred_by,
     } = body
 
-    if (!email || !groom_name || !bride_name || !subdomain || !template_id || !package_tier || !amount) {
+    if (!email || !groom_name || !bride_name || !subdomain || !template_id || !package_tier) {
       return NextResponse.json({ error: 'Data tidak lengkap' }, { status: 400 })
     }
 
@@ -47,8 +53,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Subdomain sudah digunakan' }, { status: 409 })
     }
 
+    // Harga DITENTUKAN SERVER, bukan dikirim client.
+    //
+    // Dulu `amount` diambil langsung dari body request dan tidak pernah
+    // dicocokkan dengan paket mana pun — PACKAGES[package_tier] memang dimuat
+    // di bawah, tapi hanya `pkg.name` yang dipakai. Kirim
+    // `{ package_tier: "eksklusif", amount: 1000 }` dan pesanan Eksklusif
+    // terbentuk seharga Rp 1.000; link pembayaran Mayar ikut nominal itu, dan
+    // webhook mencocokkan lewat totalAmount sehingga paket penuh tetap diberikan.
+    //
+    // Sumber kebenaran harga adalah settings.priceTiers (bisa diubah admin),
+    // BUKAN konstanta PACKAGES — kalau admin mengubah harga, keduanya berbeda.
+    const appSettings = await settings.get()
+    const tier = appSettings.priceTiers.find(t => t.id === package_tier)
+    if (!tier) {
+      return NextResponse.json({ error: 'Paket tidak valid' }, { status: 400 })
+    }
+    const amount = tier.price
+
     const uniqueCode = generateUniqueCode()
-    const totalAmount = Number(amount) + uniqueCode
+    const totalAmount = amount + uniqueCode
 
     const order = await orders.create({
       order_number: generateOrderNumber(),
@@ -67,7 +91,7 @@ export async function POST(req: NextRequest) {
       subdomain: slug,
       template_id,
       package_tier,
-      amount: Number(amount),
+      amount,
       unique_code: uniqueCode,
       total_amount: totalAmount,
       proof_url: '',
@@ -125,12 +149,33 @@ export async function POST(req: NextRequest) {
   }
 }
 
+/**
+ * Lacak pesanan. Sengaja tanpa login (pembeli belum punya akun sampai
+ * pesanannya disetujui), tapi sekarang WAJIB menyertakan email juga.
+ *
+ * Dulu order_number saja sudah cukup. Nomornya berbentuk
+ * ORD-YYMMDD-XXXX dengan 4 karakter base36 dari Math.random() — sekitar 1,7 juta
+ * kemungkinan per tanggal yang sudah diketahui, gampang di-brute force. Setiap
+ * tebakan yang tepat mengembalikan email, telepon, serta nama dan pekerjaan
+ * orang tua kedua mempelai.
+ *
+ * Email berfungsi sebagai faktor kedua: pembeli tahu keduanya, penebak tidak.
+ */
 export async function GET(req: NextRequest) {
   const orderNumber = req.nextUrl.searchParams.get('order_number')
-  if (!orderNumber) return NextResponse.json({ error: 'order_number required' }, { status: 400 })
+  const email = req.nextUrl.searchParams.get('email')
+
+  if (!orderNumber || !email) {
+    return NextResponse.json({ error: 'order_number dan email wajib diisi' }, { status: 400 })
+  }
 
   const order = await orders.findByOrderNumber(orderNumber)
-  if (!order) return NextResponse.json({ error: 'Pesanan tidak ditemukan' }, { status: 404 })
+
+  // Pesan dan status yang sama untuk "tidak ada" maupun "email tidak cocok",
+  // supaya tidak bisa dipakai memastikan sebuah nomor pesanan itu ada.
+  if (!order || order.email.toLowerCase() !== email.trim().toLowerCase()) {
+    return NextResponse.json({ error: 'Pesanan tidak ditemukan' }, { status: 404 })
+  }
 
   return NextResponse.json({ order })
 }

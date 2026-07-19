@@ -12,12 +12,22 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
   const { action, adminNotes } = await req.json()
 
+  let changed: boolean
   if (action === 'approve') {
-    await affiliateWithdrawals.approve(params.id, adminNotes)
+    changed = await affiliateWithdrawals.approve(params.id, adminNotes)
   } else if (action === 'reject') {
-    await affiliateWithdrawals.reject(params.id, adminNotes || 'Ditolak oleh admin')
+    changed = await affiliateWithdrawals.reject(params.id, adminNotes || 'Ditolak oleh admin')
   } else {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
+  }
+
+  // false = permintaannya sudah tidak 'pending' (klik ganda, atau sudah
+  // diproses admin lain). Bukan error, tapi jangan laporkan seolah berhasil.
+  if (!changed) {
+    return NextResponse.json(
+      { ok: false, error: 'Permintaan ini sudah diproses sebelumnya.' },
+      { status: 409 }
+    )
   }
 
   return NextResponse.json({ ok: true })

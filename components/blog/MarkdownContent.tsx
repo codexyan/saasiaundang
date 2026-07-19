@@ -1,6 +1,7 @@
 'use client'
 
 import { parseLinkParts } from '@/lib/article-markdown'
+import { escapeHtml, escapeAttribute, safeUrlAttribute } from '@/lib/html-safe'
 
 function parseMarkdown(md: string): string {
   const lines = md.split('\n')
@@ -101,13 +102,15 @@ function isTableStart(lines: string[], i: number): boolean {
   return lines[i].includes('|') && i + 1 < lines.length && /^\|?\s*[-:]+[-|\s:]*$/.test(lines[i + 1])
 }
 
-function esc(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-}
+const esc = escapeHtml
 
 function inlineFormat(s: string): string {
   return s
-    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" loading="lazy" class="inline-image" />')
+    .replace(
+      /!\[([^\]]*)\]\(([^)]+)\)/g,
+      (_m, alt: string, src: string) =>
+        `<img src="${safeUrlAttribute(src)}" alt="${escapeAttribute(alt)}" loading="lazy" class="inline-image" />`
+    )
     .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')

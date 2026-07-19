@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/session-server'
 import { isAdmin } from '@/lib/auth'
-import { paymentProofs, invitations, affiliates, users } from '@/lib/db'
+import { paymentProofs, invitations, affiliates, users, settings } from '@/lib/db'
 import { subscriptions } from '@/lib/subscription'
 import { PACKAGES, type PackageTier } from '@/lib/packages'
 
@@ -19,11 +19,19 @@ export async function PATCH(req: NextRequest, props: Params) {
     const proof = await paymentProofs.findById(params.id)
     if (!proof) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    const updated = await paymentProofs.update(params.id, {
-      status: body.status,
-      admin_notes: body.admin_notes || '',
-      reviewed_at: new Date().toISOString(),
-    })
+    // Klaim transisi status secara atomik. null = sudah pernah diproses, jadi
+    // JANGAN jalankan lagi efek sampingnya (langganan + komisi afiliasi).
+    const updated = await paymentProofs.review(
+      params.id,
+      body.status,
+      body.admin_notes || ''
+    )
+    if (!updated) {
+      return NextResponse.json(
+        { error: 'Bukti pembayaran ini sudah diproses sebelumnya.' },
+        { status: 409 }
+      )
+    }
 
     if (body.status === 'approved') {
       const invitation = await invitations.findById(proof.invitation_id)
@@ -48,7 +56,14 @@ export async function PATCH(req: NextRequest, props: Params) {
       if (invitation?.referred_by) {
         const affiliate = await affiliates.findByCode(invitation.referred_by)
         if (affiliate && affiliate.isActive) {
-          const saleAmount = proof.amount ?? 0
+          // Nilai penjualan diambil dari harga paket menurut server, BUKAN dari
+          // proof.amount. proof.amount berasal dari pembeli
+          // (api/payment/proof: `Number(amount) || 0`, tanpa validasi apa pun),
+          // jadi afiliator bisa mereferensikan dirinya sendiri, mengaku
+          // mentransfer Rp 100 juta, lalu dibayari komisi atas angka fiktif itu.
+          const appSettings = await settings.get()
+          const priceTier = appSettings.priceTiers.find(t => t.id === tier)
+          const saleAmount = priceTier?.price ?? pkg.price
           const commission = Math.round(saleAmount * (affiliate.commissionRate / 100))
           if (commission > 0) {
             const buyer = await users.findById(invitation.user_id)

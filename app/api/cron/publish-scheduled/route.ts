@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { articles } from '@/lib/db'
+import { verifyBearer } from '@/lib/secure-compare'
 
 export const dynamic = 'force-dynamic'
 
-// Vercel Cron invokes this endpoint via GET and automatically sends the
-// header Authorization: Bearer ${CRON_SECRET} when CRON_SECRET is set as a
-// project env var. See vercel.json for the schedule. Publishes any article
-// with status='scheduled' whose scheduledAt has passed.
+// Menerbitkan artikel berstatus 'scheduled' yang waktunya sudah lewat.
+//
+// CATATAN: route ini tidak pernah benar-benar berjalan di Vercel — vercel.json
+// hanya mendaftarkan cron sync-subscriptions, padahal komentar lama di sini
+// menyebut "lihat vercel.json". Sekarang terdaftar di wrangler.jsonc (*/15).
 export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Dulu perbandingan template string: CRON_SECRET yang kosong menghasilkan
+  // "Bearer undefined" yang bisa ditebak siapa pun.
+  if (!(await verifyBearer(req.headers.get('authorization'), process.env.CRON_SECRET))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

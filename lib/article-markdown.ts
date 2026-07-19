@@ -2,6 +2,7 @@
 // Single source of truth so both editors render previews identically.
 
 import { SITE_DOMAIN } from './config'
+import { escapeHtml, escapeAttribute, safeUrlAttribute } from './html-safe'
 
 export function slugify(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
@@ -17,9 +18,12 @@ export function isInternalHref(href: string): boolean {
 // rel intent (nofollow/sponsored) is carried in the markdown title token.
 export function parseLinkParts(hrefRaw: string): { href: string; target: string; rel: string } {
   const m = hrefRaw.trim().match(/^(\S+)(?:\s+"([^"]*)")?$/)
-  const href = m ? m[1] : hrefRaw.trim()
+  const rawHref = m ? m[1] : hrefRaw.trim()
   const title = m && m[2] ? m[2].toLowerCase() : ''
-  const internal = isInternalHref(href)
+  const internal = isInternalHref(rawHref)
+  // Disaring + di-escape DI SINI supaya kedua pemanggil (renderer publik dan
+  // preview editor) tidak bisa lupa melakukannya.
+  const href = safeUrlAttribute(rawHref)
   const relParts: string[] = []
   if (!internal) relParts.push('noopener', 'noreferrer')
   if (title === 'nofollow') relParts.push('nofollow')
@@ -39,13 +43,15 @@ export function readTime(text: string): number {
   return Math.max(1, Math.ceil(wordCount(text) / 200))
 }
 
-export function esc(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-}
+export const esc = escapeHtml
 
 export function inl(s: string): string {
   return s
-    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:4px" />')
+    .replace(
+      /!\[([^\]]*)\]\(([^)]+)\)/g,
+      (_m, alt: string, src: string) =>
+        `<img src="${safeUrlAttribute(src)}" alt="${escapeAttribute(alt)}" style="max-width:100%;border-radius:4px" />`
+    )
     .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
