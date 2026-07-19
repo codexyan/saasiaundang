@@ -34,11 +34,17 @@
   //   AAAA   *   100::   (proxied)
   // Lihat CLOUDFLARE_SETUP.md langkah 5.
   //
-  // "routes": [
-  //   { "pattern": "iaundang.online/*",   "zone_name": "iaundang.online" },
-  //   { "pattern": "www.iaundang.online/*", "zone_name": "iaundang.online" },
-  //   { "pattern": "*.iaundang.online/*", "zone_name": "iaundang.online" }
-  // ],
+  "routes": [
+    { "pattern": "iaundang.online/*", "zone_name": "iaundang.online" },
+    { "pattern": "www.iaundang.online/*", "zone_name": "iaundang.online" },
+    { "pattern": "*.iaundang.online/*", "zone_name": "iaundang.online" }
+  ],
+
+  // Begitu "routes" diisi, wrangler MEMATIKAN workers.dev secara default.
+  // Sengaja dinyalakan lagi: <name>.<subdomain>.workers.dev berguna sebagai
+  // jalur uji dan jaring pengaman kalau routing domain bermasalah — bisa
+  // memastikan Worker-nya sendiri sehat, terpisah dari urusan DNS.
+  "workers_dev": true,
 
   // ─── Database ────────────────────────────────────────────────────────────
   // Dibuat 19 Jul 2026 dengan:

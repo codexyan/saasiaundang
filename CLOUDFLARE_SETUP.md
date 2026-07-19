@@ -337,6 +337,35 @@ host, mengambil slug dari subdomain, lalu me-rewrite ke `/invitation/<slug>`.
 Wildcard WAJIB memakai "routes", bukan "Custom Domain" — Custom Domain tidak
 mendukung pola wildcard.
 
+**Jebakan `workers.dev`.** Begitu `routes` diisi, wrangler MEMATIKAN
+`workers.dev` secara default dan hanya memberi tahu lewat WARNING kecil di akhir
+output. Akibatnya URL uji `<name>.<subdomain>.workers.dev` mati tepat saat Anda
+paling membutuhkannya untuk membedakan "Worker-nya bermasalah" dari "DNS-nya
+belum siap". Karena itu `"workers_dev": true` ditambahkan eksplisit di
+wrangler.jsonc.
+
+**Menguji domain SEBELUM DNS propagasi.** Tidak perlu menunggu cache resolver
+kedaluwarsa — paksa koneksi ke edge Cloudflare dengan SNI yang benar:
+
+```bash
+CFIP=$(curl -s "https://dns.google/resolve?name=cloudflare.com&type=A"   | grep -o '"data":"[0-9.]*"' | head -1 | cut -d'"' -f4)
+
+curl -sI --resolve "iaundang.online:443:$CFIP" https://iaundang.online/
+curl -sI --resolve "demo.iaundang.online:443:$CFIP" https://demo.iaundang.online/
+```
+
+Cara membaca hasilnya:
+
+| Hasil | Artinya |
+|---|---|
+| HTTP 200 | route jalan, zona aktif, sertifikat sudah terbit |
+| Gagal TLS (curl exit 35) | zona belum aktif ATAU Universal SSL belum terbit |
+| HTTP 403 di port 80 | zona masih **Pending** — Cloudflare belum memverifikasi nameserver |
+
+Kalau statusnya Pending padahal RDAP sudah menunjukkan nameserver Cloudflare,
+tidak ada yang perlu dikerjakan — Cloudflare memeriksa berkala dan mengirim
+email begitu aktif. Universal SSL terbit beberapa menit setelah itu.
+
 **Baru setelah verifikasi 5h lolos**, lepas Vercel dengan mengganti record A
 menjadi AAAA (semuanya Proxied):
 
