@@ -64,17 +64,16 @@ kecocokan ADMIN_EMAIL efektif mati. Saat ini AMAN karena akun admin sungguhan
 ADMIN_EMAIL tinggal berfungsi sebagai pelindung akun, bukan pemberi hak. Perlu
 diputuskan: hapus jalur itu sepenuhnya, atau kembalikan sebagai fallback.
 
-### Endpoint penghitung tanpa autentikasi
-`app/api/referral` (POST) · Asal: **lama**
+### ~~Endpoint penghitung tanpa autentikasi~~ — SELESAI
 
-Menerima tulisan (increment klik afiliasi) tanpa login dan tanpa rate limit —
-metrik klik yang dipakai menghitung komisi afiliasi bisa dibanjiri. Binding
-`COUNTER_RATE_LIMIT` sudah ada (dipakai 4 endpoint sejenis lainnya, lihat di
-bawah) tinggal diterapkan ke sini juga.
+Kelimanya (`app/api/views`, `app/api/music/[id]/usage`,
+`app/api/articles/[slug]/views`, `app/api/experiments/assign`,
+`app/api/referral`) kini dibatasi `COUNTER_RATE_LIMIT` (60/60s, per key).
 
-~~`app/api/views`, `app/api/music/[id]/usage`, `app/api/articles/[slug]/views`,
-`app/api/experiments/assign`~~ — sudah dibatasi `COUNTER_RATE_LIMIT` (60/60s,
-per key) sejak perbaikan arsitektur 16 Agu 2026.
+Catatan desain untuk `/api/referral`: yang dibatasi hanya penghitung kliknya,
+bukan seluruh request — endpoint itu juga memasang cookie atribusi 30 hari
+yang menentukan komisi afiliator, jadi memblokir request penuh justru merugikan
+afiliator yang sah. Cookie selalu dipasang, hanya penghitungnya yang berhenti.
 
 ### Enumerasi pengguna saat registrasi
 `app/api/auth/register/route.ts:25` · Asal: **lama**
@@ -114,11 +113,13 @@ Item di bawah ini BUKAN bug — nilainya nyata tapi risiko/usahanya besar untuk
 aplikasi yang sedang melayani pembayaran sungguhan, jadi sengaja ditunda ke
 sesi terpisah dengan fokus penuh:
 
-- **Pecah `TemplateLab.tsx` (5914 baris)** — 4681 baris dalam satu fungsi, 24
-  `useState`/10 `useEffect` top-level. Ini editor paling kompleks di aplikasi;
-  perlu pemahaman alur state antar `ConfigTab` dulu sebelum aman dipecah, dan
-  butuh pengujian interaktif tiap sub-editor yang tidak bisa diverifikasi lewat
-  `tsc`/curl saja.
+- **Pecah `TemplateLab.tsx`** — **separuh jalan.** Bagian stateless sudah
+  diekstrak ke `components/admin/tabs/template-lab/*` (konstanta, VariantThumb,
+  DecorationLayerList + subkomponennya, pembungkus field), file induk turun
+  5914 → 4705 baris. **Sisanya: komponen utama 4651 baris** (24 `useState`/10
+  `useEffect`) — ini bagian yang stateful dan perlu pemahaman alur state antar
+  `ConfigTab` dulu, plus pengujian interaktif tiap sub-editor yang tidak bisa
+  diverifikasi lewat `tsc`/curl saja.
 - **Standardisasi Zod ke seluruh 88 route** (91% belum pakai) — diff besar
   dengan potensi mengubah pesan error yang sudah dirapikan sesi-sesi
   sebelumnya. Lebih aman diterapkan bertahap per fitur yang disentuh ke depan.
@@ -130,7 +131,6 @@ sesi terpisah dengan fokus penuh:
   Server Component.
 - **`PrismaClient` tanpa `$disconnect`** — sudah tercatat di P2 di atas, butuh
   load test sungguhan untuk mengukur dampak, bukan keputusan kode.
-- **`app/api/referral` (POST) belum di-rate-limit** — lihat P2 di atas.
 
 ---
 
