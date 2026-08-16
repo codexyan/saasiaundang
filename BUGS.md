@@ -120,12 +120,20 @@ sesi terpisah dengan fokus penuh:
   `useEffect`) — ini bagian yang stateful dan perlu pemahaman alur state antar
   `ConfigTab` dulu, plus pengujian interaktif tiap sub-editor yang tidak bisa
   diverifikasi lewat `tsc`/curl saja.
-- **Standardisasi Zod ke seluruh 88 route** — **route uang sudah selesai.**
-  `/api/orders` dan `/api/payment/proof` kini bervalidasi skema (16 Agu 2026);
-  totalnya 10 route memakai zod. Sisanya diterapkan bertahap per fitur yang
-  disentuh ke depan — diff sekali-jalan ke 78 route berisiko mengubah pesan
-  error yang sudah dirapikan sesi-sesi sebelumnya, dan nilainya paling besar
-  memang di route uang yang sudah ditangani.
+- **Standardisasi Zod ke seluruh 88 route** — **semua route uang & auth
+  pengguna sudah selesai** (16 Agu 2026): `/api/orders`, `/api/payment/proof`,
+  `/api/affiliate` (PATCH), `/api/affiliate/withdrawals`,
+  `/api/auth/reset-password`, `/api/auth/forgot-password`. Totalnya 14 route
+  memakai zod.
+
+  Sisanya (~47) sengaja bertahap. Prioritasnya sudah dinilai: mayoritas ada di
+  `app/api/admin/**` yang berada di balik `withAdminAuth`, jadi penyerang harus
+  sudah menjadi admin — risikonya jauh lebih rendah daripada route publik.
+  Yang tersisa dan layak duluan kalau disentuh lagi:
+  - `invitations/[id]` PATCH — sengaja dilewati: `data` berupa blob JSON besar
+    dan normalisasi `slug` (yang jadi subdomain publik) butuh kehati-hatian
+    terhadap data lama; tidak bisa diverifikasi lewat curl.
+  - `tickets` POST, `writer/articles` POST/PATCH, `feedback` POST.
 - **`useApiMutation`/`useApiQuery` hook** untuk 115 pemanggilan `fetch()` di 40
   file — adopsi ke depan untuk kode baru, migrasi kode lama organik saat file
   itu disentuh untuk alasan lain.
