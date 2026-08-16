@@ -129,9 +129,13 @@ sesi terpisah dengan fokus penuh:
 - **`useApiMutation`/`useApiQuery` hook** untuk 115 pemanggilan `fetch()` di 40
   file — adopsi ke depan untuk kode baru, migrasi kode lama organik saat file
   itu disentuh untuk alasan lain.
-- **Rasio 84% Client Component** — baru sinyal agregat, belum temuan solid;
-  butuh audit file-per-file untuk membuktikan mana yang benar-benar bisa jadi
-  Server Component.
+- ~~**Rasio 84% Client Component**~~ — **SUDAH DIAUDIT, sebagian besar temuan
+  palsu.** Rasionya benar (149/180 = 83%), tapi hanya 6 file yang tidak punya
+  fitur khusus klien, dan cuma 2 yang berguna diubah (MarkdownContent,
+  DemoShell — sudah dikerjakan 16 Agu 2026). Sisanya gugur karena **diimpor
+  Client Component lain, sehingga tetap masuk bundle klien** — mencabut
+  `'use client'` di sana nol manfaat. Pelajaran untuk audit serupa ke depan:
+  rasio agregat bukan indikator; yang menentukan adalah siapa pengimpornya.
 - **`PrismaClient` tanpa `$disconnect`** — sudah tercatat di P2 di atas, butuh
   load test sungguhan untuk mengukur dampak, bukan keputusan kode.
 
