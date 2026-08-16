@@ -120,9 +120,12 @@ sesi terpisah dengan fokus penuh:
   `useEffect`) — ini bagian yang stateful dan perlu pemahaman alur state antar
   `ConfigTab` dulu, plus pengujian interaktif tiap sub-editor yang tidak bisa
   diverifikasi lewat `tsc`/curl saja.
-- **Standardisasi Zod ke seluruh 88 route** (91% belum pakai) — diff besar
-  dengan potensi mengubah pesan error yang sudah dirapikan sesi-sesi
-  sebelumnya. Lebih aman diterapkan bertahap per fitur yang disentuh ke depan.
+- **Standardisasi Zod ke seluruh 88 route** — **route uang sudah selesai.**
+  `/api/orders` dan `/api/payment/proof` kini bervalidasi skema (16 Agu 2026);
+  totalnya 10 route memakai zod. Sisanya diterapkan bertahap per fitur yang
+  disentuh ke depan — diff sekali-jalan ke 78 route berisiko mengubah pesan
+  error yang sudah dirapikan sesi-sesi sebelumnya, dan nilainya paling besar
+  memang di route uang yang sudah ditangani.
 - **`useApiMutation`/`useApiQuery` hook** untuk 115 pemanggilan `fetch()` di 40
   file — adopsi ke depan untuk kode baru, migrasi kode lama organik saat file
   itu disentuh untuk alasan lain.
