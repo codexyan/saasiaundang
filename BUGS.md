@@ -199,14 +199,20 @@ sesi terpisah dengan fokus penuh:
   `/api/auth/reset-password`, `/api/auth/forgot-password`. Totalnya 14 route
   memakai zod.
 
-  Sisanya (~47) sengaja bertahap. Prioritasnya sudah dinilai: mayoritas ada di
-  `app/api/admin/**` yang berada di balik `withAdminAuth`, jadi penyerang harus
-  sudah menjadi admin — risikonya jauh lebih rendah daripada route publik.
-  Yang tersisa dan layak duluan kalau disentuh lagi:
-  - `invitations/[id]` PATCH — sengaja dilewati: `data` berupa blob JSON besar
-    dan normalisasi `slug` (yang jadi subdomain publik) butuh kehati-hatian
-    terhadap data lama; tidak bisa diverifikasi lewat curl.
-  - `tickets` POST, `writer/articles` POST/PATCH, `feedback` POST.
+  Ditambah `tickets` POST, `tickets/[id]/reply` POST, dan `feedback` POST
+  (batas panjang teks pengguna) — **total 17 route**, dan seluruh route
+  non-admin yang layak sudah tertangani.
+
+  Sisanya (~40) hampir semuanya di `app/api/admin/**`, di balik `withAdminAuth`
+  — penyerang harus sudah menjadi admin, jadi risikonya jauh lebih rendah
+  daripada route publik. Sengaja tidak digarap sekali-jalan.
+
+  Dua yang sengaja dilewati meski non-admin, beserta alasannya:
+  - `invitations/[id]` PATCH — `data` berupa blob JSON besar dan normalisasi
+    `slug` (yang jadi subdomain publik) butuh kehati-hatian terhadap data lama;
+    tidak bisa diverifikasi lewat curl.
+  - `writer/articles` POST/PATCH — isi artikel berupa markdown panjang; batas
+    panjangnya perlu disepakati dulu supaya tidak memotong tulisan yang sah.
 - ~~**`useApiMutation`/`useApiQuery` hook**~~ — **SELESAI dibuat**
   (`hooks/useApi.ts`, 16 Agu 2026), diadopsi di `ArticleCategoriesManager`
   sebagai bukti pakai. Migrasi ~145 pemanggilan `fetch()` lainnya sengaja
