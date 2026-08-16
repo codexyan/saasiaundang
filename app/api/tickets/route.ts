@@ -1,9 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { getSession } from '@/lib/session-server'
 import { prisma } from '@/lib/prisma'
 import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
+
+/**
+ * Yang ditutup di sini batas panjangnya. `String(body?.x || '')` yang lama
+ * sudah aman soal tipe, tapi tidak ada apa pun yang mencegah judul/pesan
+ * sepanjang megabyte tersimpan ke database — lalu dirender utuh di panel admin
+ * saat tiket dibaca.
+ *
+ * Pemeriksaan "belum lengkap" tetap dilakukan setelah `.trim()` di bawah,
+ * supaya pesan errornya tidak berubah dan spasi-saja tetap dianggap kosong.
+ */
+const ticketSchema = z.object({
+  subject: z.string().max(200),
+  message: z.string().max(5000),
+})
 
 export async function GET() {
   const session = await getSession()
@@ -38,9 +53,12 @@ export async function POST(req: NextRequest) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
-  const body = await readJsonBody(req)
-  const subject = String(body?.subject || '').trim()
-  const message = String(body?.message || '').trim()
+  const parsed = ticketSchema.safeParse(await readJsonBody(req))
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Judul dan isi pesannya belum lengkap.' }, { status: 400 })
+  }
+  const subject = parsed.data.subject.trim()
+  const message = parsed.data.message.trim()
 
   if (!subject || !message) {
     return NextResponse.json({ error: 'Judul dan isi pesannya belum lengkap.' }, { status: 400 })

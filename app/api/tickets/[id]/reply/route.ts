@@ -1,17 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { getSession } from '@/lib/session-server'
 import { prisma } from '@/lib/prisma'
 import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
+/** Batas panjang — lihat catatan di app/api/tickets/route.ts. */
+const replySchema = z.object({
+  message: z.string().max(5000),
+})
+
 export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
-  const body = await readJsonBody(req)
-  const message = String(body?.message || '').trim()
+  const parsed = replySchema.safeParse(await readJsonBody(req))
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Pesannya belum diisi.' }, { status: 400 })
+  }
+  const message = parsed.data.message.trim()
 
   if (!message) {
     return NextResponse.json({ error: 'Pesannya belum diisi.' }, { status: 400 })
