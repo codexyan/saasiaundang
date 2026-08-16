@@ -35,16 +35,36 @@ WHERE status = 'approved' AND invitation_id IS NULL;
 
 ## P2 — Penting
 
-### PrismaClient per-request tidak pernah ditutup
-`lib/prisma.ts:93` · Asal: **baru**
+### ~~PrismaClient per-request tidak pernah ditutup~~ — DIUKUR, BUKAN KEBOCORAN
+`lib/prisma.ts` · Asal: **baru** · Ditutup 16 Agu 2026, **tanpa perubahan kode**
 
-Client dibuat per request (wajib di Workers — socket tidak boleh lintas
-request), tapi `$disconnect()` tidak pernah dipanggil sehingga `pg.Pool`
-internalnya tidak pernah `end()`. Belum terbukti bermasalah pada trafik rendah,
-tapi perlu diukur di bawah beban sebelum trafik produksi dialihkan.
+Dugaan lamanya: `$disconnect()` tidak pernah dipanggil sehingga `pg.Pool`
+internalnya tidak pernah `end()` dan koneksi menumpuk. Sudah diselidiki dan
+diukur; dugaan itu tidak terbukti.
 
-Catatan: memanggil `$disconnect()` lewat `waitUntil` TIDAK benar — itu akan
-memutus koneksi saat query masih berjalan.
+**Bukti dokumentasi Cloudflare:**
+- "TCP sockets cannot be created in global scope and shared across requests.
+  You should always create TCP sockets within a handler." — socket TIDAK BISA
+  hidup melewati request, jadi tidak ada jalan untuk bocor antar-request.
+- "Hyperdrive maintains the underlying database connection pool, so creating a
+  new client on each request is fast and **recommended**" — pola per-request
+  di `lib/prisma.ts` justru yang disarankan, bukan penyimpangan.
+- `max: 5` pada PrismaPg sudah di bawah batas ~6 koneksi per invocation.
+
+**Bukti pengukuran di produksi (16 Agu 2026):** jumlah koneksi di Postgres
+dibaca lewat `pg_stat_activity` sebelum dan sesudah 30 request bersamaan ke
+endpoint yang menyentuh database — hasilnya **identik**: `total=12 active=1
+idle=10`, tidak bergerak sama sekali. Ditambah 40 request berurutan dan 40
+bersamaan: nol kegagalan, tanpa degradasi latensi.
+
+**Kesimpulan: jangan tambahkan `$disconnect()`.** Selain tidak perlu, lewat
+`waitUntil` justru berbahaya — akan memutus koneksi saat pekerjaan
+`runAfterResponse()` masih memakai database.
+
+Batas bukti ini, supaya jujur: 30 request bersamaan itu beban ringan, bukan
+load test sungguhan, dan angka `pg_stat_activity` memperlihatkan pool
+Hyperdrive (bukan socket Worker secara langsung). Kalau trafik nanti naik
+drastis, ukur ulang dengan cara yang sama sebelum menyimpulkan.
 
 ### getSecret() melempar sehingga misconfigurasi = 500, bukan 401
 `lib/session.ts:64` · Asal: **baru**, disengaja
@@ -144,8 +164,9 @@ sesi terpisah dengan fokus penuh:
   Client Component lain, sehingga tetap masuk bundle klien** — mencabut
   `'use client'` di sana nol manfaat. Pelajaran untuk audit serupa ke depan:
   rasio agregat bukan indikator; yang menentukan adalah siapa pengimpornya.
-- **`PrismaClient` tanpa `$disconnect`** — sudah tercatat di P2 di atas, butuh
-  load test sungguhan untuk mengukur dampak, bukan keputusan kode.
+- ~~**`PrismaClient` tanpa `$disconnect`**~~ — **SELESAI, tanpa perubahan kode.**
+  Diukur langsung: koneksi Postgres tidak bertambah sama sekali sesudah burst.
+  Lihat bagian P2 di atas untuk bukti lengkapnya.
 
 ---
 
