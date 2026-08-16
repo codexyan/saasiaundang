@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/session-server'
 import { affiliates, users, userReferrals } from '@/lib/db'
 import { readJsonBody } from '@/lib/request-body'
+import { allowRequest } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,7 +45,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Kode referralnya tidak dikenali.' }, { status: 404 })
   }
 
-  await affiliates.incrementClicks(affiliate.id)
+  // Yang dibatasi HANYA penghitung kliknya, bukan seluruh request.
+  //
+  // Endpoint ini punya dua efek: menaikkan totalClicks (metrik, bisa
+  // dipalsukan) dan memasang cookie atribusi 30 hari (uang — inilah yang
+  // menentukan komisi afiliator dibayar atau tidak). Kalau seluruh request
+  // ditolak saat limit tercapai, pengunjung yang SAH kehilangan atribusinya
+  // dan afiliator kehilangan komisi sungguhan — kerugiannya lebih besar
+  // daripada angka klik yang sedikit menggelembung. Jadi cookie selalu
+  // dipasang, hanya penghitungnya yang berhenti naik.
+  if (await allowRequest('COUNTER_RATE_LIMIT', `referral-click:${code}`)) {
+    await affiliates.incrementClicks(affiliate.id)
+  }
 
   const res = NextResponse.json({ ok: true, affiliateId: affiliate.id })
   res.cookies.set('ref', code, { maxAge: 60 * 60 * 24 * 30, path: '/', httpOnly: true, sameSite: 'lax' })
