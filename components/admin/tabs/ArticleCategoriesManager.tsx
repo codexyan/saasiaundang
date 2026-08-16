@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import toast from 'react-hot-toast'
 import { Plus, Trash2, Loader2, ArrowUp, ArrowDown, Check, X, Pencil, FolderTree, AlertTriangle } from 'lucide-react'
 import { slugify } from '@/lib/article-markdown'
+import { useApiMutation } from '@/hooks/useApi'
 
 export interface CategoryRow {
   id: string
@@ -25,6 +26,11 @@ export default function ArticleCategoriesManager({ onChanged }: { onChanged?: ()
   const [editSlug, setEditSlug] = useState('')
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
+  // `loading` dari hook sengaja TIDAK dipakai: state `creating` di atas sudah
+  // menggerakkan spinner tombol Tambah, dan satu instance hook untuk beberapa
+  // aksi akan membuat tombol itu ikut berputar saat baris lain dihapus/diedit.
+  const api = useApiMutation<{ categories?: CategoryRow[] }>()
+
   const fetchRows = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/article-categories')
@@ -41,11 +47,12 @@ export default function ArticleCategoriesManager({ onChanged }: { onChanged?: ()
     if (!name) return
     setCreating(true)
     try {
-      const res = await fetch('/api/admin/article-categories', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, slug: newSlug.trim() || slugify(name), sortOrder: rows.length }),
+      const ok = await api.mutate('/api/admin/article-categories', {
+        method: 'POST',
+        body: { name, slug: newSlug.trim() || slugify(name), sortOrder: rows.length },
+        errorMessage: 'Gagal membuat kategori',
       })
-      if (!res.ok) { const e = await res.json(); toast.error(e.error || 'Gagal membuat kategori'); return }
+      if (!ok) return
       setNewName(''); setNewSlug(''); setNewSlugTouched(false)
       await fetchRows(); onChanged?.()
       toast.success('Kategori ditambahkan')
@@ -59,11 +66,12 @@ export default function ArticleCategoriesManager({ onChanged }: { onChanged?: ()
   async function saveEdit(id: string) {
     const name = editName.trim()
     if (!name) return
-    const res = await fetch(`/api/admin/article-categories/${id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, slug: editSlug.trim() || slugify(name) }),
+    const ok = await api.mutate(`/api/admin/article-categories/${id}`, {
+      method: 'PATCH',
+      body: { name, slug: editSlug.trim() || slugify(name) },
+      errorMessage: 'Perubahannya gagal disimpan. Coba lagi ya.',
     })
-    if (!res.ok) { toast.error('Perubahannya gagal disimpan. Coba lagi ya.'); return }
+    if (!ok) return
     setEditingId(null)
     await fetchRows(); onChanged?.()
     toast.success('Kategori diperbarui')
@@ -88,9 +96,14 @@ export default function ArticleCategoriesManager({ onChanged }: { onChanged?: ()
 
   async function confirmDelete() {
     if (!deleteId) return
-    const res = await fetch(`/api/admin/article-categories/${deleteId}`, { method: 'DELETE' })
+    const ok = await api.mutate(`/api/admin/article-categories/${deleteId}`, {
+      method: 'DELETE',
+      errorMessage: 'Gagal dihapus. Coba lagi ya.',
+    })
+    // setDeleteId(null) tetap dijalankan lebih dulu seperti sebelumnya: dialog
+    // konfirmasi harus tertutup baik penghapusannya berhasil maupun gagal.
     setDeleteId(null)
-    if (!res.ok) { toast.error('Gagal dihapus. Coba lagi ya.'); return }
+    if (!ok) return
     await fetchRows(); onChanged?.()
     toast.success('Kategori dihapus')
   }
