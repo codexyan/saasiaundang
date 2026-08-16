@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 import { Trash2, Upload, Lock, Crown, X, ZoomIn, ChevronLeft, ChevronRight, ImagePlus } from 'lucide-react'
 import type { Invitation, Gallery } from '@/lib/types'
 import { getPackage, type PackageTier } from '@/lib/packages'
+import { resizeGalleryPhoto } from '@/lib/image-resize'
 
 interface Props {
   invitation: Invitation
@@ -34,13 +35,18 @@ export default function GalleryManager({ invitation }: Props) {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp'] },
-    maxSize: 5 * 1024 * 1024,
+    // Batas di SINI cuma menyaring berkas ASLI sebelum sempat dikompresi
+    // (lihat handleUpload) — dilonggarkan ke 20MB supaya foto langsung dari
+    // kamera HP (sering 8-15MB) tidak ditolak duluan padahal setelah
+    // dikompresi ukurannya jadi kecil. Server tetap membatasi hasil AKHIR
+    // 5MB sebagai jaring pengaman (app/api/galleries/upload/route.ts).
+    maxSize: 20 * 1024 * 1024,
     maxFiles: maxPhotos === -1 ? 20 : Math.max(0, maxPhotos - galleries.length),
     disabled: uploading || isAtLimit,
     onDropAccepted: handleUpload,
     onDropRejected: (rejected) => {
       const first = rejected[0]
-      if (first?.errors[0]?.code === 'file-too-large') toast.error('Fotonya terlalu besar. Maksimal 5MB ya.')
+      if (first?.errors[0]?.code === 'file-too-large') toast.error('Fotonya terlalu besar. Maksimal 20MB ya.')
       else toast.error('Berkasnya belum sesuai. Coba pilih yang lain ya.')
     },
   })
@@ -53,8 +59,14 @@ export default function GalleryManager({ invitation }: Props) {
       const currentTotal = galleries.length + count
       if (maxPhotos !== -1 && currentTotal >= maxPhotos) break
 
+      // Dikecilkan dulu di browser sebelum dikirim. Kalau gagal (browser
+      // lama, GIF, dst), `resized` null dan file ASLI yang diupload — upload
+      // tidak pernah gagal gara-gara langkah ini, sama seperti pola yang
+      // sudah dipakai ImagePicker.tsx untuk cover artikel.
+      const resized = await resizeGalleryPhoto(file)
+
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('file', resized?.file ?? file)
       formData.append('invitationId', invitation.id)
 
       const res = await fetch('/api/galleries/upload', { method: 'POST', body: formData })
@@ -174,7 +186,7 @@ export default function GalleryManager({ invitation }: Props) {
                 <div>
                   <p className="text-sm font-semibold text-graphite">Seret foto ke sini atau klik untuk pilih</p>
                   <p className="text-xs text-ash mt-1">
-                    JPG, PNG, WebP · Max 5MB per foto
+                    JPG, PNG, WebP · Max 20MB per foto (otomatis dikecilkan)
                     {maxPhotos !== -1 && ` · Sisa ${maxPhotos - galleries.length} foto`}
                   </p>
                 </div>

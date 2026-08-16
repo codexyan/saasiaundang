@@ -91,12 +91,15 @@ export default async function InvitationPage(props0: Props) {
   const isLegacy = (LEGACY_TEMPLATE_IDS as string[]).includes(invitation.template_id)
 
   if (!isLegacy) {
-    const template = await templateRecords.findById(invitation.template_id)
+    // Dua query ini independen (sama-sama cuma butuh invitation.id/template_id,
+    // tidak saling bergantung), jadi dijalankan paralel alih-alih berurutan.
+    const [template, invWishes] = await Promise.all([
+      templateRecords.findById(invitation.template_id),
+      wishes.findByInvitationId(invitation.id),
+    ])
     if (!template) {
       return <UnpublishedPage message="Template undangan tidak ditemukan." />
     }
-
-    const invWishes = await wishes.findByInvitationId(invitation.id)
 
     const content = (
       <InvitationRenderer
@@ -113,11 +116,16 @@ export default async function InvitationPage(props0: Props) {
   }
 
   //  Legacy hardcoded templates path
+  const [legacyGalleries, legacyWishes, legacyGuests] = await Promise.all([
+    galleries.findByInvitationId(invitation.id),
+    wishes.findByInvitationId(invitation.id),
+    guests.findByInvitationId(invitation.id),
+  ])
   const props = {
     invitation: invitation as Invitation,
-    galleries: await galleries.findByInvitationId(invitation.id) as Gallery[],
-    wishes: await wishes.findByInvitationId(invitation.id) as Wish[],
-    guests: await guests.findByInvitationId(invitation.id) as Guest[],
+    galleries: legacyGalleries as Gallery[],
+    wishes: legacyWishes as Wish[],
+    guests: legacyGuests as Guest[],
   }
 
   let content: React.ReactNode

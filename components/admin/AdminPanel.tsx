@@ -11,24 +11,32 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { formatPrice } from '@/lib/utils'
 import type { AdminTemplateConfig, BankAccount, PaymentProof } from '@/lib/db'
 import type { TemplateRecord, TemplateCategory, ColorPalette, PriceTier, FlashSale, Coupon } from '@/lib/types'
 import DashboardTab from './tabs/DashboardTab'
-import UsersTab from './tabs/UsersTab'
-// InvitationsTab merged into UsersTab
-import TemplatesTab from './tabs/TemplatesTab'
-import PaymentTab from './tabs/PaymentTab'
-import TemplateLab from './tabs/TemplateLab'
-import MusicLibraryTab from './tabs/MusicLibraryTab'
-import ArticlesTab from './tabs/ArticlesTab'
-import WriterTab from './tabs/WriterTab'
-import AffiliatesTab from './tabs/AffiliatesTab'
-import FeedbackTab from './tabs/FeedbackTab'
-import ExperimentsTab from './tabs/ExperimentsTab'
-// PackagesTab removed  tier management consolidated into TemplatesTab config drawer
-import NewSettingsTab from './tabs/SettingsTab'
 import type { SiteSettings } from './tabs/SettingsTab'
+
+// Tab selain Dashboard (yang selalu terbuka duluan) di-lazy-load: admin yang
+// cuma buka satu-dua tab tidak perlu mengunduh semuanya sekaligus, terutama
+// TemplateLab yang sendirian ~5900 baris. Perilaku sama persis, cuma waktu
+// muat awal panel admin yang berubah.
+const TAB_LOADING = <div className="flex items-center justify-center py-24 text-sm text-gray-400">Memuat...</div>
+
+const UsersTab = dynamic(() => import('./tabs/UsersTab'), { loading: () => TAB_LOADING, ssr: false })
+// InvitationsTab merged into UsersTab
+const TemplatesTab = dynamic(() => import('./tabs/TemplatesTab'), { loading: () => TAB_LOADING, ssr: false })
+const PaymentTab = dynamic(() => import('./tabs/PaymentTab'), { loading: () => TAB_LOADING, ssr: false })
+const TemplateLab = dynamic(() => import('./tabs/TemplateLab'), { loading: () => TAB_LOADING, ssr: false })
+const MusicLibraryTab = dynamic(() => import('./tabs/MusicLibraryTab'), { loading: () => TAB_LOADING, ssr: false })
+const ArticlesTab = dynamic(() => import('./tabs/ArticlesTab'), { loading: () => TAB_LOADING, ssr: false })
+const WriterTab = dynamic(() => import('./tabs/WriterTab'), { loading: () => TAB_LOADING, ssr: false })
+const AffiliatesTab = dynamic(() => import('./tabs/AffiliatesTab'), { loading: () => TAB_LOADING, ssr: false })
+const FeedbackTab = dynamic(() => import('./tabs/FeedbackTab'), { loading: () => TAB_LOADING, ssr: false })
+const ExperimentsTab = dynamic(() => import('./tabs/ExperimentsTab'), { loading: () => TAB_LOADING, ssr: false })
+// PackagesTab removed  tier management consolidated into TemplatesTab config drawer
+const NewSettingsTab = dynamic(() => import('./tabs/SettingsTab'), { loading: () => TAB_LOADING, ssr: false })
 
 //  Types 
 

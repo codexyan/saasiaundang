@@ -122,6 +122,42 @@ const nextConfig = {
           { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
         ],
       },
+      // Halaman ini `force-dynamic` (wajib — lihat catatan Prisma/workerd di
+      // app/sitemap.ts), tapi isinya cuma berubah saat admin publish sesuatu,
+      // bukan tiap detik. Cache-Control di sini di-cache oleh EDGE CLOUDFLARE
+      // sendiri (bukan browser) — permintaan berikutnya dalam jendela
+      // s-maxage langsung dijawab dari edge tanpa menyentuh Worker/Hyperdrive
+      // sama sekali. Gratis, tanpa D1/R2/ISR, konsisten dengan keputusan
+      // sengaja di open-next.config.ts untuk tidak memakai incremental cache.
+      //
+      // SENGAJA tidak termasuk /templates/[slug] (detail template) maupun
+      // /invitation/[slug] (undangan tamu) — keduanya di luar cakupan
+      // perbaikan ini.
+      {
+        source: '/templates',
+        headers: [
+          { key: 'Cache-Control', value: 'public, s-maxage=300, stale-while-revalidate=3600' },
+        ],
+      },
+      {
+        source: '/blog',
+        headers: [
+          { key: 'Cache-Control', value: 'public, s-maxage=300, stale-while-revalidate=3600' },
+        ],
+      },
+      {
+        source: '/blog/:slug',
+        headers: [
+          { key: 'Cache-Control', value: 'public, s-maxage=300, stale-while-revalidate=3600' },
+        ],
+      },
+      // Hanya dibaca crawler, jadi jendelanya lebih longgar.
+      {
+        source: '/sitemap.xml',
+        headers: [
+          { key: 'Cache-Control', value: 'public, s-maxage=3600' },
+        ],
+      },
     ]
   },
 }

@@ -88,3 +88,22 @@ export async function resizeArticleImage(
     bitmap?.close()
   }
 }
+
+/**
+ * Kompresi foto galeri tamu sebelum diupload — lebar dibatasi 1600px, rasio
+ * asli dijaga (tidak pernah dipotong), WebP q0.8, tidak pernah diperbesar.
+ *
+ * Sama persis dengan mode `resizeArticleImage(file, 'inline')`; diberi nama
+ * sendiri di sini supaya pemanggilnya (galeri foto pernikahan) tidak harus
+ * menulis "article" untuk sesuatu yang bukan artikel — tapi logikanya
+ * sengaja dipakai ulang apa adanya, bukan diduplikasi.
+ *
+ * Dulu foto galeri diupload TANPA kompresi sama sekali (cuma dibatasi
+ * ukuran berkas 5MB) — beda dari cover artikel yang sudah lewat jalur ini.
+ * Foto galeri justru yang PALING SERING diunduh (setiap tamu yang membuka
+ * undangan memuat galerinya), jadi ini yang paling berdampak ke pengalaman
+ * tamu, bukan cuma ke pemilik undangan.
+ */
+export function resizeGalleryPhoto(file: File): Promise<ResizedImage | null> {
+  return resizeArticleImage(file, 'inline')
+}

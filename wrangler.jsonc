@@ -93,6 +93,17 @@
       "name": "UPLOAD_RATE_LIMIT",
       "namespace_id": "1003",
       "simple": { "limit": 20, "period": 60 }
+    },
+    {
+      // Endpoint penghitung publik (views, usage musik, experiment assign)
+      // yang sengaja tanpa login karena dipicu pengunjung anonim — tapi
+      // sebelumnya tanpa batas sama sekali, jadi bisa dibanjiri untuk
+      // memalsukan metrik yang dipakai admin mengambil keputusan. Dibuat
+      // longgar (banyak pengunjung wajar memicu ini) — tujuannya menghentikan
+      // pembanjiran, bukan membatasi trafik normal.
+      "name": "COUNTER_RATE_LIMIT",
+      "namespace_id": "1004",
+      "simple": { "limit": 60, "period": 60 }
     }
   ],
 
