@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getSession } from '@/lib/session-server'
-import { isAdmin } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { withAdminAuth } from '@/lib/route-guards'
 import { orders } from '@/lib/db'
 import { notifyUser } from '@/lib/notifications'
 import { runAfterResponse } from '@/lib/after-response'
@@ -9,12 +8,8 @@ import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
-export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export const PATCH = withAdminAuth<{ params: Promise<{ id: string }> }>(async (req, session, props) => {
   const params = await props.params;
-  const session = await getSession()
-  if (!session || !isAdmin(session)) {
-    return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
-  }
 
   try {
     const { id } = params
@@ -91,4 +86,4 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     console.error('Order PATCH error:', error)
     return NextResponse.json({ error: 'Pesanannya gagal diproses. Coba lagi sebentar lagi ya.' }, { status: 500 })
   }
-}
+})

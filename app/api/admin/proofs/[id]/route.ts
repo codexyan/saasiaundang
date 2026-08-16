@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getSession } from '@/lib/session-server'
-import { isAdmin } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { withAdminAuth } from '@/lib/route-guards'
 import { paymentProofs, invitations, affiliates, users, settings } from '@/lib/db'
 import { subscriptions } from '@/lib/subscription'
 import { PACKAGES, type PackageTier } from '@/lib/packages'
@@ -10,12 +9,9 @@ export const dynamic = 'force-dynamic'
 
 interface Params { params: Promise<{ id: string }> }
 
-export async function PATCH(req: NextRequest, props: Params) {
+export const PATCH = withAdminAuth<Params>(async (req, session, props) => {
   const params = await props.params;
   try {
-    const session = await getSession()
-    if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
-
     const body = await readJsonBody(req) as { status: 'approved' | 'rejected'; admin_notes?: string; packageDuration?: number }
     const proof = await paymentProofs.findById(params.id)
     if (!proof) return NextResponse.json({ error: 'Datanya tidak ditemukan.' }, { status: 404 })
@@ -125,4 +121,4 @@ export async function PATCH(req: NextRequest, props: Params) {
     console.error('Admin proof update error:', error)
     return NextResponse.json({ error: 'Bukti pembayarannya gagal diperbarui. Coba lagi sebentar lagi ya.' }, { status: 500 })
   }
-}
+})

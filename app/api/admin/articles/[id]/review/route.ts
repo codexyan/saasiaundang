@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getSession } from '@/lib/session-server'
-import { isAdmin } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { withAdminAuth } from '@/lib/route-guards'
 import { articles } from '@/lib/db'
 import { readJsonBody } from '@/lib/request-body'
 
@@ -11,12 +10,8 @@ export const dynamic = 'force-dynamic'
 //   reject   → status 'needs_revision' with review notes back to the writer
 //   schedule → status 'scheduled', auto-published later by the cron
 //   archive  → status 'archived', unpublished
-export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export const POST = withAdminAuth<{ params: Promise<{ id: string }> }>(async (req, session, props) => {
   const params = await props.params;
-  const session = await getSession()
-  if (!isAdmin(session)) {
-    return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
-  }
 
   const existing = await articles.findById(params.id)
   if (!existing) {
@@ -30,7 +25,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     let article
     switch (action) {
       case 'approve':
-        article = await articles.approve(params.id, session!.userId)
+        article = await articles.approve(params.id, session.userId)
         break
       case 'reject':
         article = await articles.requestRevision(params.id, body.notes ?? '')
@@ -40,7 +35,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
         if (!when || isNaN(when.getTime())) {
           return NextResponse.json({ error: 'scheduledAt tidak valid' }, { status: 400 })
         }
-        article = await articles.schedule(params.id, when, session!.userId)
+        article = await articles.schedule(params.id, when, session.userId)
         break
       }
       case 'archive':
@@ -54,4 +49,4 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     console.error('Article review error:', error)
     return NextResponse.json({ error: 'Gagal memproses aksi' }, { status: 500 })
   }
-}
+})

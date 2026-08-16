@@ -1,25 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getSession } from '@/lib/session-server'
-import { isAdmin } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { withAdminAuth } from '@/lib/route-guards'
 import { articleCategories } from '@/lib/db'
 import { slugify } from '@/lib/article-markdown'
 import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
-  const session = await getSession()
-  if (!isAdmin(session)) {
-    return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
-  }
+export const GET = withAdminAuth(async () => {
   return NextResponse.json({ categories: await articleCategories.findAll() })
-}
+})
 
-export async function POST(req: NextRequest) {
-  const session = await getSession()
-  if (!isAdmin(session)) {
-    return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
-  }
+export const POST = withAdminAuth(async (req) => {
   try {
     const body = await readJsonBody(req)
     const name = (body.name ?? '').trim()
@@ -33,4 +24,4 @@ export async function POST(req: NextRequest) {
     console.error('Category POST error:', error)
     return NextResponse.json({ error: 'Gagal membuat kategori (nama/slug mungkin sudah dipakai)' }, { status: 400 })
   }
-}
+})

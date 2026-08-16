@@ -1,16 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { getSession } from '@/lib/session-server'
-import { isAdmin } from '@/lib/auth'
+import { withAdminAuth } from '@/lib/route-guards'
 import { affiliates, referrals, affiliateWithdrawals, users } from '@/lib/db'
 import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
-  const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
-
+export const GET = withAdminAuth(async () => {
   try {
     const [allAffiliates, allReferrals, allWithdrawals] = await Promise.all([
       affiliates.findAll(),
@@ -23,12 +19,9 @@ export async function GET() {
     console.error('Affiliates GET error:', error)
     return NextResponse.json({ error: 'Gagal memuat data affiliate' }, { status: 500 })
   }
-}
+})
 
-export async function POST(req: NextRequest) {
-  const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
-
+export const POST = withAdminAuth(async (req) => {
   try {
     const body = await readJsonBody(req)
     const { userId, email, password, name } = body
@@ -71,4 +64,4 @@ export async function POST(req: NextRequest) {
     console.error('Affiliates POST error:', error)
     return NextResponse.json({ error: 'Gagal membuat affiliate' }, { status: 500 })
   }
-}
+})

@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getSession } from '@/lib/session-server'
-import { isAdmin } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { withAdminAuth } from '@/lib/route-guards'
 import { uploadToStorage } from '@/lib/supabase'
 import { fileExtension, matchesMagic, numberField, type MagicSignature } from '@/lib/upload-utils'
 
@@ -55,13 +54,8 @@ function fileKind(file: File): 'image' | 'video' | 'audio' | 'font' | null {
   return null
 }
 
-export async function POST(req: NextRequest) {
+export const POST = withAdminAuth(async (req) => {
   try {
-    const session = await getSession()
-    if (!isAdmin(session)) {
-      return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
-    }
-
     const formData = await req.formData()
     const file = formData.get('file') as File | null
     const folderParam = (formData.get('folder') as string | null) ?? 'covers'
@@ -119,4 +113,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

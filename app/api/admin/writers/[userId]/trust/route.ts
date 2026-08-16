@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getSession } from '@/lib/session-server'
-import { isAdmin } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { withAdminAuth } from '@/lib/route-guards'
 import { prisma } from '@/lib/prisma'
 import { writerProfiles } from '@/lib/db'
 import { readJsonBody } from '@/lib/request-body'
@@ -9,12 +8,8 @@ export const dynamic = 'force-dynamic'
 
 // Toggle whether a writer is "trusted" (can publish without admin review).
 // Backed by the WriterProfile upsert from Tahap 1.
-export async function PATCH(req: NextRequest, props: { params: Promise<{ userId: string }> }) {
+export const PATCH = withAdminAuth<{ params: Promise<{ userId: string }> }>(async (req, session, props) => {
   const params = await props.params;
-  const session = await getSession()
-  if (!isAdmin(session)) {
-    return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
-  }
 
   const user = await prisma.user.findUnique({ where: { id: params.userId } })
   if (!user) {
@@ -26,4 +21,4 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ userId:
   const profile = await writerProfiles.upsert(params.userId, { isTrusted })
 
   return NextResponse.json({ profile })
-}
+})

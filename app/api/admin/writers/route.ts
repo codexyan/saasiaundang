@@ -1,18 +1,12 @@
 import { NextResponse } from 'next/server'
-import { getSession } from '@/lib/session-server'
-import { isAdmin } from '@/lib/auth'
+import { withAdminAuth } from '@/lib/route-guards'
 import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
 // List content writers with their trust status + per-status article counts,
 // so the admin can triage who has work waiting for review at a glance.
-export async function GET() {
-  const session = await getSession()
-  if (!isAdmin(session)) {
-    return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
-  }
-
+export const GET = withAdminAuth(async () => {
   const writers = await prisma.user.findMany({
     where: { role: 'content_writer' },
     orderBy: { createdAt: 'desc' },
@@ -55,4 +49,4 @@ export async function GET() {
   })
 
   return NextResponse.json({ writers: data })
-}
+})

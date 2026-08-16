@@ -1,18 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getSession } from '@/lib/session-server'
-import { isAdmin } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { withAdminAuth } from '@/lib/route-guards'
 import { settings } from '@/lib/db'
 import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
-) {
-  const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
-
+export const PATCH = withAdminAuth<{ params: Promise<{ slug: string }> }>(async (req, session, { params }) => {
   const { slug } = await params
   const body = await readJsonBody(req)
   const newLabel = String(body?.label || '').trim()
@@ -25,15 +18,9 @@ export async function PATCH(
   s.categories[idx] = { ...s.categories[idx], label: newLabel }
   await settings.save(s)
   return NextResponse.json({ category: s.categories[idx] })
-}
+})
 
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
-) {
-  const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
-
+export const DELETE = withAdminAuth<{ params: Promise<{ slug: string }> }>(async (_req, session, { params }) => {
   const { slug } = await params
   const s = await settings.get()
   const target = s.categories.find((c) => c.slug === slug)
@@ -43,4 +30,4 @@ export async function DELETE(
   s.deletedCategoryIds = [...(s.deletedCategoryIds ?? []), slug]
   await settings.save(s)
   return NextResponse.json({ success: true })
-}
+})

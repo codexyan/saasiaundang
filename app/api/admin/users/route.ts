@@ -1,7 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { getSession } from '@/lib/session-server'
-import { isAdmin } from '@/lib/auth'
+import { withAdminAuth } from '@/lib/route-guards'
 import { prisma } from '@/lib/prisma'
 import type { UserRole } from '@/lib/db'
 import { readJsonBody } from '@/lib/request-body'
@@ -9,12 +8,7 @@ import { readJsonBody } from '@/lib/request-body'
 export const dynamic = 'force-dynamic'
 
 
-export async function GET() {
-  const session = await getSession()
-  if (!isAdmin(session)) {
-    return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
-  }
-
+export const GET = withAdminAuth(async () => {
   const allUsers = await prisma.user.findMany({
     where: { role: { not: 'admin' } },
     orderBy: { createdAt: 'desc' },
@@ -66,12 +60,9 @@ export async function GET() {
   }))
 
   return NextResponse.json({ users: data })
-}
+})
 
-export async function POST(req: NextRequest) {
-  const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
-
+export const POST = withAdminAuth(async (req) => {
   const { email, password, role } = await readJsonBody(req) as { email?: string; password?: string; role?: UserRole }
 
   if (!email || !email.includes('@')) return NextResponse.json({ error: 'Email tidak valid' }, { status: 400 })
@@ -86,4 +77,4 @@ export async function POST(req: NextRequest) {
   })
 
   return NextResponse.json({ user: { id: user.id, email: user.email, role: user.role } }, { status: 201 })
-}
+})

@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getSession } from '@/lib/session-server'
-import { isAdmin } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { withAdminAuth } from '@/lib/route-guards'
 import { settings } from '@/lib/db'
 import type { AdminTemplateConfig } from '@/lib/db'
 import { readNonEmptyJsonBody } from '@/lib/request-body'
@@ -8,16 +7,11 @@ import { readNonEmptyJsonBody } from '@/lib/request-body'
 export const dynamic = 'force-dynamic'
 
 
-export async function GET() {
-  const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
+export const GET = withAdminAuth(async () => {
   return NextResponse.json({ templates: (await settings.get()).templates })
-}
+})
 
-export async function POST(req: NextRequest) {
-  const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
-
+export const POST = withAdminAuth(async (req) => {
   // Setiap field punya fallback, jadi body kosong tetap menghasilkan record
   // "Template Baru" berisi sampah dengan id acak — dibalas 200 seolah disengaja.
   const parsedBody = await readNonEmptyJsonBody(req)
@@ -61,4 +55,4 @@ export async function POST(req: NextRequest) {
   s.templates.push(newTemplate)
   await settings.save(s)
   return NextResponse.json({ template: newTemplate }, { status: 201 })
-}
+})

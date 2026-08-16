@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getSession } from '@/lib/session-server'
-import { isAdmin } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { withAdminAuth } from '@/lib/route-guards'
 import { settings } from '@/lib/db'
 import type { AppSettings } from '@/lib/db'
 import { readNonEmptyJsonBody } from '@/lib/request-body'
@@ -8,24 +7,16 @@ import { readNonEmptyJsonBody } from '@/lib/request-body'
 export const dynamic = 'force-dynamic'
 
 
-export async function GET() {
-  const session = await getSession()
-  if (!isAdmin(session)) {
-    return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
-  }
+export const GET = withAdminAuth(async () => {
   try {
     return NextResponse.json({ settings: await settings.get() })
   } catch (error) {
     console.error('Settings GET error:', error)
     return NextResponse.json({ error: 'Pengaturannya gagal dimuat. Coba muat ulang halaman ya.' }, { status: 500 })
   }
-}
+})
 
-export async function PATCH(req: NextRequest) {
-  const session = await getSession()
-  if (!isAdmin(session)) {
-    return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
-  }
+export const PATCH = withAdminAuth(async (req) => {
   try {
     // settings.save() adalah upsert SATU RECORD UTUH — tidak ada merge dengan
     // baris yang tersimpan. Jadi body yang tidak terbaca TIDAK BOLEH diperlakukan
@@ -61,4 +52,4 @@ export async function PATCH(req: NextRequest) {
     console.error('Settings PATCH error:', error)
     return NextResponse.json({ error: 'Pengaturannya gagal disimpan. Coba lagi sebentar lagi ya.' }, { status: 500 })
   }
-}
+})

@@ -1,26 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getSession } from '@/lib/session-server'
-import { isAdmin } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { withAdminAuth } from '@/lib/route-guards'
 import { musicTracks, musicCategories } from '@/lib/db'
 import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
-  const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
+export const GET = withAdminAuth(async () => {
   const [tracks, cats, topTracks] = await Promise.all([
     musicTracks.findAll(),
     musicCategories.findAll(),
     musicTracks.topTracks(10),
   ])
   return NextResponse.json({ tracks, categories: cats, topTracks })
-}
+})
 
-export async function POST(req: NextRequest) {
-  const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
-
+export const POST = withAdminAuth(async (req) => {
   const body = await readJsonBody(req)
   const title = String(body?.title || '').trim()
   const url = String(body?.url || '').trim()
@@ -35,4 +29,4 @@ export async function POST(req: NextRequest) {
     file_size: Number(body?.file_size) || 0,
   })
   return NextResponse.json({ track }, { status: 201 })
-}
+})

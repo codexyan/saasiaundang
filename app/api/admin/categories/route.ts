@@ -1,22 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getSession } from '@/lib/session-server'
-import { isAdmin } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { withAdminAuth } from '@/lib/route-guards'
 import { settings } from '@/lib/db'
 import type { TemplateCategory } from '@/lib/types'
 import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
-  const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
+export const GET = withAdminAuth(async () => {
   return NextResponse.json({ categories: (await settings.get()).categories })
-}
+})
 
-export async function POST(req: NextRequest) {
-  const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
-
+export const POST = withAdminAuth(async (req) => {
   const body = await readJsonBody(req)
   const label = String(body?.label || '').trim()
   if (!label) return NextResponse.json({ error: 'Nama kategori wajib diisi' }, { status: 400 })
@@ -35,4 +29,4 @@ export async function POST(req: NextRequest) {
   s.categories = [...s.categories, category]
   await settings.save(s)
   return NextResponse.json({ category }, { status: 201 })
-}
+})

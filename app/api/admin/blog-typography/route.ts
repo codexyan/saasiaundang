@@ -1,21 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getSession } from '@/lib/session-server'
-import { isAdmin } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { withAdminAuth } from '@/lib/route-guards'
 import { blogTypography, DEFAULT_BLOG_TYPOGRAPHY } from '@/lib/db'
 import { sanitizeFontFamily } from '@/lib/html-safe'
 import { readNonEmptyJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
-  const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
+export const GET = withAdminAuth(async () => {
   return NextResponse.json({ typography: await blogTypography.get() })
-}
+})
 
-export async function PATCH(req: NextRequest) {
-  const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
+export const PATCH = withAdminAuth(async (req) => {
   // Tiap field jatuh ke DEFAULT saat tidak ada, jadi body kosong = SEMUA
   // tipografi direset diam-diam ke bawaan lalu dibalas 200 seolah berhasil.
   // Body yang tidak terbaca harus ditolak, bukan diperlakukan sebagai {}.
@@ -37,4 +32,4 @@ export async function PATCH(req: NextRequest) {
   }
   await blogTypography.save(next)
   return NextResponse.json({ typography: next })
-}
+})

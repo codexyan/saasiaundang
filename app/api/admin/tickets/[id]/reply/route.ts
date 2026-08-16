@@ -1,15 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getSession } from '@/lib/session-server'
-import { isAdmin } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { withAdminAuth } from '@/lib/route-guards'
 import { prisma } from '@/lib/prisma'
 import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
-export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export const POST = withAdminAuth<{ params: Promise<{ id: string }> }>(async (req, session, props) => {
   const params = await props.params;
-  const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
   const body = await readJsonBody(req)
   const message = String(body?.message || '').trim()
@@ -24,7 +21,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   const reply = await prisma.ticketReply.create({
     data: {
       ticketId: params.id,
-      userId: session!.userId,
+      userId: session.userId,
       message,
       isAdmin: true,
     },
@@ -44,4 +41,4 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
       created_at: reply.createdAt.toISOString(),
     },
   })
-}
+})

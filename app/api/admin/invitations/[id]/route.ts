@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getSession } from '@/lib/session-server'
-import { isAdmin } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { withAdminAuth } from '@/lib/route-guards'
 import { invitations } from '@/lib/db'
 import { readJsonBody } from '@/lib/request-body'
 
@@ -9,12 +8,8 @@ export const dynamic = 'force-dynamic'
 
 interface Params { params: Promise<{ id: string }> }
 
-export async function PATCH(req: NextRequest, props: Params) {
+export const PATCH = withAdminAuth<Params>(async (req, session, props) => {
   const params = await props.params;
-  const session = await getSession()
-  if (!isAdmin(session)) {
-    return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
-  }
 
   try {
     const body = await readJsonBody(req)
@@ -25,4 +20,4 @@ export async function PATCH(req: NextRequest, props: Params) {
     console.error('Admin invitation PATCH error:', error)
     return NextResponse.json({ error: 'Perubahannya gagal disimpan. Coba lagi sebentar lagi ya.' }, { status: 500 })
   }
-}
+})

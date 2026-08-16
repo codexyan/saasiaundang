@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { getSession } from '@/lib/session-server'
-import { isAdmin, getAdminEmail } from '@/lib/auth'
+import { withAdminAuth } from '@/lib/route-guards'
+import { getAdminEmail } from '@/lib/auth'
 import { users } from '@/lib/db'
 import { randomString } from '@/lib/random'
 
@@ -15,10 +15,8 @@ function generatePassword(): string {
   return randomString(10, PASSWORD_ALPHABET)
 }
 
-export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export const POST = withAdminAuth<{ params: Promise<{ id: string }> }>(async (req, session, props) => {
   const params = await props.params;
-  const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
   try {
     const target = await users.findById(params.id)
@@ -37,4 +35,4 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     console.error('Reset password error:', error)
     return NextResponse.json({ error: 'Gagal reset password' }, { status: 500 })
   }
-}
+})

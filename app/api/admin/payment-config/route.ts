@@ -1,15 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getSession } from '@/lib/session-server'
-import { isAdmin } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { withAdminAuth } from '@/lib/route-guards'
 import { settings } from '@/lib/db'
 import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
 
-export async function GET() {
-  const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
+export const GET = withAdminAuth(async () => {
   const s = await settings.get()
   return NextResponse.json({
     bankAccounts: s.bankAccounts,
@@ -17,12 +14,9 @@ export async function GET() {
     paymentInstructions: s.paymentInstructions,
     confirmationWhatsapp: s.confirmationWhatsapp,
   })
-}
+})
 
-export async function PATCH(req: NextRequest) {
-  const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
-
+export const PATCH = withAdminAuth(async (req) => {
   const body = await readJsonBody(req)
   const s = await settings.get()
 
@@ -33,4 +27,4 @@ export async function PATCH(req: NextRequest) {
 
   await settings.save(s)
   return NextResponse.json({ success: true })
-}
+})

@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getSession } from '@/lib/session-server'
-import { isAdmin } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { withAdminAuth } from '@/lib/route-guards'
 import { settings } from '@/lib/db'
 import type { ColorPalette } from '@/lib/types'
 import { readJsonBody } from '@/lib/request-body'
@@ -13,16 +12,11 @@ function isHex(v: unknown): v is string {
   return typeof v === 'string' && HEX_RE.test(v)
 }
 
-export async function GET() {
-  const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
+export const GET = withAdminAuth(async () => {
   return NextResponse.json({ palettes: (await settings.get()).colorPalettes })
-}
+})
 
-export async function POST(req: NextRequest) {
-  const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
-
+export const POST = withAdminAuth(async (req) => {
   const body = await readJsonBody(req)
   const name = String(body?.name || '').trim()
   const group = String(body?.group || '').trim()
@@ -50,4 +44,4 @@ export async function POST(req: NextRequest) {
   s.colorPalettes = [...s.colorPalettes, palette]
   await settings.save(s)
   return NextResponse.json({ palette }, { status: 201 })
-}
+})
