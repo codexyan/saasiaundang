@@ -5,16 +5,30 @@ import { sendNotification } from '@/lib/notifications'
 import { SITE_URL } from '@/lib/config'
 import { readJsonBody } from '@/lib/request-body'
 import { allowRequest } from '@/lib/rate-limit'
+import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
 
+/**
+ * Pemeriksaan `typeof email !== 'string'` yang lama sudah aman soal tipe;
+ * yang ditambahkan di sini batas panjangnya. Nilai ini dipakai LANGSUNG
+ * sebagai kunci rate limit di bawah, jadi string sepanjang megabyte berarti
+ * kunci sepanjang megabyte — pemanggilan limiter gagal, dan lib/rate-limit.ts
+ * sengaja fail-open, sehingga justru pembatas email inilah yang mati persis
+ * saat sedang disalahgunakan.
+ */
+const forgotSchema = z.object({
+  email: z.string().min(1).max(200),
+})
+
 export async function POST(req: NextRequest) {
   try {
-    const { email } = await readJsonBody(req)
+    const parsed = forgotSchema.safeParse(await readJsonBody(req))
 
-    if (!email || typeof email !== 'string') {
+    if (!parsed.success) {
       return NextResponse.json({ error: 'Emailnya belum diisi.' }, { status: 400 })
     }
+    const { email } = parsed.data
 
     // Tiap permintaan yang berhasil MENGIRIM EMAIL SUNGGUHAN lewat Resend.
     // Tanpa batas, endpoint ini bisa dipakai membanjiri inbox orang lain

@@ -1,9 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
+
+/**
+ * Dulu `password.length < 6` dipakai tanpa memastikan password itu string.
+ * Untuk `{"password": 123456}`, `.length` bernilai undefined dan
+ * `undefined < 6` itu FALSE — jadi pemeriksaan panjangnya terlewat begitu
+ * saja. Yang menyelamatkan justru bcryptjs di bawah, yang menolak argumen
+ * non-string ("Illegal arguments: number, string"). Jadi password lemah
+ * tidak pernah benar-benar tersimpan — TAPI pemakainya melihat 500 "ada
+ * kendala di sistem kami", seolah server yang rusak, padahal kiriman
+ * merekalah yang salah bentuk. Sekarang ditolak 400 dengan pesan jelas.
+ *
+ * `token` juga dulu diteruskan mentah ke findUnique; tipe non-string membuat
+ * Prisma melempar, lagi-lagi 500.
+ */
+const resetSchema = z.object({
+  token: z.string().min(1).max(200),
+  password: z.string().min(6).max(200),
+})
 
 // GET: Validate token
 export async function GET(req: NextRequest) {
@@ -52,21 +71,22 @@ export async function GET(req: NextRequest) {
 // POST: Reset password
 export async function POST(req: NextRequest) {
   try {
-    const { token, password } = await readJsonBody(req)
-
-    if (!token || !password) {
+    const body = await readJsonBody(req)
+    const parsed = resetSchema.safeParse(body)
+    if (!parsed.success) {
+      // Kedua pesan lama dipertahankan apa adanya: "terlalu pendek" hanya
+      // dipakai kalau passwordnya memang ada tapi kurang panjang, bukan untuk
+      // body yang kosong — supaya yang dibaca pengguna tetap menolong.
+      const tooShort =
+        typeof body?.password === 'string' &&
+        body.password.length > 0 &&
+        body.password.length < 6
       return NextResponse.json(
-        { error: 'Password barunya belum diisi.' },
+        { error: tooShort ? 'Passwordnya minimal 6 karakter ya.' : 'Password barunya belum diisi.' },
         { status: 400 }
       )
     }
-
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: 'Passwordnya minimal 6 karakter ya.' },
-        { status: 400 }
-      )
-    }
+    const { token, password } = parsed.data
 
     const resetToken = await prisma.passwordResetToken.findUnique({
       where: { token },

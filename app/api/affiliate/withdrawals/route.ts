@@ -1,10 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { getSession } from '@/lib/session-server'
 import { isAffiliate } from '@/lib/auth'
 import { affiliates, affiliateWithdrawals } from '@/lib/db'
 import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
+
+/**
+ * `.int()` bukan sekadar kerapian: kolom AffiliateWithdrawal.amount bertipe
+ * Int di skema Prisma, jadi nominal pecahan (mis. 50000.5) lolos seluruh
+ * pemeriksaan di bawah lalu membuat Prisma melempar — pemohon melihat 500
+ * "gagal diproses" padahal permintaannyalah yang tidak valid.
+ *
+ * Batas minimum 50.000 SENGAJA tidak ditaruh di sini melainkan tetap di
+ * bawah, supaya pesannya tetap spesifik ("Minimum pencairan Rp 50.000")
+ * dan bukan pesan validasi umum.
+ */
+const withdrawalSchema = z.object({
+  amount: z.coerce.number().int().positive().max(1_000_000_000),
+})
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,9 +30,13 @@ export async function POST(req: NextRequest) {
     if (!affiliate) return NextResponse.json({ error: 'Akun ini belum terdaftar sebagai mitra afiliasi.' }, { status: 404 })
 
     const body = await readJsonBody(req)
-    const amount = Number(body.amount)
+    const parsed = withdrawalSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Nominal pencairannya harus berupa angka bulat.' }, { status: 400 })
+    }
+    const amount = parsed.data.amount
 
-    if (!amount || amount < 50000) {
+    if (amount < 50000) {
       return NextResponse.json({ error: 'Minimum pencairan Rp 50.000' }, { status: 400 })
     }
     // Dibandingkan dengan saldo TERSEDIA (pendingBalance dikurangi permintaan
