@@ -1,4 +1,11 @@
-'use client'
+// Sengaja TANPA 'use client'.
+//
+// Komponen ini fungsi murni: terima string markdown, hasilkan HTML. Tidak ada
+// hook, event handler, maupun API browser. Satu-satunya pengimpornya adalah
+// app/(main)/blog/[slug]/page.tsx yang Server Component, jadi melepas
+// 'use client' benar-benar mengeluarkan parser markdown (~120 baris) beserta
+// dependensinya dari bundle browser — parsing kini terjadi sekali di server,
+// bukan diulang tiap hidrasi.
 
 import { parseLinkParts } from '@/lib/article-markdown'
 import { escapeHtml, escapeAttribute, safeUrlAttribute } from '@/lib/html-safe'

@@ -1,4 +1,7 @@
-'use client'
+// Sengaja TANPA 'use client'. Murni presentasional (Link, Image, dua ikon,
+// dan {children}) — tanpa hook maupun handler. Pengimpornya hanya page.tsx
+// yang Server Component; children-nya <DemoEditorClient/> tetap Client
+// Component, dan Server Component merender client children itu pola standar.
 
 import Link from 'next/link'
 import Image from 'next/image'
