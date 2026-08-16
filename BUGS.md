@@ -65,13 +65,16 @@ ADMIN_EMAIL tinggal berfungsi sebagai pelindung akun, bukan pemberi hak. Perlu
 diputuskan: hapus jalur itu sepenuhnya, atau kembalikan sebagai fallback.
 
 ### Endpoint penghitung tanpa autentikasi
-`app/api/views`, `app/api/referral`, `app/api/music/[id]/usage`,
-`app/api/articles/[slug]/views`, `app/api/experiments/assign` · Asal: **lama**
+`app/api/referral` (POST) · Asal: **lama**
 
-Semua menerima tulisan tanpa login dan tanpa dedupe. Angka yang dipakai pemilik
-undangan dan admin untuk mengambil keputusan (termasuk metrik klik afiliasi dan
-hasil A/B test) bisa dipalsukan siapa saja. Binding rate limit sudah tersedia
-(`lib/rate-limit.ts`) kalau mau dibatasi.
+Menerima tulisan (increment klik afiliasi) tanpa login dan tanpa rate limit —
+metrik klik yang dipakai menghitung komisi afiliasi bisa dibanjiri. Binding
+`COUNTER_RATE_LIMIT` sudah ada (dipakai 4 endpoint sejenis lainnya, lihat di
+bawah) tinggal diterapkan ke sini juga.
+
+~~`app/api/views`, `app/api/music/[id]/usage`, `app/api/articles/[slug]/views`,
+`app/api/experiments/assign`~~ — sudah dibatasi `COUNTER_RATE_LIMIT` (60/60s,
+per key) sejak perbaikan arsitektur 16 Agu 2026.
 
 ### Enumerasi pengguna saat registrasi
 `app/api/auth/register/route.ts:25` · Asal: **lama**
@@ -99,6 +102,35 @@ kalau nanti caching dinyalakan.
 - `wrangler.jsonc:11` — `compatibility_date` 2026-07-18 lebih baru dari workerd yang terbundel di wrangler 4.112, jadi runtime lokal dan produksi bisa berbeda perilaku.
 - `next.config.mjs` — Next 16 akan mewajibkan `images.qualities`; saat ini muncul peringatan untuk quality 90 dan 100.
 - **Drift schema Prisma** — kolom `users.referral_code` ada di database tapi tidak dibuat lewat migration mana pun. Akibatnya `prisma migrate dev` menganggap perlu MERESET seluruh skema ("All data will be lost"). Jangan pernah jalankan `migrate dev` terhadap database produksi. Migration baru dibuat manual lalu didaftarkan dengan `prisma migrate resolve --applied`.
+
+---
+
+## Catatan arsitektur — direkomendasikan, sengaja belum dikerjakan (16 Agu 2026)
+
+Dari audit arsitektur menyeluruh (4 fork paralel: lapisan data, API routes,
+frontend/bundle, performa produksi). Tingkat 1 (performa/caching, 8 item) dan
+Tingkat 2 (pecah `lib/db.ts` + `withAdminAuth`) sudah dikerjakan dan di-deploy.
+Item di bawah ini BUKAN bug — nilainya nyata tapi risiko/usahanya besar untuk
+aplikasi yang sedang melayani pembayaran sungguhan, jadi sengaja ditunda ke
+sesi terpisah dengan fokus penuh:
+
+- **Pecah `TemplateLab.tsx` (5914 baris)** — 4681 baris dalam satu fungsi, 24
+  `useState`/10 `useEffect` top-level. Ini editor paling kompleks di aplikasi;
+  perlu pemahaman alur state antar `ConfigTab` dulu sebelum aman dipecah, dan
+  butuh pengujian interaktif tiap sub-editor yang tidak bisa diverifikasi lewat
+  `tsc`/curl saja.
+- **Standardisasi Zod ke seluruh 88 route** (91% belum pakai) — diff besar
+  dengan potensi mengubah pesan error yang sudah dirapikan sesi-sesi
+  sebelumnya. Lebih aman diterapkan bertahap per fitur yang disentuh ke depan.
+- **`useApiMutation`/`useApiQuery` hook** untuk 115 pemanggilan `fetch()` di 40
+  file — adopsi ke depan untuk kode baru, migrasi kode lama organik saat file
+  itu disentuh untuk alasan lain.
+- **Rasio 84% Client Component** — baru sinyal agregat, belum temuan solid;
+  butuh audit file-per-file untuk membuktikan mana yang benar-benar bisa jadi
+  Server Component.
+- **`PrismaClient` tanpa `$disconnect`** — sudah tercatat di P2 di atas, butuh
+  load test sungguhan untuk mengukur dampak, bukan keputusan kode.
+- **`app/api/referral` (POST) belum di-rate-limit** — lihat P2 di atas.
 
 ---
 
