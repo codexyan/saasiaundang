@@ -95,6 +95,46 @@ bukan seluruh request — endpoint itu juga memasang cookie atribusi 30 hari
 yang menentukan komisi afiliator, jadi memblokir request penuh justru merugikan
 afiliator yang sah. Cookie selalu dipasang, hanya penghitungnya yang berhenti.
 
+### Dua tombol Template Lab yang diam-diam tidak berfungsi
+`components/admin/tabs/TemplateLab.tsx` · Asal: **lama** · Ditemukan 16 Agu 2026
+
+Ditemukan saat menganalisis seam ekstraksi TemplateLab, diverifikasi langsung
+dengan membaca kodenya (bukan asumsi):
+
+**1. `coverPreviewMode` — dua tombol berbeda yang berperilaku identik.**
+State-nya di-`set` di 5 tempat tapi **tidak pernah dibaca sekali pun**.
+Akibatnya, di tab Decor tombol **"▶ Preview Masuk"** dan **"▶▶ Full Flow"**
+hanya berbeda pada `setCoverPreviewMode('entry')` vs `('full-flow')` — sisanya
+sama persis. Admin melihat dua tombol, hasilnya satu perilaku yang sama.
+Hal yang sama membuat `onPreview` dan `onPreviewExit` pada
+`DecorationLayerList` juga identik.
+
+**2. `fullscreenPhase` — fase preview fullscreen tidak pernah dipakai.**
+Di-`set` di 2 tempat, tidak pernah dibaca. Modal fullscreen selalu langsung
+merender `InvitationRenderer` apa pun fasenya, jadi urutan opening -> loading
+-> main tidak pernah terlihat di mode fullscreen.
+
+**JANGAN hapus statenya untuk "membersihkan warning".** Keduanya berpola sama:
+setter tersambung, pembacanya tidak pernah ditulis — ini fitur yang belum
+selesai/putus, bukan sampah. Menghapusnya akan membekukan kerusakannya jadi
+permanen dan menghilangkan jejaknya. Yang benar: sambungkan pembacanya, atau
+hapus sekalian tombol/mode-nya kalau fiturnya memang dibatalkan.
+
+Kode mati sungguhan yang aman dihapus (nol pembacaan, tidak menyiratkan fitur):
+blok CRUD kategori di TemplateLab (`categoryList`, `catAdd`, `catDelete`,
+`catEdit`, ~40 baris), `templateTags`, dan `openJsonTab()` yang badannya kosong.
+
+Catatan kenapa semua ini lolos: `tsconfig.json` tidak mengaktifkan
+`noUnusedLocals`, dan eslint hanya memakai `next/core-web-vitals`.
+
+### `canUndo`/`canRedo` dihitung dari ref saat render
+`components/admin/tabs/TemplateLab.tsx` · Asal: **lama**
+
+Keduanya dihitung dari `historyRef.current`/`historyIndexRef.current` di badan
+render. Ref tidak memicu re-render, jadi status aktif/nonaktif tombol Undo/Redo
+bisa tertinggal dari keadaan sebenarnya sampai ada render lain yang kebetulan
+terjadi. Perlu dipindah ke state kalau mau benar.
+
 ### Enumerasi pengguna saat registrasi
 `app/api/auth/register/route.ts:25` · Asal: **lama**
 
@@ -133,13 +173,26 @@ Item di bawah ini BUKAN bug — nilainya nyata tapi risiko/usahanya besar untuk
 aplikasi yang sedang melayani pembayaran sungguhan, jadi sengaja ditunda ke
 sesi terpisah dengan fokus penuh:
 
-- **Pecah `TemplateLab.tsx`** — **separuh jalan.** Bagian stateless sudah
-  diekstrak ke `components/admin/tabs/template-lab/*` (konstanta, VariantThumb,
-  DecorationLayerList + subkomponennya, pembungkus field), file induk turun
-  5914 → 4705 baris. **Sisanya: komponen utama 4651 baris** (24 `useState`/10
-  `useEffect`) — ini bagian yang stateful dan perlu pemahaman alur state antar
-  `ConfigTab` dulu, plus pengujian interaktif tiap sub-editor yang tidak bisa
-  diverifikasi lewat `tsc`/curl saja.
+- **Pecah `TemplateLab.tsx`** — **berjalan, 5914 → 4447 baris.** Sudah keluar:
+  seluruh bagian stateless (konstanta, VariantThumb, DecorationLayerList,
+  pembungkus field) + `LoadingScreenPanel` (panel stateful pertama, 4 prop).
+
+  Seam berikutnya SUDAH dipetakan, tinggal dikerjakan, urut dari paling aman:
+  1. `MusicTab` (324 baris) + hook `useMusicLibrary` — kluster paling
+     terisolasi; hanya perlu expose `stopPreview()` untuk 2 titik sentuh.
+  2. `SectionExpandedEditor` (512 baris → 8 prop + `section`) — rasio terbaik.
+  3. `TampilanTab` (853 baris → 11 prop) — blok terbesar, `previewData` hanya
+     dibaca.
+  4. `OpeningPanel` (839 baris → 8 prop), `ReleaseModal` (115 → 8 prop).
+
+  **JANGAN diekstrak** (rasio prop jelek, diverifikasi): panel preview kanan
+  (26 prop), footer aksi (13 prop untuk 77 baris), tab decor (14 prop untuk 180
+  baris), tab konten sebagai satu blok (23 prop).
+
+  **Aturan wajib:** tiap hasil ekstraksi HARUS file terpisah. Komponen yang
+  didefinisikan inline berganti identitas tiap render, dan semua `<input>`
+  terkendali di dalamnya kehilangan fokus tiap ketikan — kegagalan runtime yang
+  `tsc` tidak lihat.
 - **Standardisasi Zod ke seluruh 88 route** — **semua route uang & auth
   pengguna sudah selesai** (16 Agu 2026): `/api/orders`, `/api/payment/proof`,
   `/api/affiliate` (PATCH), `/api/affiliate/withdrawals`,
@@ -154,9 +207,16 @@ sesi terpisah dengan fokus penuh:
     dan normalisasi `slug` (yang jadi subdomain publik) butuh kehati-hatian
     terhadap data lama; tidak bisa diverifikasi lewat curl.
   - `tickets` POST, `writer/articles` POST/PATCH, `feedback` POST.
-- **`useApiMutation`/`useApiQuery` hook** untuk 115 pemanggilan `fetch()` di 40
-  file — adopsi ke depan untuk kode baru, migrasi kode lama organik saat file
-  itu disentuh untuk alasan lain.
+- ~~**`useApiMutation`/`useApiQuery` hook**~~ — **SELESAI dibuat**
+  (`hooks/useApi.ts`, 16 Agu 2026), diadopsi di `ArticleCategoriesManager`
+  sebagai bukti pakai. Migrasi ~145 pemanggilan `fetch()` lainnya sengaja
+  organik: dikerjakan saat file itu memang sedang disentuh, bukan sekali-jalan.
+
+  **Jebakan saat mengadopsi** (sudah kena sekali, dicatat supaya tidak
+  terulang): kalau komponen punya state loading sendiri yang menggerakkan UI,
+  PERTAHANKAN state itu dan abaikan `loading` dari hook. Satu instance hook
+  yang dipakai beberapa aksi membuat `loading`-nya menyala untuk SEMUA aksi —
+  tombol "Tambah" ikut berputar saat baris lain dihapus.
 - ~~**Rasio 84% Client Component**~~ — **SUDAH DIAUDIT, sebagian besar temuan
   palsu.** Rasionya benar (149/180 = 83%), tapi hanya 6 file yang tidak punya
   fitur khusus klien, dan cuma 2 yang berguna diubah (MarkdownContent,
