@@ -1,10 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { getSession } from '@/lib/session-server'
 import { paymentProofs, invitations, users } from '@/lib/db'
 import { readJsonBody } from '@/lib/request-body'
 import { safeUrl } from '@/lib/html-safe'
 
 export const dynamic = 'force-dynamic'
+
+/**
+ * Dulu tanpa validasi apa pun: `invitation_id` diteruskan mentah ke
+ * findById() (tipe non-string membuat Prisma melempar -> 500), dan
+ * bank_name/transfer_date/notes ditulis ke database tanpa batas panjang.
+ *
+ * `amount` dibiarkan longgar (coerce) seperti perilaku lamanya: nilainya
+ * berasal dari pembeli dan memang TIDAK dipercaya di mana pun — komisi
+ * afiliasi dihitung dari settings.priceTiers milik server, bukan dari sini
+ * (lihat app/api/admin/proofs/[id]/route.ts). Jadi ini sekadar angka yang
+ * dilihat admin saat memverifikasi, bukan penentu uang.
+ */
+const proofSchema = z.object({
+  invitation_id: z.string().min(1).max(100),
+  amount: z.coerce.number().nonnegative().max(1_000_000_000).optional(),
+  bank_name: z.string().max(100).optional(),
+  transfer_date: z.string().max(50).optional(),
+  proof_url: z.string().max(2000).optional(),
+  notes: z.string().max(1000).optional(),
+})
 
 export async function GET() {
   try {
@@ -23,7 +44,11 @@ export async function POST(req: NextRequest) {
     if (!session) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
     const body = await readJsonBody(req)
-    const { invitation_id, amount, bank_name, transfer_date, proof_url, notes } = body
+    const parsed = proofSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Ada data yang belum sesuai. Coba periksa lagi ya.' }, { status: 400 })
+    }
+    const { invitation_id, amount, bank_name, transfer_date, proof_url, notes } = parsed.data
 
     const inv = await invitations.findById(invitation_id)
     if (!inv || inv.user_id !== session.userId) return NextResponse.json({ error: 'Undangannya tidak ditemukan. Coba periksa lagi alamatnya.' }, { status: 404 })

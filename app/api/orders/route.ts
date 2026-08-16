@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { orders, invitations, settings } from '@/lib/db'
 import { notifyUser } from '@/lib/notifications'
 import { runAfterResponse } from '@/lib/after-response'
@@ -27,9 +28,57 @@ function generateUniqueCode(): number {
   return (crypto.getRandomValues(new Uint32Array(1))[0] % 999) + 1
 }
 
+/**
+ * Dulu hanya ada pengecekan "terisi atau tidak" (`!email || !groom_name || ...`).
+ * Dua lubang yang ditutup skema ini:
+ *
+ * 1. Format email TIDAK pernah divalidasi. Padahal email inilah yang dipakai
+ *    mengirim konfirmasi pesanan DAN menjadi akun login yang dibuatkan saat
+ *    pesanan disetujui — email salah ketik berarti pembeli membayar lalu tidak
+ *    pernah menerima apa pun, dan akunnya tidak bisa diakses.
+ * 2. Tipe tidak pernah diperiksa. `{ "email": 123 }` lolos pengecekan presence,
+ *    lalu `email.toLowerCase()` melempar TypeError -> dibalas 500, seolah
+ *    server yang rusak, padahal permintaannya yang salah (harusnya 400).
+ *
+ * Batas panjang mengikuti pemakaian nyatanya: subdomain 63 = batas satu label
+ * DNS, karena nilai ini menjadi <slug>.iaundang.online.
+ *
+ * Field opsional sengaja `.optional()` dan BUKAN `.default('')` — fallback
+ * `|| ''` di bawah dibiarkan apa adanya supaya perilaku untuk body yang tidak
+ * lengkap persis sama seperti sebelumnya.
+ */
+const orderSchema = z.object({
+  email: z.string().email().max(200),
+  phone: z.string().max(30).optional(),
+  groom_name: z.string().min(1).max(100),
+  bride_name: z.string().min(1).max(100),
+  groom_nickname: z.string().max(100).optional(),
+  bride_nickname: z.string().max(100).optional(),
+  groom_father: z.string().max(100).optional(),
+  groom_mother: z.string().max(100).optional(),
+  bride_father: z.string().max(100).optional(),
+  bride_mother: z.string().max(100).optional(),
+  groom_profession: z.string().max(100).optional(),
+  bride_profession: z.string().max(100).optional(),
+  subdomain: z.string().min(1).max(63),
+  template_id: z.string().min(1).max(100),
+  package_tier: z.string().min(1).max(50),
+  referred_by: z.string().max(50).nullish(),
+})
+
 export async function POST(req: NextRequest) {
   try {
     const body = await readJsonBody(req)
+    const parsed = orderSchema.safeParse(body)
+    if (!parsed.success) {
+      // Email dibedakan: itu kesalahan yang paling mungkin dilakukan pembeli
+      // sungguhan (salah ketik), dan pesan umum tidak menolongnya memperbaiki.
+      if (parsed.error.flatten().fieldErrors.email) {
+        return NextResponse.json({ error: 'Alamat emailnya sepertinya belum benar. Coba periksa lagi ya.' }, { status: 400 })
+      }
+      return NextResponse.json({ error: 'Masih ada data yang belum terisi. Coba periksa lagi ya.' }, { status: 400 })
+    }
+
     const {
       email, phone, groom_name, bride_name,
       groom_nickname, bride_nickname,
@@ -37,11 +86,7 @@ export async function POST(req: NextRequest) {
       groom_profession, bride_profession,
       subdomain, template_id, package_tier,
       referred_by,
-    } = body
-
-    if (!email || !groom_name || !bride_name || !subdomain || !template_id || !package_tier) {
-      return NextResponse.json({ error: 'Masih ada data yang belum terisi. Coba periksa lagi ya.' }, { status: 400 })
-    }
+    } = parsed.data
 
     const slug = subdomain.toLowerCase().replace(/[^a-z0-9-]/g, '')
     if (slug.length < 3) {
