@@ -98,7 +98,7 @@ export default function MusicLibraryTab() {
       setTracks(prev => [track, ...prev])
       toast.success(`"${title}" berhasil diupload`)
     } catch {
-      toast.error('Gagal upload musik')
+      toast.error('Musiknya gagal dikirim. Coba lagi ya.')
     } finally {
       setUploading(false)
     }
@@ -137,7 +137,7 @@ export default function MusicLibraryTab() {
       const { track: updated } = await res.json()
       setTracks(prev => prev.map(t => t.id === track.id ? updated : t))
     } catch {
-      toast.error('Gagal mengubah status')
+      toast.error('Statusnya gagal diubah. Coba lagi ya.')
     }
   }
 
@@ -154,7 +154,7 @@ export default function MusicLibraryTab() {
       setEditingId(null)
       toast.success('Berhasil disimpan')
     } catch {
-      toast.error('Gagal menyimpan')
+      toast.error('Perubahannya gagal disimpan. Coba lagi ya.')
     }
   }
 
@@ -168,9 +168,9 @@ export default function MusicLibraryTab() {
         audioRef.current?.pause()
         setPlayingId(null)
       }
-      toast.success('Musik dihapus')
+      toast.success('Musiknya sudah dihapus.')
     } catch {
-      toast.error('Gagal menghapus')
+      toast.error('Gagal dihapus. Coba lagi ya.')
     }
   }
 
@@ -229,7 +229,7 @@ export default function MusicLibraryTab() {
       setEditingCatId(null)
       toast.success('Kategori diperbarui')
     } catch {
-      toast.error('Gagal menyimpan')
+      toast.error('Perubahannya gagal disimpan. Coba lagi ya.')
     }
   }
 
@@ -245,7 +245,7 @@ export default function MusicLibraryTab() {
       setCategories(prev => prev.filter(c => c.id !== cat.id))
       toast.success('Kategori dihapus')
     } catch {
-      toast.error('Gagal menghapus')
+      toast.error('Gagal dihapus. Coba lagi ya.')
     }
   }
 

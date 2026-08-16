@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
   const body = await readJsonBody(req)
   const { score, comment, page, type } = body
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   // lalu menjadi NaN saat Number() di bawah.
   const numericScore = Number(score)
   if (!Number.isFinite(numericScore) || numericScore < 0 || numericScore > 10) {
-    return NextResponse.json({ error: 'Score harus angka 0-10' }, { status: 400 })
+    return NextResponse.json({ error: 'Nilainya harus angka antara 0 sampai 10.' }, { status: 400 })
   }
 
   const feedback = await userFeedback.create({
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
   const [hasRecent, history] = await Promise.all([
     userFeedback.hasRecentFeedback(session.userId),

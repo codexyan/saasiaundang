@@ -83,9 +83,9 @@ export default function GuestManager({ invitation }: Props) {
   const unsentCount = contacts.filter(c => c.phone && !c.blast_sent_at).length
 
   async function addGuest() {
-    if (!newGuest.name.trim()) { toast.error('Nama wajib diisi'); return }
-    if (!newGuest.phone.trim()) { toast.error('Nomor WA wajib diisi'); return }
-    if (newGuest.phone.replace(/\D/g, '').length < 9) { toast.error('Nomor WA tidak valid'); return }
+    if (!newGuest.name.trim()) { toast.error('Namanya belum diisi.'); return }
+    if (!newGuest.phone.trim()) { toast.error('Nomor WhatsApp-nya belum diisi.'); return }
+    if (newGuest.phone.replace(/\D/g, '').length < 9) { toast.error('Nomor WhatsApp-nya belum benar. Contoh: 08123456789'); return }
     if (isAtLimit) { toast.error(`Batas ${maxGuests} tamu di paket ${pkg.name}`); return }
 
     const res = await fetch('/api/guests', {
@@ -99,20 +99,20 @@ export default function GuestManager({ invitation }: Props) {
         note: newGuest.note.trim(),
       }),
     })
-    if (!res.ok) { toast.error('Gagal menambah tamu'); return }
+    if (!res.ok) { toast.error('Tamunya gagal ditambahkan. Coba lagi ya.'); return }
 
     const { guest } = await res.json()
     setContacts(prev => [guest, ...prev])
     setNewGuest({ name: '', phone: '', group: '', note: '' })
     setShowAddForm(false)
-    toast.success('Tamu ditambahkan!')
+    toast.success('Tamunya sudah ditambahkan!')
   }
 
   async function removeGuest(id: string) {
     const res = await fetch(`/api/guests?id=${id}`, { method: 'DELETE' })
-    if (!res.ok) { toast.error('Gagal menghapus'); return }
+    if (!res.ok) { toast.error('Gagal dihapus. Coba lagi ya.'); return }
     setContacts(prev => prev.filter(c => c.id !== id))
-    toast.success('Tamu dihapus')
+    toast.success('Tamunya sudah dihapus.')
   }
 
   async function markSent(ids: string[]) {
@@ -133,7 +133,7 @@ export default function GuestManager({ invitation }: Props) {
 
   function blastAll() {
     const targets = contacts.filter(c => c.phone && !c.blast_sent_at)
-    if (targets.length === 0) { toast.error('Tidak ada tamu yang belum dikirimi'); return }
+    if (targets.length === 0) { toast.error('Semua tamu sudah dikirimi undangan.'); return }
     const ids: string[] = []
     targets.forEach(c => {
       window.open(generateWaLink(c.phone, defaultMessage(c.name)), '_blank')
@@ -157,7 +157,7 @@ export default function GuestManager({ invitation }: Props) {
     const a = document.createElement('a')
     a.href = url; a.download = `tamu-${invitation.slug}.csv`; a.click()
     URL.revokeObjectURL(url)
-    toast.success('Daftar tamu diexport!')
+    toast.success('Daftar tamunya sudah diunduh!')
   }
 
   if (loading) {
@@ -226,7 +226,7 @@ export default function GuestManager({ invitation }: Props) {
             variant="secondary"
             onClick={() => {
               navigator.clipboard.writeText(invUrl)
-              toast.success('Link disalin!')
+              toast.success('Tautan undangan sudah disalin!')
             }}
           >
             <Copy size={16} /> Salin Link

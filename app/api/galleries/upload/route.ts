@@ -24,44 +24,44 @@ function validateImageMagic(buffer: Uint8Array): boolean {
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession()
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
     const formData = await req.formData()
     const invitationId = formData.get('invitationId') as string
     const file = formData.get('file') as File | null
 
     if (!file || !invitationId) {
-      return NextResponse.json({ error: 'File dan invitationId wajib diisi' }, { status: 400 })
+      return NextResponse.json({ error: 'Berkasnya belum dipilih.' }, { status: 400 })
     }
 
     const inv = await invitations.findById(invitationId)
     if (!inv || inv.user_id !== session.userId) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Datanya tidak ditemukan.' }, { status: 404 })
     }
 
     const existing = await galleries.findByInvitationId(invitationId)
     if (existing.length >= MAX_FILES) {
-      return NextResponse.json({ error: `Maksimal ${MAX_FILES} foto` }, { status: 400 })
+      return NextResponse.json({ error: `Maksimal ${MAX_FILES} foto ya.` }, { status: 400 })
     }
 
     if (file.size > MAX_SIZE) {
-      return NextResponse.json({ error: 'File terlalu besar (max 5MB)' }, { status: 400 })
+      return NextResponse.json({ error: 'Fotonya terlalu besar. Maksimal 5MB ya.' }, { status: 400 })
     }
 
     if (!ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json({ error: 'Format tidak didukung. Gunakan JPG, PNG, atau WebP' }, { status: 400 })
+      return NextResponse.json({ error: 'Fotonya harus berformat JPG, PNG, atau WebP ya.' }, { status: 400 })
     }
 
     const ext = fileExtension(file.name) || '.jpg'
     if (!ALLOWED_EXTS.includes(ext)) {
-      return NextResponse.json({ error: 'Ekstensi file tidak valid' }, { status: 400 })
+      return NextResponse.json({ error: 'Jenis berkasnya belum didukung. Coba pakai berkas lain ya.' }, { status: 400 })
     }
 
     const bytes = await file.arrayBuffer()
     const buffer = new Uint8Array(bytes)
 
     if (!validateImageMagic(buffer)) {
-      return NextResponse.json({ error: 'Konten file tidak sesuai dengan format gambar' }, { status: 400 })
+      return NextResponse.json({ error: 'Berkas ini sepertinya bukan foto. Coba pilih foto lain ya.' }, { status: 400 })
     }
     // Suffix acak: uploadToStorage memakai upsert:true, jadi dua upload dalam
     // milidetik yang sama akan saling menimpa kalau namanya hanya userId+waktu.
@@ -79,6 +79,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ gallery }, { status: 201 })
   } catch (error) {
     console.error('Gallery upload error:', error)
-    return NextResponse.json({ error: 'Gagal mengupload foto' }, { status: 500 })
+    return NextResponse.json({ error: 'Fotonya gagal dikirim. Coba lagi sebentar lagi ya.' }, { status: 500 })
   }
 }

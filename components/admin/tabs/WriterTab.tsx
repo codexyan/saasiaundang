@@ -104,7 +104,7 @@ export default function WriterTab({ onViewArticles }: { onViewArticles?: (userId
       toast.success('Writer berhasil ditambahkan!')
       resetForm()
       await Promise.all([fetchWriters(), fetchUsers()])
-    } catch { toast.error('Terjadi kesalahan') }
+    } catch { toast.error('Ada kendala sebentar. Coba lagi ya.') }
     finally { setCreating(false) }
   }
 

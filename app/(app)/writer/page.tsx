@@ -388,7 +388,7 @@ export default function WriterDashboard() {
           {status === 'pending_review' && (
             <div className="mb-6 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
               <Clock className="w-4 h-4 shrink-0" />
-              Menunggu review admin. Kamu tetap bisa mengedit — mengajukan ulang akan memperbarui draf yang sedang direview.
+              Menunggu review admin. Kamu tetap bisa mengedit; kalau diajukan ulang, draf yang sedang direview akan diperbarui.
             </div>
           )}
 
@@ -396,7 +396,7 @@ export default function WriterDashboard() {
             <div className="mb-6 flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
               <CalendarClock className="w-4 h-4 shrink-0" />
               Terjadwal tayang: {new Date(editingArticle.scheduledAt).toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' })}
-              {!isTrusted && ' — mengajukan ulang akan membatalkan jadwal ini dan mengirim ke review.'}
+              {!isTrusted && ' Mengajukan ulang akan membatalkan jadwal ini dan mengirimnya ke review.'}
             </div>
           )}
 

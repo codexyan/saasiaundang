@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   try {
     const { invitation_id, referrer } = await readJsonBody(req)
     if (!invitation_id) {
-      return NextResponse.json({ error: 'invitation_id required' }, { status: 400 })
+      return NextResponse.json({ error: 'Undangannya belum dipilih.' }, { status: 400 })
     }
 
     const ua = req.headers.get('user-agent') || ''

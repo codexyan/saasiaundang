@@ -189,9 +189,9 @@ function TrialGracePage({ slug }: { slug: string }) {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center px-4 max-w-md">
         <div className="text-5xl mb-4">🔒</div>
-        <h1 className="text-2xl font-sans font-bold text-gray-800">Masa Percobaan Berakhir</h1>
+        <h1 className="text-2xl font-sans font-bold text-gray-800">Masa Coba Gratis Sudah Berakhir</h1>
         <p className="text-gray-500 mt-3">
-          Free trial untuk undangan <strong>{slug}</strong> telah habis. Undangan masih tersimpan — upgrade ke paket berbayar untuk mengaktifkan kembali.
+          Masa coba untuk undangan <strong>{slug}</strong> sudah habis. Tenang, semua isinya masih tersimpan. Pilih paket untuk menghidupkan undangan ini lagi.
         </p>
         <Link
           href="/templates"

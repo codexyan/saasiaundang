@@ -12,7 +12,7 @@ import { InputField } from '@/components/marketing/Field'
 import { Button } from '@/components/marketing/Button'
 
 const schema = z.object({
-  email: z.string().email('Email tidak valid'),
+  email: z.string().email('Format emailnya belum benar'),
 })
 
 type FormData = z.infer<typeof schema>
@@ -36,12 +36,12 @@ export default function ForgotPasswordPage() {
 
     if (!res.ok) {
       const err = await res.json()
-      toast.error(err.error || 'Gagal mengirim reset link')
+      toast.error(err.error || 'Emailnya gagal dikirim. Coba lagi sebentar lagi ya.')
       return
     }
 
     setSuccess(true)
-    toast.success('Permintaan reset berhasil dikirim!')
+    toast.success('Tautan untuk membuat password baru sudah kami kirim ke email kalian!')
   }
 
   if (success) {
@@ -52,19 +52,19 @@ export default function ForgotPasswordPage() {
             <CheckCircle className="w-8 h-8 text-green-600" />
           </div>
 
-          <h1 className="font-display text-h1 text-forest-deep mb-3">Cek Email Anda</h1>
+          <h1 className="font-display text-h1 text-forest-deep mb-3">Cek Email Kalian Ya</h1>
 
           <p className="text-body-sm text-concrete mb-4 leading-relaxed">
-            Jika email terdaftar, kami akan mengirimkan link untuk reset password.
-            Silakan cek inbox dan folder spam Anda.
+            Kalau email itu terdaftar, tautan untuk membuat password baru sudah kami kirim.
+            Coba cek kotak masuk, dan jangan lupa lihat folder spam juga ya.
           </p>
 
           <p className="text-body-xs text-concrete mb-6">
-            Link akan kadaluarsa dalam <strong className="text-graphite">1 jam</strong>.
+            Tautannya berlaku <strong className="text-graphite">1 jam</strong>.
           </p>
 
           <Button href="/login" className="w-full">
-            <span>Kembali ke Login</span>
+            <span>Kembali ke Halaman Masuk</span>
             <ArrowRight size={14} />
           </Button>
         </div>
@@ -81,7 +81,7 @@ export default function ForgotPasswordPage() {
       <div className="mb-8">
         <h1 className="font-display text-display-md text-forest-deep">Lupa Password?</h1>
         <p className="text-body-sm text-concrete mt-2">
-          Masukkan email akunmu — kami kirimkan link untuk membuat password baru.
+          Masukkan email akun kalian, nanti kami kirimkan tautan untuk membuat password baru.
         </p>
       </div>
 
@@ -103,7 +103,7 @@ export default function ForgotPasswordPage() {
             </>
           ) : (
             <>
-              <span>Kirim Link Reset</span>
+              <span>Kirim Tautannya</span>
               <ArrowRight size={14} />
             </>
           )}

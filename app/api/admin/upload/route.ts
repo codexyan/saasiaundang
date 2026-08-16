@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getSession()
     if (!isAdmin(session)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
     }
 
     const formData = await req.formData()
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     const folder = ALLOWED_FOLDERS.includes(folderParam) ? folderParam : 'covers'
 
     if (!file) {
-      return NextResponse.json({ error: 'File wajib diisi' }, { status: 400 })
+      return NextResponse.json({ error: 'Belum ada berkas yang dipilih.' }, { status: 400 })
     }
 
     const kind = fileKind(file)
@@ -85,14 +85,14 @@ export async function POST(req: NextRequest) {
     const ext = fileExtension(file.name)
     const allowedExts = kind === 'video' ? VIDEO_EXTS : kind === 'audio' ? AUDIO_EXTS : kind === 'font' ? FONT_EXTS : IMAGE_EXTS
     if (!allowedExts.includes(ext)) {
-      return NextResponse.json({ error: 'Ekstensi file tidak valid' }, { status: 400 })
+      return NextResponse.json({ error: 'Jenis berkasnya belum didukung. Coba pakai berkas lain ya.' }, { status: 400 })
     }
 
     const bytes = await file.arrayBuffer()
     const buffer = new Uint8Array(bytes)
 
     if (!matchesMagic(buffer, MAGIC_SIGS, kind)) {
-      return NextResponse.json({ error: 'Konten file tidak sesuai dengan format yang dideklarasikan' }, { status: 400 })
+      return NextResponse.json({ error: 'Isi berkasnya tidak cocok dengan jenisnya. Coba pilih berkas lain ya.' }, { status: 400 })
     }
 
     // Gambar artikel sudah di-resize di browser (lib/image-resize.ts); server
@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Admin upload error:', error)
     return NextResponse.json(
-      { error: 'Gagal mengupload file. Silakan coba lagi.' },
+      { error: 'Berkasnya gagal dikirim. Coba lagi sebentar lagi ya.' },
       { status: 500 }
     )
   }

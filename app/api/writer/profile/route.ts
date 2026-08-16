@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   const session = await getSession()
   if (!isWriter(session)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
   }
   if (isAdmin(session)) {
     return NextResponse.json({ profile: { isTrusted: true, bio: '', avatarUrl: '', socialLinks: {} } })

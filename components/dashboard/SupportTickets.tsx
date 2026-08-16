@@ -47,7 +47,7 @@ export default function SupportTickets() {
       const data = await res.json()
       setTickets(data.tickets ?? [])
     } catch {
-      toast.error('Gagal memuat tiket')
+      toast.error('Pesan bantuannya gagal dimuat. Coba muat ulang halaman ya.')
     } finally {
       setLoading(false)
     }
@@ -170,7 +170,7 @@ function CreateTicket({ onBack, onCreated }: { onBack: () => void; onCreated: (t
 
     if (res.ok) {
       const data = await res.json()
-      toast.success('Tiket berhasil dibuat!')
+      toast.success('Pesan kalian sudah terkirim. Kami balas secepatnya ya!')
       onCreated(data.ticket)
     } else {
       const { error } = await res.json()

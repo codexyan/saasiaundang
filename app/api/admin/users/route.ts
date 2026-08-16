@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   const session = await getSession()
   if (!isAdmin(session)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
   }
 
   const allUsers = await prisma.user.findMany({
@@ -70,15 +70,15 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
   const { email, password, role } = await readJsonBody(req) as { email?: string; password?: string; role?: UserRole }
 
   if (!email || !email.includes('@')) return NextResponse.json({ error: 'Email tidak valid' }, { status: 400 })
-  if (!password || password.length < 6) return NextResponse.json({ error: 'Password minimal 6 karakter' }, { status: 400 })
+  if (!password || password.length < 6) return NextResponse.json({ error: 'Passwordnya minimal 6 karakter ya.' }, { status: 400 })
 
   const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
-  if (existing) return NextResponse.json({ error: 'Email sudah terdaftar' }, { status: 409 })
+  if (existing) return NextResponse.json({ error: 'Email ini sudah punya akun. Silakan masuk, atau pakai email lain.' }, { status: 409 })
 
   const passwordHash = await bcrypt.hash(password, 10)
   const user = await prisma.user.create({

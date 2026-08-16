@@ -40,8 +40,8 @@ export default function GalleryManager({ invitation }: Props) {
     onDropAccepted: handleUpload,
     onDropRejected: (rejected) => {
       const first = rejected[0]
-      if (first?.errors[0]?.code === 'file-too-large') toast.error('Ukuran file max 5MB')
-      else toast.error('File tidak valid')
+      if (first?.errors[0]?.code === 'file-too-large') toast.error('Fotonya terlalu besar. Maksimal 5MB ya.')
+      else toast.error('Berkasnya belum sesuai. Coba pilih yang lain ya.')
     },
   })
 
@@ -71,11 +71,11 @@ export default function GalleryManager({ invitation }: Props) {
 
   async function handleDelete(gallery: Gallery) {
     const res = await fetch(`/api/galleries/${gallery.id}`, { method: 'DELETE' })
-    if (!res.ok) { toast.error('Gagal menghapus foto'); return }
+    if (!res.ok) { toast.error('Fotonya gagal dihapus. Coba lagi ya.'); return }
     setGalleries(prev => prev.filter(g => g.id !== gallery.id))
     setDeleteConfirm(null)
     if (lightbox !== null) setLightbox(null)
-    toast.success('Foto dihapus')
+    toast.success('Fotonya sudah dihapus.')
   }
 
   function prevPhoto() {

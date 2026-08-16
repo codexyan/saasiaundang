@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     const isValid = (await verifyMayarWebhook(token)) || (await verifyMayarWebhook(body.token))
     if (!isValid) {
       console.warn('Mayar webhook: invalid token')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
     }
 
     const eventType = body?.event?.received

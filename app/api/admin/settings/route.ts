@@ -11,20 +11,20 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   const session = await getSession()
   if (!isAdmin(session)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
   }
   try {
     return NextResponse.json({ settings: await settings.get() })
   } catch (error) {
     console.error('Settings GET error:', error)
-    return NextResponse.json({ error: 'Gagal memuat pengaturan' }, { status: 500 })
+    return NextResponse.json({ error: 'Pengaturannya gagal dimuat. Coba muat ulang halaman ya.' }, { status: 500 })
   }
 }
 
 export async function PATCH(req: NextRequest) {
   const session = await getSession()
   if (!isAdmin(session)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
   }
   try {
     // settings.save() adalah upsert SATU RECORD UTUH — tidak ada merge dengan
@@ -59,6 +59,6 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ settings: body })
   } catch (error) {
     console.error('Settings PATCH error:', error)
-    return NextResponse.json({ error: 'Gagal menyimpan pengaturan' }, { status: 500 })
+    return NextResponse.json({ error: 'Pengaturannya gagal disimpan. Coba lagi sebentar lagi ya.' }, { status: 500 })
   }
 }

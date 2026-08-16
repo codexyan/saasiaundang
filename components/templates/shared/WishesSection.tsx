@@ -20,7 +20,7 @@ export default function WishesSection({ invitationId, initialWishes, className =
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim() || !message.trim()) {
-      toast.error('Nama dan ucapan wajib diisi')
+      toast.error('Nama dan ucapannya belum lengkap.')
       return
     }
 
@@ -43,9 +43,9 @@ export default function WishesSection({ invitationId, initialWishes, className =
       setWishes([newWish, ...wishes])
       setName('')
       setMessage('')
-      toast.success('Ucapan terkirim!')
+      toast.success('Terima kasih, ucapannya sudah terkirim!')
     } catch {
-      toast.error('Gagal mengirim ucapan')
+      toast.error('Ucapannya gagal terkirim. Coba lagi ya.')
     } finally {
       setLoading(false)
     }

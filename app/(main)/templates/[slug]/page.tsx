@@ -17,11 +17,11 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   if (!template) return {}
 
   return {
-    title: `Template ${template.name} — Undangan Digital | iaundang`,
-    description: `Lihat dan coba template undangan digital "${template.name}" dari iaundang. Kustomisasi dengan nama pasangan, tanggal, dan lokasi. Coba gratis tanpa daftar.`,
+    title: `Undangan Digital ${template.name} | iaundang`,
+    description: `Lihat dan coba desain undangan digital "${template.name}" dari iaundang. Isi dengan nama kalian berdua, tanggal, dan lokasi acara. Gratis dicoba, tanpa perlu daftar.`,
     openGraph: {
-      title: `Template ${template.name} | iaundang`,
-      description: `Template undangan digital "${template.name}" — elegan, personal, dan siap pakai.`,
+      title: `Undangan Digital ${template.name} | iaundang`,
+      description: `Desain undangan "${template.name}" yang elegan, personal, dan siap pakai.`,
       images: template.thumbnail_url ? [template.thumbnail_url] : undefined,
     },
   }
@@ -131,8 +131,8 @@ export default async function TemplateDetailPage(props: Props) {
               )}
               <h1 className="text-2xl sm:text-3xl font-bold text-stone-900 mt-3">{template.name}</h1>
               <p className="text-stone-500 text-sm mt-2">
-                Template undangan digital yang elegan dan bisa dikustomisasi sepenuhnya.
-                Masukkan nama, tanggal, lokasi, dan foto — langsung jadi undangan online yang siap dibagikan.
+                Desain undangan yang elegan dan bebas kalian ubah sesuai selera.
+                Tinggal isi nama, tanggal, lokasi, dan foto, lalu undangan kalian langsung siap dibagikan.
               </p>
             </div>
 

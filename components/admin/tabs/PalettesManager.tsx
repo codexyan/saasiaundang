@@ -88,7 +88,7 @@ export default function PalettesManager({ palettes, onUpdate }: Props) {
     setBusy(false)
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
-      toast.error(data.error || 'Gagal menyimpan')
+      toast.error(data.error || 'Perubahannya gagal disimpan. Coba lagi ya.')
       return
     }
     onUpdate(palettes.map((p) => p.id === editingId ? { ...p, ...form } as ColorPalette : p))
@@ -102,7 +102,7 @@ export default function PalettesManager({ palettes, onUpdate }: Props) {
     const res = await fetch(`/api/admin/palettes/${id}`, { method: 'DELETE' })
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
-      toast.error(data.error || 'Gagal menghapus')
+      toast.error(data.error || 'Gagal dihapus. Coba lagi ya.')
       return
     }
     onUpdate(palettes.filter((p) => p.id !== id))

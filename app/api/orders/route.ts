@@ -40,18 +40,18 @@ export async function POST(req: NextRequest) {
     } = body
 
     if (!email || !groom_name || !bride_name || !subdomain || !template_id || !package_tier) {
-      return NextResponse.json({ error: 'Data tidak lengkap' }, { status: 400 })
+      return NextResponse.json({ error: 'Masih ada data yang belum terisi. Coba periksa lagi ya.' }, { status: 400 })
     }
 
     const slug = subdomain.toLowerCase().replace(/[^a-z0-9-]/g, '')
     if (slug.length < 3) {
-      return NextResponse.json({ error: 'Subdomain minimal 3 karakter' }, { status: 400 })
+      return NextResponse.json({ error: 'Alamat undangan minimal 3 huruf ya.' }, { status: 400 })
     }
 
     const slugTaken = await invitations.slugExists(slug)
     const orderTaken = await orders.subdomainExists(slug)
     if (slugTaken || orderTaken) {
-      return NextResponse.json({ error: 'Subdomain sudah digunakan' }, { status: 409 })
+      return NextResponse.json({ error: 'Alamat undangan ini sudah dipakai pasangan lain. Coba nama lain ya.' }, { status: 409 })
     }
 
     // Harga DITENTUKAN SERVER, bukan dikirim client.
@@ -70,13 +70,13 @@ export async function POST(req: NextRequest) {
     // dengan tier seperti itu akan gagal saat penyediaan — setelah pelanggan
     // terlanjur membayar. Halaman /order sendiri hanya menawarkan ketiga ini.
     if (!(package_tier in PACKAGES)) {
-      return NextResponse.json({ error: 'Paket tidak valid' }, { status: 400 })
+      return NextResponse.json({ error: 'Paket yang dipilih belum kami kenali. Silakan pilih ulang paketnya.' }, { status: 400 })
     }
 
     const appSettings = await settings.get()
     const tier = appSettings.priceTiers.find(t => t.id === package_tier)
     if (!tier) {
-      return NextResponse.json({ error: 'Paket tidak valid' }, { status: 400 })
+      return NextResponse.json({ error: 'Paket yang dipilih belum kami kenali. Silakan pilih ulang paketnya.' }, { status: 400 })
     }
     const amount = tier.price
 
@@ -154,7 +154,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ order, paymentUrl }, { status: 201 })
   } catch (error) {
     console.error('Order POST error:', error)
-    return NextResponse.json({ error: 'Gagal membuat pesanan' }, { status: 500 })
+    return NextResponse.json({ error: 'Pesanannya gagal dibuat. Coba lagi sebentar lagi ya.' }, { status: 500 })
   }
 }
 
@@ -175,7 +175,7 @@ export async function GET(req: NextRequest) {
   const email = req.nextUrl.searchParams.get('email')
 
   if (!orderNumber || !email) {
-    return NextResponse.json({ error: 'order_number dan email wajib diisi' }, { status: 400 })
+    return NextResponse.json({ error: 'Nomor pesanan dan email keduanya wajib diisi.' }, { status: 400 })
   }
 
   const order = await orders.findByOrderNumber(orderNumber)
@@ -183,7 +183,7 @@ export async function GET(req: NextRequest) {
   // Pesan dan status yang sama untuk "tidak ada" maupun "email tidak cocok",
   // supaya tidak bisa dipakai memastikan sebuah nomor pesanan itu ada.
   if (!order || order.email.toLowerCase() !== email.trim().toLowerCase()) {
-    return NextResponse.json({ error: 'Pesanan tidak ditemukan' }, { status: 404 })
+    return NextResponse.json({ error: 'Pesanannya tidak ditemukan. Coba periksa lagi nomor pesanan dan emailnya.' }, { status: 404 })
   }
 
   return NextResponse.json({ order })

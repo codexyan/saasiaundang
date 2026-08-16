@@ -378,7 +378,7 @@ export default function FeatureShowcase({ personalisasi }: { personalisasi?: Per
       tone="ivory"
       eyebrow="Fitur Unggulan"
       title={<>Semua yang kalian butuhkan,<br className="hidden sm:block" /> dalam satu undangan.</>}
-      lead="Personalisasi nama tamu, RSVP otomatis, musik pengiring, dan galeri foto — langsung dari browser."
+      lead="Nama tamu yang tersapa satu per satu, konfirmasi kehadiran otomatis, musik pengiring, dan galeri foto. Semua bisa diatur langsung dari HP kalian."
     >
       {/* Bento Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

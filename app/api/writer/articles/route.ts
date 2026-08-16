@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   const session = await getSession()
   if (!isWriter(session)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
   }
   const list = isAdmin(session)
     ? await articles.findAll()
@@ -20,7 +20,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await getSession()
   if (!isWriter(session)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
   }
   const body = await readJsonBody(req)
   if (!body.title || !body.slug) {

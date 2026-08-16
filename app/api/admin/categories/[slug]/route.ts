@@ -11,7 +11,7 @@ export async function PATCH(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
   const { slug } = await params
   const body = await readJsonBody(req)
@@ -20,7 +20,7 @@ export async function PATCH(
 
   const s = await settings.get()
   const idx = s.categories.findIndex((c) => c.slug === slug)
-  if (idx === -1) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (idx === -1) return NextResponse.json({ error: 'Datanya tidak ditemukan.' }, { status: 404 })
 
   s.categories[idx] = { ...s.categories[idx], label: newLabel }
   await settings.save(s)
@@ -32,12 +32,12 @@ export async function DELETE(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
   const { slug } = await params
   const s = await settings.get()
   const target = s.categories.find((c) => c.slug === slug)
-  if (!target) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (!target) return NextResponse.json({ error: 'Datanya tidak ditemukan.' }, { status: 404 })
 
   s.categories = s.categories.filter((c) => c.slug !== slug)
   s.deletedCategoryIds = [...(s.deletedCategoryIds ?? []), slug]

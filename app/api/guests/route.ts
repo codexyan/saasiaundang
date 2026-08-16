@@ -26,14 +26,14 @@ const updateSchema = z.object({
 
 export async function GET(req: NextRequest) {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
   const invitationId = req.nextUrl.searchParams.get('invitation_id')
-  if (!invitationId) return NextResponse.json({ error: 'invitation_id required' }, { status: 400 })
+  if (!invitationId) return NextResponse.json({ error: 'Undangannya belum dipilih.' }, { status: 400 })
 
   const inv = await invitations.findById(invitationId)
   if (!inv || inv.user_id !== session.userId) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    return NextResponse.json({ error: 'Datanya tidak ditemukan.' }, { status: 404 })
   }
 
   const list = await guests.findByInvitationId(invitationId)
@@ -44,17 +44,17 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
   const body = await readJsonBody(req)
   const parsed = createSchema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Data tidak valid', details: parsed.error.flatten() }, { status: 400 })
+    return NextResponse.json({ error: 'Ada data yang belum sesuai. Coba periksa lagi ya.', details: parsed.error.flatten() }, { status: 400 })
   }
 
   const inv = await invitations.findById(parsed.data.invitation_id)
   if (!inv || inv.user_id !== session.userId) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    return NextResponse.json({ error: 'Datanya tidak ditemukan.' }, { status: 404 })
   }
 
   const guest = await guests.create({
@@ -73,12 +73,12 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
   const body = await readJsonBody(req)
   const parsed = updateSchema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Data tidak valid' }, { status: 400 })
+    return NextResponse.json({ error: 'Ada data yang belum sesuai. Coba periksa lagi ya.' }, { status: 400 })
   }
 
   const { id, ...updates } = parsed.data
@@ -86,7 +86,7 @@ export async function PATCH(req: NextRequest) {
   // Wajib: update() hanya menerima id, jadi tanpa cek ini siapa pun yang login
   // bisa mengubah tamu milik undangan orang lain.
   if (!(await guests.isOwnedBy(id, session.userId))) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    return NextResponse.json({ error: 'Datanya tidak ditemukan.' }, { status: 404 })
   }
 
   const guest = await guests.update(id, updates)
@@ -95,13 +95,13 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
   const id = req.nextUrl.searchParams.get('id')
-  if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
+  if (!id) return NextResponse.json({ error: 'Datanya belum lengkap.' }, { status: 400 })
 
   if (!(await guests.isOwnedBy(id, session.userId))) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    return NextResponse.json({ error: 'Datanya tidak ditemukan.' }, { status: 404 })
   }
 
   await guests.delete(id)

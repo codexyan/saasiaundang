@@ -10,13 +10,13 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
   return NextResponse.json({ templates: (await settings.get()).templates })
 }
 
 export async function POST(req: NextRequest) {
   const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
   // Setiap field punya fallback, jadi body kosong tetap menghasilkan record
   // "Template Baru" berisi sampah dengan id acak — dibalas 200 seolah disengaja.

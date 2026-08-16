@@ -13,10 +13,10 @@ function generateCode(email: string): string {
 
 export async function GET() {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
   const user = await users.findById(session.userId)
-  if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+  if (!user) return NextResponse.json({ error: 'Akunnya tidak ditemukan.' }, { status: 404 })
 
   let referralCode = user.referral_code
   if (!referralCode) {
@@ -37,11 +37,11 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const { code } = await readJsonBody(req)
-  if (!code) return NextResponse.json({ error: 'No code' }, { status: 400 })
+  if (!code) return NextResponse.json({ error: 'Kode referralnya belum diisi.' }, { status: 400 })
 
   const affiliate = await affiliates.findByCode(code)
   if (!affiliate || !affiliate.isActive) {
-    return NextResponse.json({ error: 'Invalid referral' }, { status: 404 })
+    return NextResponse.json({ error: 'Kode referralnya tidak dikenali.' }, { status: 404 })
   }
 
   await affiliates.incrementClicks(affiliate.id)

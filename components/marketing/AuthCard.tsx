@@ -64,7 +64,7 @@ export function AuthCard({ backHref = '/', children }: { backHref?: string; chil
           </p>
           <div className="w-10 h-px bg-gold/70 my-5" />
           <p className="text-body-base text-chalk/80 max-w-sm leading-relaxed">
-            Setiap tamu disambut dengan namanya — musik, RSVP, dan doa dalam satu link undangan.
+            Setiap tamu disambut dengan namanya sendiri. Musik, konfirmasi kehadiran, dan doa, semuanya dalam satu tautan undangan.
           </p>
         </div>
       </div>

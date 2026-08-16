@@ -50,7 +50,7 @@ function RegisterContent() {
       toast.error(err.error || 'Gagal mendaftar')
       return
     }
-    toast.success('Akun berhasil dibuat! 🎉')
+    toast.success('Akun kalian sudah jadi! 🎉')
     router.push(templateId ? `/dashboard?template=${templateId}` : '/dashboard')
     router.refresh()
   }

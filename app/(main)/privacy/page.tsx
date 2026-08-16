@@ -65,9 +65,9 @@ export default async function PrivacyPage() {
 
           <H2>Penyimpanan dan Keamanan Data</H2>
           <P>
-            Data Anda disimpan pada server Supabase (PostgreSQL) dengan enkripsi standar industri.
-            Password tidak pernah disimpan dalam bentuk teks biasa, melainkan diacak dengan algoritma
-            hashing (bcrypt) sehingga tidak dapat dibaca kembali, bahkan oleh tim kami.
+            Data Anda disimpan di pusat data yang terlindungi dan terenkripsi. Password tidak pernah
+            kami simpan apa adanya, melainkan diacak lebih dulu sehingga tidak bisa dibaca kembali,
+            bahkan oleh tim kami sendiri.
           </P>
 
           <H2>Pihak Ketiga yang Terlibat</H2>

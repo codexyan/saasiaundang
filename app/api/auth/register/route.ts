@@ -16,13 +16,13 @@ export async function POST(req: NextRequest) {
   const body = await readJsonBody(req)
   const parsed = schema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Data tidak valid' }, { status: 400 })
+    return NextResponse.json({ error: 'Ada data yang belum sesuai. Coba periksa lagi ya.' }, { status: 400 })
   }
 
   const { email, password } = parsed.data
 
   if (await users.findByEmail(email)) {
-    return NextResponse.json({ error: 'Email sudah terdaftar' }, { status: 409 })
+    return NextResponse.json({ error: 'Email ini sudah punya akun. Silakan masuk, atau pakai email lain.' }, { status: 409 })
   }
 
   const password_hash = await bcrypt.hash(password, 10)

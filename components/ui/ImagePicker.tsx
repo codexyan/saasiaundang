@@ -56,7 +56,7 @@ export default function ImagePicker({
     const isGif = file.type === 'image/gif'
     const maxSize = isGif ? 10 * 1024 * 1024 : 5 * 1024 * 1024
     if (file.size > maxSize) { toast.error(`File terlalu besar (maks ${isGif ? '10' : '5'}MB)`); return }
-    if (!ALLOWED.includes(file.type)) { toast.error('Format tidak didukung. Gunakan JPG, PNG, WebP, atau GIF.'); return }
+    if (!ALLOWED.includes(file.type)) { toast.error('Fotonya harus berformat JPG, PNG, WebP, atau GIF ya.'); return }
 
     setUploading(true)
     try {
@@ -79,9 +79,9 @@ export default function ImagePicker({
       onChange(data.url)
       setMeta({ width: data.width, height: data.height, bytes: data.bytes, lowRes: data.lowRes })
       if (data.lowRes) {
-        toast('Gambar di bawah resolusi rekomendasi — bisa tampak buram di layar besar.', { icon: '⚠️' })
+        toast('Fotonya agak kecil, jadi bisa terlihat kurang tajam di layar besar. Kalau ada versi yang lebih besar, lebih bagus.', { icon: '⚠️' })
       } else {
-        toast.success('Gambar berhasil diupload!')
+        toast.success('Fotonya sudah masuk!')
       }
     } catch (e) {
       toast.error((e as Error).message)

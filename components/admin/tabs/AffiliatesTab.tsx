@@ -93,7 +93,7 @@ export default function AffiliatesTab() {
         const data = await res.json()
         toast.error(data.error || 'Gagal menambahkan')
       }
-    } catch { toast.error('Terjadi kesalahan') }
+    } catch { toast.error('Ada kendala sebentar. Coba lagi ya.') }
     finally { setCreating(false) }
   }
 

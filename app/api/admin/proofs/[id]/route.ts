@@ -14,11 +14,11 @@ export async function PATCH(req: NextRequest, props: Params) {
   const params = await props.params;
   try {
     const session = await getSession()
-    if (!isAdmin(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
     const body = await readJsonBody(req) as { status: 'approved' | 'rejected'; admin_notes?: string; packageDuration?: number }
     const proof = await paymentProofs.findById(params.id)
-    if (!proof) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (!proof) return NextResponse.json({ error: 'Datanya tidak ditemukan.' }, { status: 404 })
 
     // Klaim transisi status secara atomik. null = sudah pernah diproses, jadi
     // JANGAN jalankan lagi efek sampingnya (langganan + komisi afiliasi).
@@ -112,7 +112,7 @@ export async function PATCH(req: NextRequest, props: Params) {
           .update(params.id, { status: 'pending', admin_notes: '', reviewed_at: null })
           .catch(() => {
             console.error(
-              `Gagal mengembalikan status bukti ${params.id} ke pending — ` +
+              `Gagal mengembalikan status bukti ${params.id} ke pending, ` +
               'perlu diperbaiki manual di database.'
             )
           })
@@ -123,6 +123,6 @@ export async function PATCH(req: NextRequest, props: Params) {
     return NextResponse.json({ proof: updated })
   } catch (error) {
     console.error('Admin proof update error:', error)
-    return NextResponse.json({ error: 'Gagal memperbarui bukti pembayaran' }, { status: 500 })
+    return NextResponse.json({ error: 'Bukti pembayarannya gagal diperbarui. Coba lagi sebentar lagi ya.' }, { status: 500 })
   }
 }

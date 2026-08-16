@@ -12,14 +12,14 @@ export async function POST(_req: NextRequest, props: { params: Promise<{ id: str
   const params = await props.params;
   const session = await getSession()
   if (!isWriter(session)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
   }
   const article = await articles.findById(params.id)
   if (!article) {
     return NextResponse.json({ error: 'Artikel tidak ditemukan' }, { status: 404 })
   }
   if (!isAdmin(session) && article.authorId !== session!.userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
   }
 
   const trusted = isAdmin(session) || !!(await writerProfiles.findByUserId(session!.userId))?.isTrusted

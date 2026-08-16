@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   // CRON_SECRET tidak diset, string pembandingnya menjadi literal
   // "Bearer undefined" — siapa pun yang mengirim header itu lolos.
   if (!(await verifyBearer(req.headers.get('authorization'), process.env.CRON_SECRET))) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
   }
 
   const expiredCount = await subscriptions.syncExpiredStatuses()

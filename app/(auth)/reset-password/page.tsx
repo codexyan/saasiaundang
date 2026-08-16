@@ -81,7 +81,7 @@ function ResetPasswordContent() {
       return
     }
     setSuccess(true)
-    toast.success('Password berhasil direset!')
+    toast.success('Password baru kalian sudah aktif!')
     setTimeout(() => router.push('/login'), 2500)
   }
 

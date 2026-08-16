@@ -38,38 +38,38 @@ const AUDIO_MAGIC: MagicSignature[] = [
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession()
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
     const formData = await req.formData()
     const invitationId = formData.get('invitationId') as string
     const file = formData.get('file') as File | null
 
     if (!file || !invitationId) {
-      return NextResponse.json({ error: 'File dan invitationId wajib diisi' }, { status: 400 })
+      return NextResponse.json({ error: 'Berkasnya belum dipilih.' }, { status: 400 })
     }
 
     const inv = await invitations.findById(invitationId)
     if (!inv || inv.user_id !== session.userId) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Datanya tidak ditemukan.' }, { status: 404 })
     }
 
     if (file.size > MAX_SIZE) {
-      return NextResponse.json({ error: 'File terlalu besar (max 20MB)' }, { status: 400 })
+      return NextResponse.json({ error: 'Berkasnya terlalu besar. Maksimal 20MB ya.' }, { status: 400 })
     }
 
     const ext = fileExtension(file.name) || '.mp3'
     if (!ALLOWED_EXTS.includes(ext)) {
-      return NextResponse.json({ error: 'Format tidak didukung. Gunakan MP3, M4A, WAV, OGG, atau AAC' }, { status: 400 })
+      return NextResponse.json({ error: 'Musiknya harus berformat MP3, M4A, WAV, OGG, atau AAC ya.' }, { status: 400 })
     }
     if (file.type && !ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json({ error: 'Tipe file tidak didukung' }, { status: 400 })
+      return NextResponse.json({ error: 'Jenis berkasnya belum didukung. Coba pakai berkas lain ya.' }, { status: 400 })
     }
 
     const bytes = await file.arrayBuffer()
     const buffer = new Uint8Array(bytes)
 
     if (!matchesMagic(buffer, AUDIO_MAGIC, 'audio')) {
-      return NextResponse.json({ error: 'Konten file tidak sesuai dengan format audio' }, { status: 400 })
+      return NextResponse.json({ error: 'Berkas ini sepertinya bukan lagu. Coba pilih berkas musik lain ya.' }, { status: 400 })
     }
 
     const filename = `music-${session.userId}-${Date.now()}-${crypto.randomUUID().slice(0, 8)}${ext}`
@@ -86,6 +86,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ musicUrl, musicTitle: file.name })
   } catch (error) {
     console.error('Music upload error:', error)
-    return NextResponse.json({ error: 'Gagal mengupload musik' }, { status: 500 })
+    return NextResponse.json({ error: 'Musiknya gagal dikirim. Coba lagi sebentar lagi ya.' }, { status: 500 })
   }
 }

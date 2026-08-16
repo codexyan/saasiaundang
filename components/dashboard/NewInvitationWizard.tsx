@@ -150,11 +150,11 @@ export default function NewInvitationWizard({ invitation, onSaved }: Props) {
     })
     setSaving(false)
     if (!res.ok) {
-      toast.error('Gagal menyimpan, coba lagi')
+      toast.error('Perubahannya gagal disimpan. Coba lagi ya.')
       return false
     }
     const { invitation: updated } = await res.json()
-    if (showToast) toast.success('Tersimpan!')
+    if (showToast) toast.success('Sudah tersimpan!')
     onSaved(updated as Invitation)
     return true
   }
@@ -806,7 +806,7 @@ function StepSelesai({ data, invitation }: { data: WizardData; invitation: Invit
             <span className="text-sm font-mono font-semibold text-gray-800 truncate">{invUrl}</span>
           </div>
           <button
-            onClick={() => { navigator.clipboard.writeText(`https://${invUrl}`); toast.success('Link disalin!') }}
+            onClick={() => { navigator.clipboard.writeText(`https://${invUrl}`); toast.success('Tautan undangan sudah disalin!') }}
             className="p-2.5 bg-white border border-gold-200 rounded-xl text-rose-400 hover:text-gold-600 transition-colors"
           >
             <Copy size={16} />

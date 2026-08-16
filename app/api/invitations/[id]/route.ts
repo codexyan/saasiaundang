@@ -14,18 +14,18 @@ export async function DELETE(_req: NextRequest, props: Params) {
   const params = await props.params;
   try {
     const session = await getSession()
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
     const inv = await invitations.findById(params.id)
     if (!inv || inv.user_id !== session.userId) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Datanya tidak ditemukan.' }, { status: 404 })
     }
 
     await invitations.delete(params.id)
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Invitation delete error:', error)
-    return NextResponse.json({ error: 'Gagal menghapus undangan' }, { status: 500 })
+    return NextResponse.json({ error: 'Undangannya gagal dihapus. Coba lagi sebentar lagi ya.' }, { status: 500 })
   }
 }
 
@@ -33,11 +33,11 @@ export async function PATCH(req: NextRequest, props: Params) {
   const params = await props.params;
   try {
     const session = await getSession()
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
     const inv = await invitations.findById(params.id)
     if (!inv || inv.user_id !== session.userId) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Datanya tidak ditemukan.' }, { status: 404 })
     }
 
     const rawBody = await readJsonBody(req)
@@ -60,7 +60,7 @@ export async function PATCH(req: NextRequest, props: Params) {
     }
 
     if (body.slug && body.slug !== inv.slug && (await invitations.slugExists(body.slug, params.id))) {
-      return NextResponse.json({ error: 'Slug sudah dipakai' }, { status: 409 })
+      return NextResponse.json({ error: 'Alamat undangan ini sudah dipakai. Coba nama lain ya.' }, { status: 409 })
     }
 
     const newMusicUrl = body.data?.music?.url
@@ -101,6 +101,6 @@ export async function PATCH(req: NextRequest, props: Params) {
     return NextResponse.json({ invitation: updated })
   } catch (error) {
     console.error('Invitation update error:', error)
-    return NextResponse.json({ error: 'Gagal memperbarui undangan' }, { status: 500 })
+    return NextResponse.json({ error: 'Perubahannya gagal disimpan. Coba lagi sebentar lagi ya.' }, { status: 500 })
   }
 }

@@ -18,7 +18,7 @@ function generatePassword(): string {
 export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
   try {
     const target = await users.findById(params.id)

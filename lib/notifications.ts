@@ -63,52 +63,52 @@ interface NotificationTemplate {
 
 const TEMPLATES: Record<NotificationType, (data: Record<string, string | number | boolean>) => NotificationTemplate> = {
   welcome: (d) => ({
-    subject: 'Selamat datang di IAUndang!',
-    body: `Halo ${d.name || 'Kak'}! Akun kamu sudah aktif. Mulai buat undangan digital pertamamu sekarang.`,
+    subject: 'Selamat datang di iaundang!',
+    body: `Halo ${d.name || 'Kak'}! Akun kalian sudah siap. Yuk mulai bikin undangan pertama kalian.`,
   }),
   trial_started: (d) => ({
-    subject: 'Free Trial 7 Hari Dimulai',
-    body: `Undangan "${d.slug}" sudah dibuat! Kamu punya 7 hari untuk mencoba semua fitur dasar. Upgrade kapan saja untuk membuka fitur premium.`,
+    subject: 'Masa coba gratis 7 hari sudah dimulai',
+    body: `Undangan kalian sudah jadi dan bisa dilihat di ${d.slug}.iaundang.online. Selama 7 hari ke depan kalian bebas mencoba semua fiturnya. Kalau sudah cocok, tinggal aktifkan paketnya kapan saja.`,
   }),
   trial_expiring: (d) => ({
-    subject: `Trial berakhir dalam ${d.daysLeft} hari`,
-    body: `Free trial untuk "${d.slug}" akan berakhir dalam ${d.daysLeft} hari. Upgrade sekarang agar undangan tetap aktif dan bisa diakses tamu.`,
+    subject: `Masa coba gratis tinggal ${d.daysLeft} hari lagi`,
+    body: `Masa coba undangan kalian di ${d.slug}.iaundang.online tinggal ${d.daysLeft} hari lagi. Aktifkan paketnya sekarang supaya undangan tetap bisa dibuka tamu.`,
   }),
   trial_expired: (d) => ({
-    subject: 'Free Trial Berakhir',
-    body: `Free trial untuk "${d.slug}" telah berakhir. Undangan masih tersimpan selama 14 hari. Upgrade untuk mengaktifkan kembali.`,
+    subject: 'Masa coba gratis sudah berakhir',
+    body: `Masa coba undangan kalian sudah habis, tapi tenang, semua isinya masih kami simpan selama 14 hari. Aktifkan paketnya untuk menghidupkan undangan kalian lagi.`,
   }),
   order_created: (d) => ({
-    subject: `Pesanan ${d.orderNumber} Diterima`,
-    body: `Pesanan kamu (${d.orderNumber}) sebesar Rp ${d.amount} sudah kami terima. Silakan lakukan pembayaran sesuai instruksi.`,
+    subject: `Pesanan ${d.orderNumber} sudah kami terima`,
+    body: `Terima kasih! Pesanan kalian sebesar Rp ${d.amount} sudah kami terima. Silakan lanjutkan pembayaran sesuai petunjuk yang tertera.`,
   }),
   order_approved: (d) => ({
-    subject: 'Pesanan Disetujui — Undangan Siap!',
-    body: `Pesanan ${d.orderNumber} telah disetujui. Undanganmu sudah aktif di ${d.slug}.iaundang.online. Login dengan email: ${d.email}`,
+    subject: 'Pembayaran berhasil, undangan kalian sudah aktif!',
+    body: `Pembayaran untuk pesanan ${d.orderNumber} sudah kami terima. Undangan kalian sekarang aktif di ${d.slug}.iaundang.online. Masuk ke akun kalian pakai email ${d.email}.`,
   }),
   order_rejected: (d) => ({
-    subject: 'Pesanan Tidak Dapat Diproses',
-    body: `Pesanan ${d.orderNumber} tidak dapat diproses. Alasan: ${d.reason || 'Silakan hubungi admin.'}`,
+    subject: 'Pesanan kalian belum bisa kami proses',
+    body: `Mohon maaf, pesanan ${d.orderNumber} belum bisa kami proses. Alasannya: ${d.reason || 'Silakan hubungi kami lewat WhatsApp, dengan senang hati kami bantu.'}`,
   }),
   payment_received: (d) => ({
-    subject: 'Bukti Pembayaran Diterima',
-    body: `Bukti pembayaran untuk "${d.slug}" sudah kami terima dan sedang diverifikasi. Proses biasanya memakan waktu 1x24 jam.`,
+    subject: 'Bukti transfer kalian sudah kami terima',
+    body: `Bukti transfer untuk undangan kalian sudah masuk dan sedang kami periksa. Biasanya selesai dalam 1 hari kerja, nanti kami kabari lagi lewat email ini.`,
   }),
   subscription_active: (d) => ({
-    subject: `Paket ${d.tierName} Aktif!`,
-    body: `Paket ${d.tierName} untuk "${d.slug}" sudah aktif hingga ${d.expiresAt}. Selamat membuat undangan impianmu!`,
+    subject: `Paket ${d.tierName} kalian sudah aktif!`,
+    body: `Paket ${d.tierName} sudah aktif sampai ${d.expiresAt}. Selamat mempersiapkan hari bahagia kalian!`,
   }),
   subscription_expiring: (d) => ({
-    subject: `Langganan berakhir dalam ${d.daysLeft} hari`,
-    body: `Paket ${d.tierName} untuk "${d.slug}" akan berakhir dalam ${d.daysLeft} hari (${d.expiresAt}). Perpanjang sekarang agar undangan tetap bisa diakses.`,
+    subject: `Masa aktif undangan tinggal ${d.daysLeft} hari lagi`,
+    body: `Paket ${d.tierName} untuk undangan kalian akan berakhir ${d.expiresAt}, tinggal ${d.daysLeft} hari lagi. Perpanjang sekarang supaya undangan tetap bisa dibuka tamu.`,
   }),
   subscription_expired: (d) => ({
-    subject: 'Langganan Berakhir',
-    body: `Paket ${d.tierName} untuk "${d.slug}" telah berakhir. Undangan tidak lagi bisa diakses oleh tamu. Perpanjang untuk mengaktifkan kembali.`,
+    subject: 'Masa aktif undangan sudah berakhir',
+    body: `Paket ${d.tierName} untuk undangan kalian sudah berakhir, jadi tamu belum bisa membukanya lagi. Perpanjang kapan saja untuk menghidupkannya kembali.`,
   }),
   password_reset: (d) => ({
-    subject: 'Reset Password IAUndang',
-    body: `Klik link berikut untuk mereset password: ${d.resetLink}. Link berlaku 1 jam.`,
+    subject: 'Buat password baru untuk akun iaundang',
+    body: `Kami menerima permintaan untuk mengganti password kalian. Klik tautan ini untuk membuat password baru: ${d.resetLink}. Tautannya berlaku 1 jam. Kalau kalian tidak merasa meminta ini, abaikan saja email ini.`,
   }),
 }
 

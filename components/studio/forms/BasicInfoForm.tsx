@@ -65,9 +65,9 @@ export default function BasicInfoForm({
       if (!res.ok) throw new Error('Upload failed')
       const { url } = await res.json()
       onCouplePhotoChange(url)
-      toast.success('Foto berhasil diupload!')
+      toast.success('Fotonya sudah masuk!')
     } catch {
-      toast.error('Gagal upload foto')
+      toast.error('Fotonya gagal dikirim. Coba lagi ya.')
     } finally {
       setUploading(false)
     }

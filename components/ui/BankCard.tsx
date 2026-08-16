@@ -59,7 +59,7 @@ export default function BankCard({
     e.stopPropagation()
     navigator.clipboard.writeText(accountNumber)
     setCopied(true)
-    toast.success('Nomor rekening disalin!')
+    toast.success('Nomor rekening sudah disalin!')
     setTimeout(() => setCopied(false), 2000)
   }
 

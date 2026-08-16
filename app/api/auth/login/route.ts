@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   const body = await readJsonBody(req)
   const parsed = schema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Data tidak valid' }, { status: 400 })
+    return NextResponse.json({ error: 'Ada data yang belum sesuai. Coba periksa lagi ya.' }, { status: 400 })
   }
 
   const { email, password } = parsed.data
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   const user = await users.findByEmail(email)
 
   if (!user || !(await bcrypt.compare(password, user.password_hash))) {
-    return NextResponse.json({ error: 'Email atau password salah' }, { status: 401 })
+    return NextResponse.json({ error: 'Email atau passwordnya belum cocok. Coba periksa lagi ya.' }, { status: 401 })
   }
 
   const role: SessionRole = (user.role as SessionRole) ?? (user.email === getAdminEmail() ? 'admin' : 'user')

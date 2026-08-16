@@ -9,13 +9,13 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
   return NextResponse.json({ typography: await blogTypography.get() })
 }
 
 export async function PATCH(req: NextRequest) {
   const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
   // Tiap field jatuh ke DEFAULT saat tidak ada, jadi body kosong = SEMUA
   // tipografi direset diam-diam ke bawaan lalu dibalas 200 seolah berhasil.
   // Body yang tidak terbaca harus ditolak, bukan diperlakukan sebagai {}.

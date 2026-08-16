@@ -63,7 +63,7 @@ type Step = 0 | 1 | 2 | 3
 
 const STEP_LABELS = [
   { icon: User, label: 'Data Mempelai' },
-  { icon: Globe, label: 'Subdomain & Kontak' },
+  { icon: Globe, label: 'Alamat & Kontak' },
   { icon: ShoppingBag, label: 'Pilih Paket' },
   { icon: CreditCard, label: 'Pembayaran' },
 ]
@@ -76,26 +76,26 @@ function buildTierFeatureList(tierId: string, f: TierFeatures): FeatureItem[] {
   const list: FeatureItem[] = []
 
   // Kapasitas & durasi
-  list.push({ label: `Hingga ${f.max_photos} foto`, included: true })
-  list.push({ label: `Maks ${f.max_guests} tamu`, included: true })
-  list.push({ label: `Aktif ${f.validity_days} hari`, included: true })
+  list.push({ label: `Sampai ${f.max_photos} foto`, included: true })
+  list.push({ label: `Sampai ${f.max_guests} tamu`, included: true })
+  list.push({ label: `Aktif selama ${f.validity_days} hari`, included: true })
 
   // Section yang ditampilkan
-  list.push({ label: 'Section musik latar', included: f.music, section: true })
-  list.push({ label: 'Section RSVP & konfirmasi hadir', included: f.rsvp, section: true })
-  list.push({ label: 'Section galeri foto', included: f.gallery, section: true })
-  list.push({ label: 'Section ucapan & doa', included: f.wishes, section: true })
-  list.push({ label: 'Section hitung mundur', included: f.countdown, section: true })
-  list.push({ label: 'Section amplop & rekening', included: f.gift, section: true })
-  list.push({ label: 'Section wishlist hadiah', included: f.gift_registry, section: true })
-  list.push({ label: 'Section kisah perjalanan cinta', included: f.story, section: true })
-  list.push({ label: 'Section video highlight', included: f.video, section: true })
+  list.push({ label: 'Musik pengiring', included: f.music, section: true })
+  list.push({ label: 'Konfirmasi kehadiran tamu', included: f.rsvp, section: true })
+  list.push({ label: 'Galeri foto', included: f.gallery, section: true })
+  list.push({ label: 'Ucapan & doa dari tamu', included: f.wishes, section: true })
+  list.push({ label: 'Hitung mundur hari H', included: f.countdown, section: true })
+  list.push({ label: 'Amplop digital & rekening', included: f.gift, section: true })
+  list.push({ label: 'Daftar hadiah impian', included: f.gift_registry, section: true })
+  list.push({ label: 'Kisah perjalanan cinta', included: f.story, section: true })
+  list.push({ label: 'Video pernikahan', included: f.video, section: true })
 
   // Fitur ekstra
-  list.push({ label: 'Tanpa watermark', included: f.remove_watermark })
-  list.push({ label: 'QR code kehadiran tamu', included: f.qrcode })
-  list.push({ label: 'Custom domain sendiri', included: f.custom_domain })
-  list.push({ label: 'Priority support WhatsApp', included: f.priority_support })
+  list.push({ label: 'Tanpa logo iaundang', included: f.remove_watermark })
+  list.push({ label: 'Kode QR untuk absen tamu', included: f.qrcode })
+  list.push({ label: 'Alamat website sendiri', included: f.custom_domain })
+  list.push({ label: 'Dibantu lebih dulu lewat WhatsApp', included: f.priority_support })
   return list
 }
 
@@ -183,28 +183,28 @@ export default function OrderForm({ templateId, templateName, tiers, paymentConf
       })
       if (!res.ok) {
         const err = await res.json()
-        toast.error(err.error || 'Gagal membuat pesanan')
+        toast.error(err.error || 'Pesanannya gagal dibuat. Coba lagi ya.')
         return
       }
       const { order: newOrder, paymentUrl } = await res.json()
 
       if (paymentUrl) {
-        toast.success('Mengalihkan ke halaman pembayaran...')
+        toast.success('Sebentar ya, kami antar ke halaman pembayaran.')
         window.location.href = paymentUrl
         return
       }
 
       setOrder(newOrder)
       setStep(3)
-      toast.success('Pesanan berhasil dibuat!')
-    } catch { toast.error('Terjadi kesalahan') }
+      toast.success('Pesanan kalian sudah masuk!')
+    } catch { toast.error('Ada kendala sebentar. Coba lagi ya.') }
     finally { setSubmitting(false) }
   }
 
   function copyText(text: string, label: string) {
     navigator.clipboard.writeText(text)
     setCopied(label)
-    toast.success('Disalin!')
+    toast.success('Sudah disalin!')
     setTimeout(() => setCopied(null), 2000)
   }
 
@@ -429,7 +429,7 @@ export default function OrderForm({ templateId, templateName, tiers, paymentConf
                                 ))}
                               </ul>
                               <div>
-                                <p className="text-label-sm uppercase tracking-wider text-concrete mb-1.5">Section undangan</p>
+                                <p className="text-label-sm uppercase tracking-wider text-concrete mb-1.5">Isi undangan</p>
                                 <ul className="space-y-1">
                                   {sections.map((feat, i) => (
                                     <li key={i} className="flex items-start gap-2">

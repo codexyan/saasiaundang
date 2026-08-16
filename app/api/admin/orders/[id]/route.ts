@@ -13,7 +13,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   const params = await props.params;
   const session = await getSession()
   if (!session || !isAdmin(session)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
   }
 
   try {
@@ -22,7 +22,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     const { action, admin_notes } = body
 
     const order = await orders.findById(id)
-    if (!order) return NextResponse.json({ error: 'Pesanan tidak ditemukan' }, { status: 404 })
+    if (!order) return NextResponse.json({ error: 'Pesanannya tidak ditemukan. Coba periksa lagi nomor pesanan dan emailnya.' }, { status: 404 })
 
     if (action === 'reject') {
       await orders.update(id, {
@@ -47,7 +47,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       const outcome = await provisionPaidOrder(id, { adminNotes: admin_notes || '' })
 
       if (outcome.status === 'not-found') {
-        return NextResponse.json({ error: 'Pesanan tidak ditemukan' }, { status: 404 })
+        return NextResponse.json({ error: 'Pesanannya tidak ditemukan. Coba periksa lagi nomor pesanan dan emailnya.' }, { status: 404 })
       }
       if (outcome.status === 'already-provisioned') {
         return NextResponse.json({ error: 'Pesanan sudah diapprove' }, { status: 409 })
@@ -89,6 +89,6 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     return NextResponse.json({ error: 'Action tidak valid' }, { status: 400 })
   } catch (error) {
     console.error('Order PATCH error:', error)
-    return NextResponse.json({ error: 'Gagal memproses pesanan' }, { status: 500 })
+    return NextResponse.json({ error: 'Pesanannya gagal diproses. Coba lagi sebentar lagi ya.' }, { status: 500 })
   }
 }

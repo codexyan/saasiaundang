@@ -22,7 +22,7 @@ export default function ImageUploadField({ value, onChange, label, hint, uploadU
     const maxSize = isGif ? 10 * 1024 * 1024 : 5 * 1024 * 1024
     if (file.size > maxSize) { toast.error(`File terlalu besar (maks ${isGif ? '10' : '5'}MB)`); return }
     const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
-    if (!allowed.includes(file.type)) { toast.error('Format tidak didukung. Gunakan JPG, PNG, WebP, atau GIF.'); return }
+    if (!allowed.includes(file.type)) { toast.error('Fotonya harus berformat JPG, PNG, WebP, atau GIF ya.'); return }
 
     setUploading(true)
     try {
@@ -34,7 +34,7 @@ export default function ImageUploadField({ value, onChange, label, hint, uploadU
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Upload gagal')
       onChange(data.url)
-      toast.success('Foto berhasil diupload!')
+      toast.success('Fotonya sudah masuk!')
     } catch (e) {
       toast.error((e as Error).message)
     } finally {

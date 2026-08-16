@@ -38,11 +38,11 @@ function LoginContent() {
     })
     setLoading(false)
     if (!res.ok) {
-      toast.error('Email atau password salah', { icon: '🔐' })
+      toast.error('Email atau passwordnya belum cocok. Coba periksa lagi ya.', { icon: '🔐' })
       return
     }
     const { user } = await res.json()
-    toast.success('Login berhasil! 🎉')
+    toast.success('Berhasil masuk! 🎉')
     const isAdmin = user?.role === 'admin' || user?.isAdmin === true
     const isWriterRole = user?.role === 'content_writer'
     const isAffiliateRole = user?.role === 'affiliate'

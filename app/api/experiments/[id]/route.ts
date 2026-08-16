@@ -9,10 +9,10 @@ export const dynamic = 'force-dynamic'
 export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
   const report = await experiments.getReport(params.id)
-  if (!report) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (!report) return NextResponse.json({ error: 'Datanya tidak ditemukan.' }, { status: 404 })
 
   return NextResponse.json(report)
 }
@@ -20,7 +20,7 @@ export async function GET(_req: NextRequest, props: { params: Promise<{ id: stri
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
   const body = await readJsonBody(req)
   const experiment = await experiments.update(params.id, body)
@@ -30,7 +30,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 export async function DELETE(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
   await experiments.delete(params.id)
   return NextResponse.json({ ok: true })

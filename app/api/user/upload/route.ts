@@ -29,14 +29,14 @@ const MAGIC_SIGS: MagicSignature[] = [
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession()
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
     const formData = await req.formData()
     const file = formData.get('file') as File | null
     const folderParam = (formData.get('folder') as string | null) ?? 'user'
     const folder = ALLOWED_FOLDERS.includes(folderParam) ? folderParam : 'user'
 
-    if (!file) return NextResponse.json({ error: 'File wajib diisi' }, { status: 400 })
+    if (!file) return NextResponse.json({ error: 'Belum ada berkas yang dipilih.' }, { status: 400 })
 
     const ext = fileExtension(file.name)
     const isVideo = VIDEO_EXTS.includes(ext) || file.type.startsWith('video/')
@@ -44,13 +44,13 @@ export async function POST(req: NextRequest) {
     const isImage = IMAGE_EXTS.includes(ext) || file.type.startsWith('image/')
 
     if (!isVideo && !isAudio && !isImage) {
-      return NextResponse.json({ error: 'Format tidak didukung (JPG/PNG/WebP, MP4/WebM/MOV, atau MP3/M4A/WAV)' }, { status: 400 })
+      return NextResponse.json({ error: 'Jenis berkasnya belum didukung. Pakai foto (JPG, PNG, WebP), video (MP4, WebM, MOV), atau musik (MP3, M4A, WAV) ya.' }, { status: 400 })
     }
 
     const maxSize = isVideo ? MAX_VIDEO : isAudio ? MAX_AUDIO : MAX_IMAGE
     if (file.size > maxSize) {
       const label = isVideo ? '80MB untuk video' : isAudio ? '15MB untuk audio' : '8MB untuk foto'
-      return NextResponse.json({ error: `Maks ${label}` }, { status: 400 })
+      return NextResponse.json({ error: `Berkasnya terlalu besar. Maksimal ${label}.` }, { status: 400 })
     }
 
     const kind = isVideo ? 'video' : isAudio ? 'audio' : 'image'
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     const buffer = new Uint8Array(bytes)
 
     if (!matchesMagic(buffer, MAGIC_SIGS, kind)) {
-      return NextResponse.json({ error: 'Konten file tidak sesuai dengan format yang dideklarasikan' }, { status: 400 })
+      return NextResponse.json({ error: 'Isi berkasnya tidak cocok dengan jenisnya. Coba pilih berkas lain ya.' }, { status: 400 })
     }
 
     // Gambar artikel sudah di-resize di browser (lib/image-resize.ts); server
@@ -78,6 +78,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url: publicUrl, type: kind, width, height, bytes: outBuffer.length, lowRes }, { status: 201 })
   } catch (error) {
     console.error('User upload error:', error)
-    return NextResponse.json({ error: 'Gagal mengupload file' }, { status: 500 })
+    return NextResponse.json({ error: 'Berkasnya gagal dikirim. Coba lagi sebentar lagi ya.' }, { status: 500 })
   }
 }

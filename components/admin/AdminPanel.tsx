@@ -829,12 +829,12 @@ function OrdersTab({ orders: initialOrders }: { orders: AdminOrder[] }) {
         if (action === 'approve' && data.accountAlreadyExisted) {
           // Tidak ada kredensial baru untuk diteruskan: emailnya sudah punya
           // akun, jadi password lamanya tetap berlaku.
-          toast.success('Pesanan disetujui. Email ini sudah punya akun — pakai password lama, atau kirim reset password.', { duration: 8000 })
+          toast.success('Pesanan disetujui. Email ini sudah punya akun, jadi pakai password lama atau kirimkan reset password.', { duration: 8000 })
         } else {
           toast.success(action === 'approve' ? 'Pesanan disetujui!' : 'Pesanan ditolak')
         }
       }
-    } catch { toast.error('Terjadi kesalahan') }
+    } catch { toast.error('Ada kendala sebentar. Coba lagi ya.') }
     finally { setProcessing(false) }
   }
 

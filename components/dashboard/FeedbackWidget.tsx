@@ -30,7 +30,7 @@ export default function FeedbackWidget() {
   }
 
   async function submit() {
-    if (score === null) { toast.error('Pilih skor dulu'); return }
+    if (score === null) { toast.error('Pilih nilainya dulu ya.'); return }
     setLoading(true)
     const res = await fetch('/api/feedback', {
       method: 'POST',
@@ -42,7 +42,7 @@ export default function FeedbackWidget() {
       setSubmitted(true)
       setTimeout(() => setShow(false), 3000)
     } else {
-      toast.error('Gagal mengirim feedback')
+      toast.error('Masukannya gagal terkirim. Coba lagi ya.')
     }
   }
 

@@ -24,11 +24,11 @@ export default function SettingsPanel({ invitation, userEmail, onDeleted }: Prop
     setDeleting(true)
     try {
       const res = await fetch(`/api/invitations/${invitation.id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Gagal menghapus')
-      toast.success('Undangan berhasil dihapus')
+      if (!res.ok) throw new Error('Gagal dihapus. Coba lagi ya.')
+      toast.success('Undangannya sudah dihapus.')
       onDeleted?.()
     } catch {
-      toast.error('Gagal menghapus undangan, coba lagi')
+      toast.error('Undangannya gagal dihapus. Coba lagi ya.')
       setDeleting(false)
     }
   }

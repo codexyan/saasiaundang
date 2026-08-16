@@ -445,7 +445,7 @@ export default function ArticlesTab({ authorFilter, onClearAuthorFilter, onRevie
                 <option value="published">Publish</option>
               </select>
               <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="px-2 py-1.5 text-xs border border-gray-200 rounded-lg outline-none focus:border-forest-400 text-gray-600" />
-              <span className="text-gray-300">–</span>
+              <span className="text-gray-300">&middot;</span>
               <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="px-2 py-1.5 text-xs border border-gray-200 rounded-lg outline-none focus:border-forest-400 text-gray-600" />
             </div>
             <button onClick={handleNew}
@@ -655,7 +655,7 @@ function BulkCategoryModal({ categories, onCancel, onApply, processing }: { cate
           <FieldLabel>Kategori baru</FieldLabel>
           <select value={cat} onChange={e => setCat(e.target.value)}
             className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg outline-none focus:border-forest-400 bg-white">
-            <option value="">— Tanpa kategori —</option>
+            <option value="">Tanpa kategori</option>
             {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
@@ -720,17 +720,17 @@ function ArticleEditor({ article, isNew, onBack }: { article: ArticleData; isNew
       }
       const url = isNew ? '/api/admin/articles' : `/api/admin/articles/${form.id}`
       const res = await fetch(url, { method: isNew ? 'POST' : 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
-      if (!res.ok) { const err = await res.json(); toast.error(err.error || 'Gagal menyimpan'); return }
+      if (!res.ok) { const err = await res.json(); toast.error(err.error || 'Perubahannya gagal disimpan. Coba lagi ya.'); return }
       toast.success(publish ? 'Artikel dipublikasikan!' : 'Artikel tersimpan')
       onBack()
-    } catch { toast.error('Gagal menyimpan') }
+    } catch { toast.error('Perubahannya gagal disimpan. Coba lagi ya.') }
     finally { setSaving(false) }
   }
 
   const handleDelete = async () => {
     setDeleting(true)
     try { await fetch(`/api/admin/articles/${form.id}`, { method: 'DELETE' }); toast.success('Artikel dihapus'); onBack() }
-    catch { toast.error('Gagal menghapus') }
+    catch { toast.error('Gagal dihapus. Coba lagi ya.') }
     finally { setDeleting(false); setShowDeleteConfirm(false) }
   }
 
@@ -746,7 +746,7 @@ function ArticleEditor({ article, isNew, onBack }: { article: ArticleData; isNew
       if (!res.ok) throw new Error()
       toast.success(newState ? 'Artikel dipublikasikan!' : 'Artikel dijadikan draft')
       onBack()
-    } catch { toast.error('Gagal mengubah status') }
+    } catch { toast.error('Statusnya gagal diubah. Coba lagi ya.') }
     finally { setSaving(false) }
   }
 

@@ -1028,7 +1028,7 @@ export default function TemplateLab({ onGoToManagement, onTemplateReleased, edit
     audio.onended = () => setMusicPreviewId(null)
     audio.onerror = () => { toast.error('Gagal memutar preview. File belum tersedia'); setMusicPreviewId(null) }
     musicAudioRef.current = audio
-    audio.play().then(() => setMusicPreviewId(songId)).catch(() => { toast.error('Gagal memutar audio'); setMusicPreviewId(null) })
+    audio.play().then(() => setMusicPreviewId(songId)).catch(() => { toast.error('Musiknya belum bisa diputar. Coba lagi ya.'); setMusicPreviewId(null) })
   }, [musicPreviewId])
 
   useEffect(() => {

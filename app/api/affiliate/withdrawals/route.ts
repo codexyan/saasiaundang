@@ -9,10 +9,10 @@ export const dynamic = 'force-dynamic'
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession()
-    if (!isAffiliate(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!isAffiliate(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
     const affiliate = await affiliates.findByUserId(session!.userId)
-    if (!affiliate) return NextResponse.json({ error: 'Not an affiliate' }, { status: 404 })
+    if (!affiliate) return NextResponse.json({ error: 'Akun ini belum terdaftar sebagai mitra afiliasi.' }, { status: 404 })
 
     const body = await readJsonBody(req)
     const amount = Number(body.amount)
@@ -46,6 +46,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ withdrawal }, { status: 201 })
   } catch (error) {
     console.error('Withdrawal error:', error)
-    return NextResponse.json({ error: 'Gagal memproses pencairan' }, { status: 500 })
+    return NextResponse.json({ error: 'Pencairannya gagal diproses. Coba lagi sebentar lagi ya.' }, { status: 500 })
   }
 }

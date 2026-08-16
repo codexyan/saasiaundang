@@ -15,7 +15,7 @@ const schema = z.object({
 export async function POST(req: NextRequest) {
   const body   = await readJsonBody(req)
   const parsed = schema.safeParse(body)
-  if (!parsed.success) return NextResponse.json({ error: 'Data tidak valid' }, { status: 400 })
+  if (!parsed.success) return NextResponse.json({ error: 'Ada data yang belum sesuai. Coba periksa lagi ya.' }, { status: 400 })
 
   const { invitationId, name, proofUrl } = parsed.data
 
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   if (invitationId !== 'preview') {
     const inv = await invitations.findById(invitationId)
     if (!inv || !inv.is_published) {
-      return NextResponse.json({ error: 'Undangan tidak ditemukan' }, { status: 404 })
+      return NextResponse.json({ error: 'Undangannya tidak ditemukan. Coba periksa lagi alamatnya.' }, { status: 404 })
     }
     const proof = await giftProofs.create({ invitation_id: invitationId, name, proof_url: proofUrl })
     return NextResponse.json({ proof }, { status: 201 })
@@ -44,14 +44,14 @@ export async function POST(req: NextRequest) {
  */
 export async function GET(req: NextRequest) {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
   const invitationId = req.nextUrl.searchParams.get('invitationId') ?? ''
   if (!invitationId) return NextResponse.json({ proofs: [] })
 
   const inv = await invitations.findById(invitationId)
   if (!inv || inv.user_id !== session.userId) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    return NextResponse.json({ error: 'Datanya tidak ditemukan.' }, { status: 404 })
   }
 
   return NextResponse.json({ proofs: await giftProofs.findByInvitationId(invitationId) })

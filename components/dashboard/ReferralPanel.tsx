@@ -30,13 +30,13 @@ export default function ReferralPanel() {
   function copyCode() {
     if (!data) return
     navigator.clipboard.writeText(data.referralCode)
-    toast.success('Kode referral disalin!')
+    toast.success('Kode referral sudah disalin!')
   }
 
   function copyLink() {
     if (!data) return
     navigator.clipboard.writeText(data.referralLink)
-    toast.success('Link referral disalin!')
+    toast.success('Tautan referral sudah disalin!')
   }
 
   function shareWa() {

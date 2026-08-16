@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
   const tickets = await prisma.supportTicket.findMany({
     where: { userId: session.userId },
@@ -36,14 +36,14 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
   const body = await readJsonBody(req)
   const subject = String(body?.subject || '').trim()
   const message = String(body?.message || '').trim()
 
   if (!subject || !message) {
-    return NextResponse.json({ error: 'Subjek dan pesan wajib diisi' }, { status: 400 })
+    return NextResponse.json({ error: 'Judul dan isi pesannya belum lengkap.' }, { status: 400 })
   }
 
   const ticket = await prisma.supportTicket.create({

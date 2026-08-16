@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   const session = await getSession()
   if (!isWriter(session)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
   }
   const needsRevisionUnseen = await articles.findUnseenRevisionCount(session!.userId)
   return NextResponse.json({ needsRevisionUnseen })

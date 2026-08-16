@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   // Dulu perbandingan template string: CRON_SECRET yang kosong menghasilkan
   // "Bearer undefined" yang bisa ditebak siapa pun.
   if (!(await verifyBearer(req.headers.get('authorization'), process.env.CRON_SECRET))) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
   }
 
   const published = await articles.publishScheduledDue()

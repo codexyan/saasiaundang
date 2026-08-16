@@ -335,7 +335,7 @@ export default function InvitationStudio({ invitation, template, onSaved, isAdmi
           setSaveStatus('saved')
           setTimeout(() => setSaveStatus('idle'), 2000)
         } catch {
-          toast.error('Gagal menyimpan perubahan')
+          toast.error('Perubahannya gagal disimpan. Coba lagi ya.')
           setSaveStatus('idle')
         }
       }, 800)

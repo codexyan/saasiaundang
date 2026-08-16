@@ -263,7 +263,7 @@ function BrandingPanel({
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="rounded-2xl border border-gray-100 overflow-hidden">
           <div className="px-3 py-2 bg-gray-50 border-b border-gray-100">
-            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Preview — Terang</p>
+            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Pratinjau Terang</p>
           </div>
           <div className="bg-white p-5 flex items-center justify-center h-20">
             {form.logoHorizontalUrl ? (
@@ -275,7 +275,7 @@ function BrandingPanel({
         </div>
         <div className="rounded-2xl border border-gray-800 overflow-hidden">
           <div className="px-3 py-2 bg-gray-900 border-b border-gray-700">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Preview — Gelap</p>
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Pratinjau Gelap</p>
           </div>
           <div className="bg-gray-950 p-5 flex items-center justify-center h-20">
             {form.logoHorizontalUrl ? (
@@ -478,7 +478,7 @@ function AccountPanel({ adminEmail }: { adminEmail: string }) {
             </div>
             <div>
               <p className="text-xs font-bold text-gray-900">Password</p>
-              <p className="text-[10px] text-gray-400 mt-0.5">Di-hash dengan bcrypt · Terakhir diubah: —</p>
+              <p className="text-[10px] text-gray-400 mt-0.5">Password disimpan teracak · Terakhir diubah: belum pernah</p>
             </div>
           </div>
           <button
@@ -685,7 +685,7 @@ export default function SettingsTab({ settings: initial, adminEmail, onSave }: P
             }`}
           >
             {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : saved ? <Check className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
-            {saving ? 'Menyimpan...' : saved ? 'Tersimpan!' : 'Simpan Perubahan'}
+            {saving ? 'Menyimpan...' : saved ? 'Sudah tersimpan!' : 'Simpan Perubahan'}
           </button>
         </div>
       </div>

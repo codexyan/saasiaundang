@@ -264,7 +264,7 @@ export default async function TemplatesPage(props: { searchParams: Promise<{ kat
             </p>
             <p className="text-body-sm text-concrete">
               {activeKategori
-                ? 'Coba kategori lain — koleksi terus bertambah.'
+                ? 'Coba lihat kategori lain ya, koleksinya terus kami tambah.'
                 : 'Tim kami sedang menyiapkan koleksi template undangan digital terbaik untuk kalian.'}
             </p>
             {activeKategori && (

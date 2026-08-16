@@ -7,17 +7,17 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: NextRequest) {
   const session = await getSession()
   if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
   }
 
   const invitationId = req.nextUrl.searchParams.get('invitation_id')
   if (!invitationId) {
-    return NextResponse.json({ error: 'invitation_id required' }, { status: 400 })
+    return NextResponse.json({ error: 'Undangannya belum dipilih.' }, { status: 400 })
   }
 
   const inv = await invitations.findById(invitationId)
   if (!inv || inv.user_id !== session.userId) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    return NextResponse.json({ error: 'Datanya tidak ditemukan.' }, { status: 404 })
   }
 
   const days = parseInt(req.nextUrl.searchParams.get('days') || '30', 10)

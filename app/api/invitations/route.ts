@@ -21,7 +21,7 @@ const schema = z.object({
 // GET /api/invitations   ambil undangan milik user yang login
 export async function GET() {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
   const inv = await invitations.findByUserId(session.userId)
   return NextResponse.json({ invitation: inv })
@@ -30,12 +30,12 @@ export async function GET() {
 // POST /api/invitations   buat undangan baru
 export async function POST(req: NextRequest) {
   const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
   const body = await readJsonBody(req)
   const parsed = schema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Data tidak valid', details: parsed.error.flatten() }, { status: 400 })
+    return NextResponse.json({ error: 'Ada data yang belum sesuai. Coba periksa lagi ya.', details: parsed.error.flatten() }, { status: 400 })
   }
 
   const { slug, template_id, data } = parsed.data
@@ -44,15 +44,15 @@ export async function POST(req: NextRequest) {
   const isLegacy = (LEGACY_TEMPLATE_IDS as string[]).includes(template_id)
   const isNewTemplate = !isLegacy && !!(await templateRecords.findById(template_id))
   if (!isLegacy && !isNewTemplate) {
-    return NextResponse.json({ error: 'Template tidak ditemukan' }, { status: 400 })
+    return NextResponse.json({ error: 'Desain undangan ini sudah tidak tersedia. Silakan pilih yang lain.' }, { status: 400 })
   }
 
   if (await invitations.findByUserId(session.userId)) {
-    return NextResponse.json({ error: 'Sudah punya undangan' }, { status: 409 })
+    return NextResponse.json({ error: 'Kalian sudah punya undangan. Buka dari halaman utama untuk mengeditnya.' }, { status: 409 })
   }
 
   if (await invitations.slugExists(slug)) {
-    return NextResponse.json({ error: 'Slug sudah dipakai' }, { status: 409 })
+    return NextResponse.json({ error: 'Alamat undangan ini sudah dipakai. Coba nama lain ya.' }, { status: 409 })
   }
 
   const cookieStore = await cookies()

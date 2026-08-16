@@ -64,7 +64,7 @@ export default function MusicManager({ invitation, onSaved }: Props) {
       const { invitation: updated } = await res.json()
       onSaved?.(updated)
     } catch {
-      toast.error('Gagal menyimpan musik')
+      toast.error('Musiknya gagal disimpan. Coba lagi ya.')
     } finally {
       setSaving(false)
     }
@@ -79,10 +79,10 @@ export default function MusicManager({ invitation, onSaved }: Props) {
     previewAudioRef.current?.pause()
     const audio = new Audio(track.url)
     audio.onended = () => setPreviewId(null)
-    audio.onerror = () => { toast.error('Gagal memutar preview'); setPreviewId(null) }
+    audio.onerror = () => { toast.error('Musiknya belum bisa diputar. Coba lagi ya.'); setPreviewId(null) }
     previewAudioRef.current = audio
     audio.play().then(() => setPreviewId(track.id)).catch(() => {
-      toast.error('Gagal memutar audio')
+      toast.error('Musiknya belum bisa diputar. Coba lagi ya.')
       setPreviewId(null)
     })
   }
@@ -116,7 +116,7 @@ export default function MusicManager({ invitation, onSaved }: Props) {
     setMusicUrl('')
     setMusicTitle('')
     await saveMusic('', '')
-    toast.success('Musik dihapus')
+    toast.success('Musiknya sudah dihapus.')
   }
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -125,7 +125,7 @@ export default function MusicManager({ invitation, onSaved }: Props) {
     maxFiles: 1,
     disabled: uploading,
     onDropAccepted: handleUpload,
-    onDropRejected: () => toast.error('File ditolak: format MP3/OGG max 20MB'),
+    onDropRejected: () => toast.error('Musiknya harus MP3 atau OGG, maksimal 20MB ya.'),
   })
 
   async function handleUpload(files: File[]) {
@@ -143,9 +143,9 @@ export default function MusicManager({ invitation, onSaved }: Props) {
       setPreviewId(null)
       previewAudioRef.current?.pause()
       onSaved?.({ ...invitation, data: { ...invitation.data, musicUrl: url, musicTitle: title || files[0].name } })
-      toast.success('Musik berhasil diupload!')
+      toast.success('Musiknya sudah masuk!')
     } catch {
-      toast.error('Gagal upload musik')
+      toast.error('Musiknya gagal dikirim. Coba lagi ya.')
     } finally {
       setUploading(false)
     }

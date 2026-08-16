@@ -18,14 +18,14 @@ export async function POST(req: NextRequest) {
     const body = await readJsonBody(req)
     const parsed = schema.safeParse(body)
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Data tidak valid' }, { status: 400 })
+      return NextResponse.json({ error: 'Ada data yang belum sesuai. Coba periksa lagi ya.' }, { status: 400 })
     }
 
     const { invitationId, name, attending, totalGuests } = parsed.data
 
     const inv = await invitations.findById(invitationId)
     if (!inv || !inv.is_published) {
-      return NextResponse.json({ error: 'Undangan tidak ditemukan' }, { status: 404 })
+      return NextResponse.json({ error: 'Undangannya tidak ditemukan. Coba periksa lagi alamatnya.' }, { status: 404 })
     }
 
     const guest = await guests.create({
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ guest })
   } catch (error) {
     console.error('RSVP error:', error)
-    return NextResponse.json({ error: 'Gagal menyimpan RSVP' }, { status: 500 })
+    return NextResponse.json({ error: 'Konfirmasinya gagal tersimpan. Coba lagi sebentar lagi ya.' }, { status: 500 })
   }
 }
 
@@ -62,21 +62,21 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const session = await getSession()
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
     const invitationId = req.nextUrl.searchParams.get('invitationId') || ''
     if (!invitationId) {
-      return NextResponse.json({ error: 'invitationId required' }, { status: 400 })
+      return NextResponse.json({ error: 'Undangannya belum dipilih.' }, { status: 400 })
     }
 
     const inv = await invitations.findById(invitationId)
     if (!inv || inv.user_id !== session.userId) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Datanya tidak ditemukan.' }, { status: 404 })
     }
 
     return NextResponse.json({ guests: await guests.findByInvitationId(invitationId) })
   } catch (error) {
     console.error('RSVP GET error:', error)
-    return NextResponse.json({ error: 'Gagal memuat data RSVP' }, { status: 500 })
+    return NextResponse.json({ error: 'Daftar konfirmasinya gagal dimuat. Coba muat ulang halaman ya.' }, { status: 500 })
   }
 }

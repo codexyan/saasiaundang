@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
   try {
     const [allAffiliates, allReferrals, allWithdrawals] = await Promise.all([
@@ -27,7 +27,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const session = await getSession()
-  if (!isAdmin(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!isAdmin(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
   try {
     const body = await readJsonBody(req)
@@ -37,12 +37,12 @@ export async function POST(req: NextRequest) {
 
     if (!targetUserId && email) {
       if (!password || password.length < 6) {
-        return NextResponse.json({ error: 'Password minimal 6 karakter' }, { status: 400 })
+        return NextResponse.json({ error: 'Passwordnya minimal 6 karakter ya.' }, { status: 400 })
       }
 
       const existingUser = await users.findByEmail(email)
       if (existingUser) {
-        return NextResponse.json({ error: 'Email sudah terdaftar' }, { status: 409 })
+        return NextResponse.json({ error: 'Email ini sudah punya akun. Silakan masuk, atau pakai email lain.' }, { status: 409 })
       }
 
       const passwordHash = await bcrypt.hash(password, 10)
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     if (!targetUserId) return NextResponse.json({ error: 'userId atau email wajib' }, { status: 400 })
 
     const user = await users.findById(targetUserId)
-    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    if (!user) return NextResponse.json({ error: 'Akunnya tidak ditemukan.' }, { status: 404 })
 
     const existing = await affiliates.findByUserId(targetUserId)
     if (existing) return NextResponse.json({ error: 'User sudah jadi affiliate' }, { status: 409 })

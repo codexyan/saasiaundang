@@ -88,7 +88,7 @@ export default function InvitationWizard({ invitation, onSaved }: Props) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ data: next }),
         })
-        if (!res.ok) { toast.error('Gagal menyimpan'); setSaveStatus('idle'); return }
+        if (!res.ok) { toast.error('Perubahannya gagal disimpan. Coba lagi ya.'); setSaveStatus('idle'); return }
         const { invitation: updated } = await res.json()
         onSaved(updated)
         setSaveStatus('saved')

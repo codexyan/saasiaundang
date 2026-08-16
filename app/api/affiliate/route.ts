@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   const session = await getSession()
-  if (!isAffiliate(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!isAffiliate(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
   const affiliate = await affiliates.findByUserId(session!.userId)
   if (!affiliate) return NextResponse.json({ affiliate: null, referrals: [], withdrawals: [] })
@@ -23,10 +23,10 @@ export async function GET() {
 
 export async function PATCH(req: NextRequest) {
   const session = await getSession()
-  if (!isAffiliate(session)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!isAffiliate(session)) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
   const affiliate = await affiliates.findByUserId(session!.userId)
-  if (!affiliate) return NextResponse.json({ error: 'Not an affiliate' }, { status: 404 })
+  if (!affiliate) return NextResponse.json({ error: 'Akun ini belum terdaftar sebagai mitra afiliasi.' }, { status: 404 })
 
   const body = await readJsonBody(req)
   if (body.bankName !== undefined) {

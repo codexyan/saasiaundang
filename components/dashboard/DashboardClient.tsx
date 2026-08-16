@@ -94,7 +94,7 @@ export default function DashboardClient({ user, invitation, selectedTemplateId, 
 
   useEffect(() => {
     if (paymentSuccess) {
-      toast.success('Pembayaran berhasil! Undangan Anda sedang diaktifkan...')
+      toast.success('Pembayaran berhasil! Undangan kalian sedang kami aktifkan.')
       const t = setTimeout(() => router.refresh(), 3000)
       return () => clearTimeout(t)
     }
@@ -113,7 +113,7 @@ export default function DashboardClient({ user, invitation, selectedTemplateId, 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ is_published: !inv.is_published }),
     })
-    if (!res.ok) { toast.error('Gagal mengubah status'); return }
+    if (!res.ok) { toast.error('Statusnya gagal diubah. Coba lagi ya.'); return }
     const { invitation: updated } = await res.json()
     setInv(updated)
     toast.success(updated.is_published ? 'Undangan dipublikasikan!' : 'Undangan disembunyikan')
@@ -414,7 +414,7 @@ export default function DashboardClient({ user, invitation, selectedTemplateId, 
             <div className="flex items-center gap-2">
               {inv.is_published && (
                 <button
-                  onClick={() => { navigator.clipboard.writeText(getInvitationUrl(inv.slug)); toast.success('Link disalin!') }}
+                  onClick={() => { navigator.clipboard.writeText(getInvitationUrl(inv.slug)); toast.success('Tautan undangan sudah disalin!') }}
                   className="flex items-center gap-1.5 text-white/50 hover:text-white text-xs px-3 py-1.5 rounded-lg border border-white/10 hover:border-white/20 transition-colors"
                 >
                   <Copy size={12} /> Salin Link

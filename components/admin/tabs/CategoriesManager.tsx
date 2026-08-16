@@ -53,7 +53,7 @@ export default function CategoriesManager({ categories, onUpdate }: Props) {
     setBusy(false)
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
-      toast.error(data.error || 'Gagal menyimpan')
+      toast.error(data.error || 'Perubahannya gagal disimpan. Coba lagi ya.')
       return
     }
     onUpdate(categories.map((c) => c.slug === slug ? { ...c, label: editingLabel.trim() } : c))
@@ -66,7 +66,7 @@ export default function CategoriesManager({ categories, onUpdate }: Props) {
     const res = await fetch(`/api/admin/categories/${slug}`, { method: 'DELETE' })
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
-      toast.error(data.error || 'Gagal menghapus')
+      toast.error(data.error || 'Gagal dihapus. Coba lagi ya.')
       return
     }
     onUpdate(categories.filter((c) => c.slug !== slug))

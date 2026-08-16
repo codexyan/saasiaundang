@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'Buat Undangan | iaundang',
-  description: 'Isi data pernikahan, pilih paket, dan buat undangan digital Anda.',
+  description: 'Isi data pernikahan kalian, pilih paket, lalu undangan digital kalian langsung siap.',
 }
 
 export default async function OrderPage({ searchParams }: { searchParams: Promise<{ template?: string }> }) {

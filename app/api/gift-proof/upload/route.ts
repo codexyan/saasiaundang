@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     const invitationId = formData.get('invitationId') as string | null
 
     if (!invitationId) {
-      return NextResponse.json({ error: 'invitationId wajib diisi' }, { status: 400 })
+      return NextResponse.json({ error: 'Undangannya belum dipilih.' }, { status: 400 })
     }
 
     // Undangan sungguhan: sengaja terbuka untuk tamu (tamu tidak punya akun),
@@ -45,12 +45,12 @@ export async function POST(req: NextRequest) {
     if (invitationId === 'preview') {
       const session = await getSession()
       if (!session) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
       }
     } else {
       const inv = await invitations.findById(invitationId)
       if (!inv || !inv.is_published) {
-        return NextResponse.json({ error: 'Undangan tidak ditemukan' }, { status: 404 })
+        return NextResponse.json({ error: 'Undangannya tidak ditemukan. Coba periksa lagi alamatnya.' }, { status: 404 })
       }
 
       // Tamu memang tidak perlu login untuk mengirim bukti hadiah — itu
@@ -68,27 +68,27 @@ export async function POST(req: NextRequest) {
     }
 
     if (!file) {
-      return NextResponse.json({ error: 'File wajib diisi' }, { status: 400 })
+      return NextResponse.json({ error: 'Belum ada berkas yang dipilih.' }, { status: 400 })
     }
 
     if (file.size > MAX_SIZE) {
-      return NextResponse.json({ error: 'File terlalu besar (maks 10MB)' }, { status: 400 })
+      return NextResponse.json({ error: 'Berkasnya terlalu besar. Maksimal 10MB ya.' }, { status: 400 })
     }
 
     if (!ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json({ error: 'Format tidak didukung. Gunakan JPG, PNG, atau WebP' }, { status: 400 })
+      return NextResponse.json({ error: 'Fotonya harus berformat JPG, PNG, atau WebP ya.' }, { status: 400 })
     }
 
     const ext = fileExtension(file.name)
     if (!ALLOWED_EXTS.includes(ext)) {
-      return NextResponse.json({ error: 'Ekstensi file tidak valid' }, { status: 400 })
+      return NextResponse.json({ error: 'Jenis berkasnya belum didukung. Coba pakai berkas lain ya.' }, { status: 400 })
     }
 
     const bytes = await file.arrayBuffer()
     const buffer = new Uint8Array(bytes)
 
     if (!validateMagicBytes(buffer, file.type)) {
-      return NextResponse.json({ error: 'Konten file tidak sesuai dengan format yang dideklarasikan' }, { status: 400 })
+      return NextResponse.json({ error: 'Isi berkasnya tidak cocok dengan jenisnya. Coba pilih berkas lain ya.' }, { status: 400 })
     }
 
     const timestamp = Date.now()
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Gift proof upload error:', error)
     return NextResponse.json(
-      { error: 'Gagal mengupload file. Silakan coba lagi.' },
+      { error: 'Berkasnya gagal dikirim. Coba lagi sebentar lagi ya.' },
       { status: 500 }
     )
   }

@@ -63,7 +63,7 @@ export default function ArticleCategoriesManager({ onChanged }: { onChanged?: ()
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, slug: editSlug.trim() || slugify(name) }),
     })
-    if (!res.ok) { toast.error('Gagal menyimpan'); return }
+    if (!res.ok) { toast.error('Perubahannya gagal disimpan. Coba lagi ya.'); return }
     setEditingId(null)
     await fetchRows(); onChanged?.()
     toast.success('Kategori diperbarui')
@@ -90,7 +90,7 @@ export default function ArticleCategoriesManager({ onChanged }: { onChanged?: ()
     if (!deleteId) return
     const res = await fetch(`/api/admin/article-categories/${deleteId}`, { method: 'DELETE' })
     setDeleteId(null)
-    if (!res.ok) { toast.error('Gagal menghapus'); return }
+    if (!res.ok) { toast.error('Gagal dihapus. Coba lagi ya.'); return }
     await fetchRows(); onChanged?.()
     toast.success('Kategori dihapus')
   }
@@ -174,7 +174,7 @@ export default function ArticleCategoriesManager({ onChanged }: { onChanged?: ()
               <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-amber-500" /></div>
               <div><h3 className="text-sm font-bold text-gray-900">Hapus Kategori?</h3></div>
             </div>
-            <p className="text-xs text-gray-500 mb-4">Artikel di kategori ini <strong>tidak akan terhapus</strong> — hanya menjadi tanpa kategori.</p>
+            <p className="text-xs text-gray-500 mb-4">Artikel di kategori ini <strong>tidak akan terhapus</strong>, hanya menjadi tanpa kategori.</p>
             <div className="flex items-center gap-2 justify-end">
               <button onClick={() => setDeleteId(null)} className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Batal</button>
               <button onClick={confirmDelete} className="px-4 py-2 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors">Hapus</button>

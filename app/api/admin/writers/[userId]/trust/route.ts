@@ -13,7 +13,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ userId:
   const params = await props.params;
   const session = await getSession()
   if (!isAdmin(session)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
   }
 
   const user = await prisma.user.findUnique({ where: { id: params.userId } })

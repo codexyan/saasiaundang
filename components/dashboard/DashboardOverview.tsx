@@ -182,7 +182,7 @@ export default function DashboardOverview({ invitation, onNavigate, onTogglePubl
 
   function copyLink() {
     navigator.clipboard.writeText(invUrl)
-    toast.success('Link disalin!')
+    toast.success('Tautan undangan sudah disalin!')
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -232,7 +232,7 @@ export default function DashboardOverview({ invitation, onNavigate, onTogglePubl
                   <button onClick={copyLink}
                     className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-all backdrop-blur-sm">
                     {copied ? <CheckCircle2 size={13} /> : <Copy size={13} />}
-                    {copied ? 'Disalin!' : 'Salin Link'}
+                    {copied ? 'Sudah disalin!' : 'Salin Link'}
                   </button>
                   <a href={`https://wa.me/?text=Yuk lihat undangan pernikahan kami! ${invUrl}`}
                     target="_blank" rel="noopener noreferrer"

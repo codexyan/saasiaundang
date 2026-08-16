@@ -7,7 +7,7 @@ import { z } from 'zod'
 import toast from 'react-hot-toast'
 
 const schema = z.object({
-  name: z.string().min(1, 'Nama wajib diisi'),
+  name: z.string().min(1, 'Namanya belum diisi.'),
   attending: z.enum(['yes', 'no']),
   totalGuests: z.number().min(1).max(10),
 })
@@ -50,9 +50,9 @@ export default function RSVPForm({ invitationId, className = '', accentColor = '
       })
       if (!res.ok) throw new Error()
       setSubmitted(true)
-      toast.success('RSVP berhasil dikirim!')
+      toast.success('Terima kasih, konfirmasi kehadiran sudah terkirim!')
     } catch {
-      toast.error('Gagal mengirim RSVP. Coba lagi.')
+      toast.error('Konfirmasinya gagal terkirim. Coba lagi ya.')
     } finally {
       setLoading(false)
     }

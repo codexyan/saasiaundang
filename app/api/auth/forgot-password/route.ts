@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     const { email } = await readJsonBody(req)
 
     if (!email || typeof email !== 'string') {
-      return NextResponse.json({ error: 'Email harus diisi' }, { status: 400 })
+      return NextResponse.json({ error: 'Emailnya belum diisi.' }, { status: 400 })
     }
 
     // Tiap permintaan yang berhasil MENGIRIM EMAIL SUNGGUHAN lewat Resend.
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Forgot password error:', error)
     return NextResponse.json(
-      { error: 'Terjadi kesalahan server' },
+      { error: 'Ada kendala di sistem kami. Coba beberapa saat lagi ya.' },
       { status: 500 }
     )
   }

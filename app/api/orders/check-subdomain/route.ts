@@ -14,6 +14,6 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     available: !slugTaken && !orderTaken,
-    reason: slugTaken || orderTaken ? 'Subdomain sudah digunakan' : null,
+    reason: slugTaken || orderTaken ? 'Alamat undangan ini sudah dipakai pasangan lain. Coba nama lain ya.' : null,
   })
 }
