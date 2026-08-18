@@ -16,17 +16,25 @@ export const GET = withAdminAuth(async () => {
   }
 })
 
+/**
+ * PATCH bersifat MERGE, bukan ganti-seluruh-baris.
+ *
+ * Sebelumnya body ditulis apa adanya sebagai satu record utuh. Karena panel
+ * admin memegang salinan pengaturan di state React dan selalu mengirim
+ * SELURUH objek itu, setiap penyimpanan mengembalikan seluruh pengaturan ke
+ * kondisi saat halaman dibuka — termasuk kategori yang baru saja dibuat lewat
+ * endpoint /api/admin/categories dan perubahan dari tab admin lain atau dari
+ * admin kedua. Bug hilang-diam-diam yang tidak meninggalkan jejak error.
+ *
+ * Dengan merge, kunci yang TIDAK dikirim tidak tersentuh, jadi client basi
+ * hanya bisa menimpa bagian yang memang sedang ia ubah.
+ *
+ * Body kosong/rusak tetap ditolak: readNonEmptyJsonBody() melaporkan null,
+ * dan tanpa penjagaan ini "{}" akan berarti "simpan objek kosong" — bukan
+ * "tolak permintaan".
+ */
 export const PATCH = withAdminAuth(async (req) => {
   try {
-    // settings.save() adalah upsert SATU RECORD UTUH — tidak ada merge dengan
-    // baris yang tersimpan. Jadi body yang tidak terbaca TIDAK BOLEH diperlakukan
-    // sebagai "{}", karena artinya menimpa seluruh pengaturan dengan objek kosong:
-    // semua template, kategori, palet warna, tier harga, kupon, flash sale, dan
-    // rekening bank buatan admin hilang permanen, dan route tetap membalas 200.
-    //
-    // Dulu `req.json()` melempar pada body rusak dan tertangkap catch di bawah
-    // (500, baris database utuh) — lemparan itulah validasinya. Pemakaian
-    // readJsonBody() di sini sempat mengubahnya jadi gagal-terbuka.
     const body = await readNonEmptyJsonBody(req)
     if (!body) {
       return NextResponse.json(
@@ -35,19 +43,11 @@ export const PATCH = withAdminAuth(async (req) => {
       )
     }
 
-    // Penjaga tambahan: pengaturan yang sah selalu membawa kunci-kunci ini.
-    // Menangkap body JSON yang valid tapi jelas bukan AppSettings.
-    const requiredKeys: (keyof AppSettings)[] = ['priceTiers', 'categories', 'templates']
-    const missing = requiredKeys.filter(k => !(k in body))
-    if (missing.length > 0) {
-      return NextResponse.json(
-        { error: `Body pengaturan tidak lengkap (hilang: ${missing.join(', ')})` },
-        { status: 400 }
-      )
-    }
+    const current = await settings.get()
+    const merged = { ...current, ...body } as AppSettings
 
-    await settings.save(body as unknown as AppSettings)
-    return NextResponse.json({ settings: body })
+    await settings.save(merged)
+    return NextResponse.json({ settings: merged })
   } catch (error) {
     console.error('Settings PATCH error:', error)
     return NextResponse.json({ error: 'Pengaturannya gagal disimpan. Coba lagi sebentar lagi ya.' }, { status: 500 })

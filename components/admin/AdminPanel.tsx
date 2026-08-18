@@ -4,32 +4,32 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import toast from 'react-hot-toast'
 import {
   LayoutDashboard, Users, ShoppingCart, Settings, LogOut,
-  Music, Package, CreditCard, FlaskConical,
-  PanelLeftClose, PanelLeftOpen, AlertTriangle, X, Megaphone,
-  FileText, PenLine, Home, ExternalLink, Copy, Save,
+  Music, Package, CreditCard, FlaskConical, Crown,
+  PanelLeftClose, PanelLeftOpen, Megaphone,
+  FileText, PenLine, Home, ExternalLink, Copy,
   MessageSquarePlus, Zap, Hand,
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { formatPrice } from '@/lib/utils'
-import type { AdminTemplateConfig, BankAccount, PaymentProof } from '@/lib/db'
+import type { BankAccount, PaymentProof } from '@/lib/db'
 import type { TemplateRecord, TemplateCategory, ColorPalette, PriceTier, FlashSale, Coupon } from '@/lib/types'
 import DashboardTab from './tabs/DashboardTab'
 import type { SiteSettings } from './tabs/SettingsTab'
 
 // Tab selain Dashboard (yang selalu terbuka duluan) di-lazy-load: admin yang
 // cuma buka satu-dua tab tidak perlu mengunduh semuanya sekaligus, terutama
-// TemplateLab yang sendirian ~5900 baris. Perilaku sama persis, cuma waktu
-// muat awal panel admin yang berubah.
+// editor template yang sendirian ~4000 baris. Perilaku sama persis, cuma
+// waktu muat awal panel admin yang berubah.
 const TAB_LOADING = <div className="flex items-center justify-center py-24 text-sm text-gray-400">Memuat...</div>
 
 const UsersTab = dynamic(() => import('./tabs/UsersTab'), { loading: () => TAB_LOADING, ssr: false })
 // InvitationsTab merged into UsersTab
-const TemplatesTab = dynamic(() => import('./tabs/TemplatesTab'), { loading: () => TAB_LOADING, ssr: false })
+const TemplateModule = dynamic(() => import('./tabs/template/TemplateModule'), { loading: () => TAB_LOADING, ssr: false })
 const PaymentTab = dynamic(() => import('./tabs/PaymentTab'), { loading: () => TAB_LOADING, ssr: false })
-const TemplateLab = dynamic(() => import('./tabs/TemplateLab'), { loading: () => TAB_LOADING, ssr: false })
-const MusicLibraryTab = dynamic(() => import('./tabs/MusicLibraryTab'), { loading: () => TAB_LOADING, ssr: false })
+const MusicLibraryTab = dynamic(() => import('./tabs/music/MusicModule'), { loading: () => TAB_LOADING, ssr: false })
+const PricingTab = dynamic(() => import('./tabs/pricing/PricingTab'), { loading: () => TAB_LOADING, ssr: false })
 const ArticlesTab = dynamic(() => import('./tabs/ArticlesTab'), { loading: () => TAB_LOADING, ssr: false })
 const WriterTab = dynamic(() => import('./tabs/WriterTab'), { loading: () => TAB_LOADING, ssr: false })
 const AffiliatesTab = dynamic(() => import('./tabs/AffiliatesTab'), { loading: () => TAB_LOADING, ssr: false })
@@ -99,7 +99,6 @@ interface LocalAppSettings {
   price: number
   packageName: string
   packageDuration: number
-  templates: AdminTemplateConfig[]
   categories: TemplateCategory[]
   colorPalettes: ColorPalette[]
   priceTiers: PriceTier[]
@@ -143,9 +142,17 @@ interface Props {
   adminEmail: string
 }
 
-type NavTab = 'dashboard' | 'users' | 'template' | 'lab' | 'music' | 'orders' | 'payment' | 'articles' | 'writers' | 'affiliates' | 'feedback' | 'experiments' | 'settings'
+type NavTab = 'dashboard' | 'users' | 'template' | 'music' | 'pricing' | 'orders' | 'payment' | 'articles' | 'writers' | 'affiliates' | 'feedback' | 'experiments' | 'settings'
 
-const VALID_TABS: NavTab[] = ['dashboard', 'users', 'template', 'lab', 'music', 'orders', 'payment', 'articles', 'writers', 'affiliates', 'feedback', 'experiments', 'settings']
+const VALID_TABS: NavTab[] = ['dashboard', 'users', 'template', 'music', 'pricing', 'orders', 'payment', 'articles', 'writers', 'affiliates', 'feedback', 'experiments', 'settings']
+
+/** Tab yang mengelola tinggi layarnya sendiri (punya panel/scroll internal).
+ *  Sisanya dibiarkan halaman yang men-scroll. */
+const FULL_HEIGHT_TABS = new Set<NavTab>(['template', 'music', 'pricing', 'settings'])
+
+/** Tab lama -> tab baru. Tautan/bookmark ke ?tab=lab masih beredar di riwayat
+ *  browser admin; tanpa peta ini mereka mendarat di Dashboard tanpa penjelasan. */
+const LEGACY_TAB_ALIASES: Record<string, NavTab> = { lab: 'template', packages: 'pricing' }
 
 //  Main Component 
 
@@ -160,11 +167,7 @@ export default function AdminPanel({
   adminEmail,
 }: Props) {
   const [templateRecords, setTemplateRecords] = useState<TemplateRecord[]>(initialTemplateRecords)
-  const [labEditRecord, setLabEditRecord] = useState<TemplateRecord | null>(null)
-  const [labDirty, setLabDirty] = useState(false)
-  const labSaveDraftRef = useRef<(() => void) | null>(null)
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard')
-  const [pendingTab, setPendingTab] = useState<NavTab | null>(null)
   const [transitioning, setTransitioning] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
   const [pendingArticles, setPendingArticles] = useState(0)
@@ -187,7 +190,8 @@ export default function AdminPanel({
   // Baca URL setelah hydration + sinkronisasi back/forward
   useEffect(() => {
     function syncFromUrl() {
-      const p = new URLSearchParams(window.location.search).get('tab') as NavTab
+      const raw = new URLSearchParams(window.location.search).get('tab') ?? ''
+      const p = (LEGACY_TAB_ALIASES[raw] ?? raw) as NavTab
       setActiveTab(VALID_TABS.includes(p) ? p : 'dashboard')
     }
     syncFromUrl()
@@ -195,25 +199,13 @@ export default function AdminPanel({
     return () => window.removeEventListener('popstate', syncFromUrl)
   }, [])
 
-  // Browser close/refresh guard
-  useEffect(() => {
-    function onBeforeUnload(e: BeforeUnloadEvent) {
-      if (labDirty) { e.preventDefault() }
-    }
-    window.addEventListener('beforeunload', onBeforeUnload)
-    return () => window.removeEventListener('beforeunload', onBeforeUnload)
-  }, [labDirty])
-
+  // Penjaga "perubahan belum disimpan" saat pindah tab sudah dibuang bersama
+  // sumber masalahnya. Editor template kini autosave ke kolom draft_config di
+  // database, jadi berpindah tab tidak bisa lagi menghilangkan pekerjaan —
+  // dan tombol "Simpan Draf & Pergi" yang dulu ada di sini justru TIDAK
+  // menyimpan apa pun saat mode edit, lalu menampilkan toast "Draf tersimpan".
   function handleTabChange(tab: NavTab) {
     if (tab === activeTab) return
-    if (activeTab === 'lab' && labDirty && tab !== 'lab') {
-      setPendingTab(tab)
-      return
-    }
-    applyTabChange(tab)
-  }
-
-  function applyTabChange(tab: NavTab) {
     setTransitioning(true)
     setTimeout(() => {
       setActiveTab(tab)
@@ -222,22 +214,6 @@ export default function AdminPanel({
       window.history.pushState({}, '', url.toString())
       requestAnimationFrame(() => setTransitioning(false))
     }, 150)
-  }
-
-  function confirmLeaveStudio() {
-    setLabDirty(false)
-    const tab = pendingTab!
-    setPendingTab(null)
-    applyTabChange(tab)
-  }
-
-  function saveAndLeaveStudio() {
-    labSaveDraftRef.current?.()
-    setLabDirty(false)
-    const tab = pendingTab!
-    setPendingTab(null)
-    applyTabChange(tab)
-    toast.success('Draf tersimpan')
   }
   const [users, setUsers] = useState(initialUsers)
   const [invitations, setInvitations] = useState(initialInvitations)
@@ -337,13 +313,20 @@ export default function AdminPanel({
     toast.success('User dihapus')
   }
 
-  async function handleSaveSettings(newSettings: LocalAppSettings) {
+  /** Kirim HANYA kunci yang berubah.
+   *
+   *  Dulu seluruh objek pengaturan dikirim setiap kali, dan karena endpoint
+   *  menimpa satu baris utuh, tiap penyimpanan mengembalikan pengaturan ke
+   *  kondisi saat halaman dibuka — menghapus kategori/palet yang dibuat lewat
+   *  endpoint lain atau oleh admin kedua. */
+  async function handleSaveSettings(patch: Partial<LocalAppSettings>) {
     const res = await fetch('/api/admin/settings', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newSettings),
+      body: JSON.stringify(patch),
     })
     if (!res.ok) { toast.error('Gagal simpan pengaturan'); return }
+    const newSettings = { ...appSettings, ...patch } as LocalAppSettings
     setAppSettings(newSettings)
     recalc(invitations, users)
     toast.success('Pengaturan tersimpan!')
@@ -392,10 +375,10 @@ export default function AdminPanel({
         logoVerticalUrl={appSettings.logoVerticalUrl ?? '/logos/logo-vertical.png'}
       />
 
-      <main className={`flex-1 min-h-0 ${activeTab === 'lab' || activeTab === 'settings' || activeTab === 'template' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto scrollbar-hide'}`}>
+      <main className={`flex-1 min-h-0 ${FULL_HEIGHT_TABS.has(activeTab) ? 'overflow-hidden flex flex-col' : 'overflow-y-auto scrollbar-hide'}`}>
         <div
           ref={contentRef}
-          className={`${activeTab === 'lab' || activeTab === 'settings' || activeTab === 'template' ? 'flex-1 min-h-0' : 'h-full'} transition-opacity duration-150 ease-in-out ${transitioning ? 'opacity-0 translate-y-1' : 'opacity-100 translate-y-0'}`}
+          className={`${FULL_HEIGHT_TABS.has(activeTab) ? 'flex-1 min-h-0' : 'h-full'} transition-opacity duration-150 ease-in-out ${transitioning ? 'opacity-0 translate-y-1' : 'opacity-100 translate-y-0'}`}
           style={{ transition: 'opacity 150ms ease, transform 150ms ease' }}
         >
         {activeTab === 'dashboard' && (
@@ -404,49 +387,37 @@ export default function AdminPanel({
         {activeTab === 'users' && (
           <UsersTab
             users={users}
-            templates={appSettings.templates}
+            templates={templateRecords}
             onDelete={handleDeleteUser}
             onOverridePaid={handleOverridePaid}
             onTogglePublished={handleTogglePublished}
           />
         )}
         {activeTab === 'template' && (
-          <TemplatesTab
+          <TemplateModule
             records={templateRecords}
-            onRecordsUpdate={(recs) => setTemplateRecords(recs)}
-            onGoToLab={() => handleTabChange('lab')}
-            onEditInLab={(rec) => { setLabEditRecord(rec); handleTabChange('lab') }}
-            categories={appSettings.categories}
-            deletedCategoryIds={appSettings.deletedCategoryIds}
-            deletedTierIds={appSettings.deletedTierIds}
-            onCategoriesUpdate={(cats, deletedIds) => handleSaveSettings({ ...appSettings, categories: cats, deletedCategoryIds: deletedIds ?? appSettings.deletedCategoryIds })}
-            priceTiers={appSettings.priceTiers}
-            onPriceTiersUpdate={(tiers, deletedIds) => handleSaveSettings({ ...appSettings, priceTiers: tiers, deletedTierIds: deletedIds ?? appSettings.deletedTierIds })}
-            flashSales={appSettings.flashSales}
-            onFlashSalesUpdate={(sales) => handleSaveSettings({ ...appSettings, flashSales: sales })}
-            coupons={appSettings.coupons}
-            onCouponsUpdate={(cpns) => handleSaveSettings({ ...appSettings, coupons: cpns })}
-          />
-        )}
-        {activeTab === 'lab' && (
-          <TemplateLab
-            onGoToManagement={() => handleTabChange('template')}
-            editRecord={labEditRecord}
-            templateRecords={templateRecords}
-            onTemplateReleased={(rec) => {
-              setTemplateRecords(prev => {
-                const idx = prev.findIndex(r => r.id === rec.id)
-                if (idx >= 0) return prev.map(r => r.id === rec.id ? rec : r)
-                return [...prev, rec]
-              })
-              setLabEditRecord(null)
-              setLabDirty(false)
-              toast.success('Template berhasil disimpan!', { duration: 4000, icon: '��' })
-            }}
-            onDirtyChange={setLabDirty}
-            onSaveDraftRef={labSaveDraftRef}
             categories={appSettings.categories}
             palettes={appSettings.colorPalettes}
+            tiers={appSettings.priceTiers}
+            onRecordsUpdate={setTemplateRecords}
+            // Kategori HANYA lewat REST /api/admin/categories (dilakukan di dalam
+            // modul). Di sini cuma menyelaraskan salinan di memori — kalau ikut
+            // menulis blob settings, kategori yang baru dibuat lewat REST akan
+            // ditimpa balik oleh salinan lama yang dipegang panel ini.
+            onCategoriesUpdate={(cats) => setAppSettings(s => ({ ...s, categories: cats }))}
+          />
+        )}
+        {activeTab === 'pricing' && (
+          <PricingTab
+            records={templateRecords}
+            categories={appSettings.categories}
+            priceTiers={appSettings.priceTiers}
+            deletedTierIds={appSettings.deletedTierIds}
+            onPriceTiersUpdate={(tiers, deletedIds) => handleSaveSettings({ priceTiers: tiers, deletedTierIds: deletedIds ?? appSettings.deletedTierIds })}
+            flashSales={appSettings.flashSales}
+            onFlashSalesUpdate={(sales) => handleSaveSettings({ flashSales: sales })}
+            coupons={appSettings.coupons}
+            onCouponsUpdate={(cpns) => handleSaveSettings({ coupons: cpns })}
           />
         )}
         {activeTab === 'music' && <MusicLibraryTab />}
@@ -495,8 +466,11 @@ export default function AdminPanel({
             }}
             adminEmail={adminEmail}
             onSave={async (siteSettings) => {
+              // Kirim hanya field yang memang diubah panel ini. Menyertakan
+              // `...appSettings` akan ikut menuliskan salinan lama seluruh
+              // pengaturan — termasuk kategori dan palet yang barangkali sudah
+              // berubah lewat endpoint lain sejak halaman dibuka.
               await handleSaveSettings({
-                ...appSettings,
                 siteName: siteSettings.siteName,
                 siteTagline: siteSettings.siteTagline,
                 logoHorizontalUrl: siteSettings.logoHorizontalUrl,
@@ -514,36 +488,6 @@ export default function AdminPanel({
         )}
         </div>
 
-        {/* Unsaved changes confirmation modal */}
-        {pendingTab && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[360px] mx-4 overflow-hidden">
-              <div className="px-6 pt-6 pb-4 text-center">
-                <div className="w-11 h-11 rounded-xl bg-amber-50 flex items-center justify-center mx-auto mb-3">
-                  <AlertTriangle className="w-5 h-5 text-amber-500" />
-                </div>
-                <h3 className="text-sm font-bold text-gray-900 mb-1">Ada perubahan yang belum disimpan</h3>
-                <p className="text-xs text-gray-500 leading-relaxed">Simpan sebagai draf agar bisa dilanjutkan nanti, atau tinggalkan tanpa menyimpan.</p>
-              </div>
-              <div className="px-5 pb-5 space-y-2">
-                {labSaveDraftRef.current && (
-                  <button onClick={saveAndLeaveStudio}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-colors">
-                    <Save className="w-4 h-4" /> Simpan Draf & Pergi
-                  </button>
-                )}
-                <button onClick={confirmLeaveStudio}
-                  className="w-full py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-colors">
-                  Tinggalkan tanpa menyimpan
-                </button>
-                <button onClick={() => setPendingTab(null)}
-                  className="w-full py-2 text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors">
-                  Batal, tetap di sini
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </main>
     </div>
   )
@@ -569,8 +513,7 @@ const NAV_GROUPS = [
   {
     label: 'Template',
     items: [
-      { id: 'lab'         as NavTab, label: 'Studio Desain',      icon: FlaskConical,    desc: 'Buat & eksperimen template' },
-      { id: 'template'    as NavTab, label: 'Manajemen',          icon: Package,         desc: 'Review, harga & publikasi tema' },
+      { id: 'template'    as NavTab, label: 'Template',           icon: Package,         desc: 'Desain, kategori & publikasi tema' },
       { id: 'music'       as NavTab, label: 'Musik',              icon: Music,           desc: 'Perpustakaan musik undangan' },
     ],
   },
@@ -579,6 +522,7 @@ const NAV_GROUPS = [
     items: [
       { id: 'payment'     as NavTab, label: 'Pembayaran',         icon: CreditCard,      desc: 'Bank, QRIS & verifikasi' },
       { id: 'orders'      as NavTab, label: 'Pesanan',            icon: ShoppingCart,    desc: 'Riwayat transaksi' },
+      { id: 'pricing'     as NavTab, label: 'Paket & Promo',      icon: Crown,           desc: 'Tier harga, flash sale & kupon' },
     ],
   },
   {

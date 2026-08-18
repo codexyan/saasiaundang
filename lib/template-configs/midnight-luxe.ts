@@ -5,6 +5,7 @@ const MIDNIGHT_LUXE: TemplateRecord = {
   name: 'Midnight Luxe',
   slug: 'midnight-luxe',
   category: 'modern',
+  description: 'Gelap, tenang, dan mewah. Dibuat untuk resepsi malam berkelas.',
   thumbnail_url: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=400&h=600&fit=crop',
   status: 'active',
   sort_order: 3,
@@ -12,17 +13,9 @@ const MIDNIGHT_LUXE: TemplateRecord = {
   price: 0,
   required_package: 'eksklusif',
   created_at: '2026-01-01T00:00:00.000Z',
+  updated_at: '2026-01-01T00:00:00.000Z',
   config: {
     meta: {
-      name: 'Midnight Luxe',
-      slug: 'midnight-luxe',
-      category: 'modern',
-      thumbnail: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=400&h=600&fit=crop',
-      preview_images: [
-        'https://images.unsplash.com/photo-1519741497674-611481863552?w=600&h=900&fit=crop',
-        'https://images.unsplash.com/photo-1532712938310-34cb3982ef74?w=600&h=900&fit=crop',
-        'https://images.unsplash.com/photo-1509927083803-4bd519298ac4?w=600&h=900&fit=crop',
-      ],
       color_scheme: {
         primary: '#0c0c0c',
         accent: '#b8977e',

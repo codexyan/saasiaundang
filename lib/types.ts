@@ -442,12 +442,11 @@ export interface ComponentStyle {
   ornament: OrnamentVariant
 }
 
+/** Identitas template (nama, slug, kategori, thumbnail) TIDAK ada di sini —
+ *  tempatnya di TemplateRecord. Dulu digandakan di dua tempat dan yang di
+ *  dalam config tidak pernah dibaca satu pun renderer, jadi begitu admin
+ *  mengganti nama template, salinan di config diam-diam basi. */
 export interface TemplateMeta {
-  name: string
-  slug: string
-  category: string
-  thumbnail?: string
-  preview_images?: string[]
   color_scheme: ColorScheme
   font: FontConfig
   component_style?: ComponentStyle
@@ -643,16 +642,23 @@ export interface TemplateRecord {
   name: string
   slug: string
   category: string
+  /** Ditampilkan ke user di galeri template. */
+  description: string
+  /** Versi terbit — inilah yang dirender untuk pengunjung undangan. */
   config: JsonTemplateConfig
+  /** Salinan kerja editor (autosave). null/undefined = tidak ada perubahan tertunda. */
+  draft_config?: JsonTemplateConfig | null
   thumbnail_url: string
   status: 'draft' | 'active' | 'archived'
   sort_order: number
+  /** Jumlah undangan yang memakai template ini. */
   usage_count: number
   /** Harga dalam Rupiah utuh (Int). 0 = gratis / ikuti harga global. */
   price: number
   /** Single source of truth untuk access control (gantikan isPremium boolean). */
   required_package: TemplatePackageRequirement
   created_at: string
+  updated_at: string
 }
 
 // Invitation data format for JSON-driven templates (snake_case)

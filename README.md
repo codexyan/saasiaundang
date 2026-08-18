@@ -65,7 +65,11 @@ app/
 components/
   marketing/    primitif design system
   studio/       editor undangan (pelanggan)
-  admin/        panel admin (termasuk TemplateLab)
+  admin/
+    ui/         Drawer, ConfirmDialog, StatusBadge (dipakai lintas tab)
+    tabs/template/  modul Template: koleksi + editor desain + kategori
+    tabs/music/     perpustakaan musik
+    tabs/pricing/   paket harga & promosi
   renderer/     rendering tema undangan  ← jangan diubah tanpa alasan kuat
 lib/
   db.ts         seluruh akses database

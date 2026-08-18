@@ -15,7 +15,7 @@
  * oleh tsc.
  */
 import type { Dispatch, SetStateAction } from 'react'
-import { Play, Upload, Check, X } from 'lucide-react'
+import { Play, Check, X } from 'lucide-react'
 import type { TemplateRecord } from '@/lib/types'
 import ImageUploadField from '@/components/admin/ImageUploadField'
 import { inputCls } from './fields'

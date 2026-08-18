@@ -39,7 +39,8 @@ function TemplateCard({ rec, tier, flashSale }: {
   const opening = rec.config?.opening
   const coverPhoto = opening?.cover_photo_url || opening?.background_image
   const demoUrl = `/demo/renderer?id=${rec.id}`
-  const price = tier?.price ?? rec.price
+  // rec.price > 0 = harga khusus template ini; 0 = ikut harga paketnya.
+  const price = rec.price > 0 ? rec.price : (tier?.price ?? 0)
   const discountedPrice = flashSale ? calcDiscount(price, flashSale) : null
 
   return (
@@ -131,6 +132,9 @@ function TemplateCard({ rec, tier, flashSale }: {
       {/* Info */}
       <div className="p-5 flex flex-col flex-1">
         <h2 className="font-display text-h2 text-graphite">{rec.name}</h2>
+        {rec.description && (
+          <p className="mt-1 text-body-xs text-concrete line-clamp-2">{rec.description}</p>
+        )}
 
         {/* Harga */}
         <div className="flex items-center gap-2 mt-1.5">
@@ -191,8 +195,14 @@ export default async function TemplatesPage(props: { searchParams: Promise<{ kat
   const tiers = appSettings.priceTiers
   const flashSales = appSettings.flashSales
 
-  function findTier(price: number): PriceTier | undefined {
-    return tiers.find(t => t.price === price)
+  /** Paket sebuah template ditentukan oleh `required_package` (id paket),
+   *  bukan dengan mencocokkan NILAI HARGA seperti sebelumnya. Pencocokan lewat
+   *  harga membuat dua paket bertarif sama saling mengklaim template yang
+   *  sama, dan begitu admin mengubah harga sebuah paket, seluruh template
+   *  "miliknya" lepas diam-diam lalu tampil tanpa daftar fitur. */
+  function findTier(rec: TemplateRecord): PriceTier | undefined {
+    if (rec.required_package === 'all') return undefined
+    return tiers.find(t => t.id === rec.required_package)
   }
 
   const categories = Array.from(new Set(activeTemplates.map(t => t.category).filter(Boolean)))
@@ -281,8 +291,8 @@ export default async function TemplatesPage(props: { searchParams: Promise<{ kat
             {shownTemplates
               .sort((a, b) => a.sort_order - b.sort_order)
               .map(rec => {
-                const tier = findTier(rec.price)
-                const tierId = tier?.id ?? ''
+                const tier = findTier(rec)
+                const tierId = tier?.id ?? rec.required_package
                 const sale = getActiveFlashSale(tierId, flashSales)
                 return (
                   <TemplateCard key={rec.id} rec={rec} tier={tier} flashSale={sale} />

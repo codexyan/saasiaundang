@@ -12,34 +12,11 @@ export interface BankAccount {
   isActive: boolean
 }
 
-export interface AdminTemplateConfig {
-  id: string
-  name: string
-  description: string
-  thumbnailUrl: string
-  demoSlug: string
-  tags: string[]
-  enabled: boolean
-  sortOrder: number
-  themeColor: string
-  isBuiltIn: boolean
-  features: {
-    gallery: boolean
-    music: boolean
-    countdown: boolean
-    rsvp: boolean
-    wishes: boolean
-  }
-  price: number
-  required_package: TemplatePackageRequirement
-}
-
 export interface AppSettings {
   price: number
   packageName: string
   packageDuration: number
   promoEndDate: string
-  templates: AdminTemplateConfig[]
   categories: TemplateCategory[]
   colorPalettes: ColorPalette[]
   priceTiers: PriceTier[]
@@ -72,33 +49,9 @@ export interface AppSettings {
 // lama yang mengimpornya dari @/lib/db tetap jalan.
 export { BUILT_IN_CATEGORIES, BUILT_IN_PRICE_TIERS, BUILT_IN_PALETTES }
 
-const BUILT_IN_TEMPLATES: AdminTemplateConfig[] = [
-  {
-    id: 'modern-white', name: 'Modern White', description: 'Bersih, minimalis, elegan.',
-    thumbnailUrl: '/templates/modern-white/thumbnail.jpg', demoSlug: 'demo-modern',
-    tags: ['minimalis', 'modern', 'putih'], enabled: true, price: 0, required_package: 'all',
-    sortOrder: 1, themeColor: '#e11d48', isBuiltIn: true,
-    features: { gallery: true, music: true, countdown: true, rsvp: true, wishes: true },
-  },
-  {
-    id: 'floral-garden', name: 'Floral Garden', description: 'Penuh bunga dan warna hangat.',
-    thumbnailUrl: '/templates/floral-garden/thumbnail.jpg', demoSlug: 'demo-floral',
-    tags: ['bunga', 'romantis', 'feminin'], enabled: true, price: 0, required_package: 'all',
-    sortOrder: 2, themeColor: '#ec4899', isBuiltIn: true,
-    features: { gallery: true, music: true, countdown: true, rsvp: true, wishes: true },
-  },
-  {
-    id: 'dark-elegant', name: 'Dark Elegant', description: 'Gelap, mewah, dan berkesan.',
-    thumbnailUrl: '/templates/dark-elegant/thumbnail.jpg', demoSlug: 'demo-dark',
-    tags: ['gelap', 'mewah', 'elegan'], enabled: true, price: 0, required_package: 'all',
-    sortOrder: 3, themeColor: '#f59e0b', isBuiltIn: true,
-    features: { gallery: true, music: true, countdown: true, rsvp: true, wishes: true },
-  },
-]
-
 const DEFAULT_SETTINGS: AppSettings = {
   price: 149000, packageName: 'Popular', packageDuration: 3, promoEndDate: '2026-08-31',
-  templates: BUILT_IN_TEMPLATES, categories: BUILT_IN_CATEGORIES, colorPalettes: BUILT_IN_PALETTES,
+  categories: BUILT_IN_CATEGORIES, colorPalettes: BUILT_IN_PALETTES,
   priceTiers: BUILT_IN_PRICE_TIERS, flashSales: [], coupons: [],
   deletedCategoryIds: [], deletedTierIds: [],
   bankAccounts: [
@@ -127,13 +80,6 @@ export const settings = {
     const row = await prisma.appSetting.findUnique({ where: { key: 'main' } })
     const stored = (row?.value ?? {}) as Partial<AppSettings>
 
-    let templates = BUILT_IN_TEMPLATES
-    if (stored.templates && stored.templates.length > 0) {
-      templates = stored.templates
-      for (const b of BUILT_IN_TEMPLATES) {
-        if (!templates.find(t => t.id === b.id)) templates.push(b)
-      }
-    }
 
     const deletedCatIds = new Set(stored.deletedCategoryIds ?? [])
     const deletedTierIds = new Set(stored.deletedTierIds ?? [])
@@ -156,7 +102,7 @@ export const settings = {
       ...storedTiers.filter(t => !BUILT_IN_PRICE_TIERS.find(b => b.id === t.id) && !deletedTierIds.has(t.id)),
     ]
 
-    return { ...DEFAULT_SETTINGS, ...stored, templates, categories, colorPalettes, priceTiers, deletedCategoryIds: stored.deletedCategoryIds ?? [], deletedTierIds: stored.deletedTierIds ?? [], flashSales: stored.flashSales ?? [], coupons: stored.coupons ?? [], bankAccounts: stored.bankAccounts ?? [] }
+    return { ...DEFAULT_SETTINGS, ...stored, categories, colorPalettes, priceTiers, deletedCategoryIds: stored.deletedCategoryIds ?? [], deletedTierIds: stored.deletedTierIds ?? [], flashSales: stored.flashSales ?? [], coupons: stored.coupons ?? [], bankAccounts: stored.bankAccounts ?? [] }
   }),
   async save(data: AppSettings): Promise<void> {
     await prisma.appSetting.upsert({

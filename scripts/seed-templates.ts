@@ -10,16 +10,16 @@ async function upsertTemplate(t: typeof JG) {
     where: { id: t.id },
     update: {
       name: t.name, slug: t.slug, category: t.category,
-      config: t.config as object, thumbnailUrl: t.thumbnail_url,
+      description: t.description, config: t.config as object, thumbnailUrl: t.thumbnail_url,
       status: t.status, sortOrder: t.sort_order,
-      usageCount: t.usage_count, price: t.price,
+      price: t.price,
       requiredPackage: t.required_package,
     },
     create: {
       id: t.id, name: t.name, slug: t.slug, category: t.category,
-      config: t.config as object, thumbnailUrl: t.thumbnail_url,
+      description: t.description, config: t.config as object, thumbnailUrl: t.thumbnail_url,
       status: t.status, sortOrder: t.sort_order,
-      usageCount: t.usage_count, price: t.price,
+      price: t.price,
       requiredPackage: t.required_package,
     },
   })

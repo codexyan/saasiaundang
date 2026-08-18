@@ -296,15 +296,56 @@ Additional: `FeedbackWidget` — floating NPS popup (appears after 10s if no rec
 
 ## Admin Panel
 
-Admin panel (`/admin`) — 15 tabs in 6 groups:
+Admin panel (`/admin`) — 13 tabs in 7 groups:
 
-**Overview:** Dashboard (stats, revenue, recent activity)
-**Konten:** Users, Templates, Template Lab, Music Library
-**Transaksi:** Orders, Payment Proofs
-**Marketing:** Affiliates
-**Halaman:** Landing Page, Articles, Writers
+**Utama:** Dashboard (stats, revenue, recent activity), Pengguna
+**Konten:** Artikel, Writer
+**Template:** Template, Musik
+**Transaksi:** Pembayaran, Pesanan, Paket & Promo
+**Marketing:** Afiliasi
 **Insights:** Feedback (NPS dashboard), A/B Testing (experiments)
-**Sistem:** Settings (branding, payment, domain)
+**Sistem:** Pengaturan (branding, payment, domain)
+
+### Modul Template (`components/admin/tabs/template/`)
+
+Satu modul untuk satu objek. Sebelumnya dipecah dua — "Studio Desain" (editor)
+dan "Manajemen" (harga/publikasi) — padahal keduanya mengelola baris
+`template_records` yang sama; pemisahan itu melahirkan daftar template ganda,
+dua jalur simpan kategori yang saling menimpa, dan satu pekerjaan yang memaksa
+admin pindah modul di tengah jalan.
+
+| Berkas | Peran |
+|--------|-------|
+| `TemplateModule.tsx` | Shell: koleksi ⇄ editor, seluruh mutasi |
+| `TemplateCollection.tsx` | Grid + filter + ringkasan |
+| `TemplateCard.tsx` / `TemplateThumb.tsx` | Kartu & miniatur (satu-satunya) |
+| `TemplateSettingsDrawer.tsx` | Nama, slug, deskripsi, kategori, paket, harga, status |
+| `CategoryManager.tsx` | Kategori — hanya lewat REST `/api/admin/categories` |
+| `editor/TemplateEditor.tsx` | Kerangka editor: state, autosave, bingkai UI |
+| `editor/EditorContext.tsx` | Satu context berisi state + updater untuk semua panel |
+| `editor/panels/*` | Isi tiap tab + kolom pratinjau, satu berkas masing-masing |
+| `editor/parts/*` | Konstanta & subkomponen stateless editor |
+
+Editor dipecah per tab. `TemplateEditor.tsx` memegang state, persistensi, dan
+bingkai (header, tab bar, footer, modal); isi tiap tab ada di
+`panels/{Appearance,Opening,Decor,Content,Music}Panel.tsx`, dan kolom pratinjau
+di `panels/EditorPreview.tsx`. Semuanya membaca dari `useEditor()`.
+
+Aman terhadap render: hanya satu panel ter-mount pada satu waktu (dipilih tab),
+jadi nilai context yang dibuat ulang tiap render tidak menyebarkan render.
+**Kalau panel butuh binding baru dari kerangka, tambahkan ke `EditorContextValue`**
+— jangan mengembalikan logikanya ke `TemplateEditor.tsx`.
+
+**Draft vs terbit.** `TemplateRecord.config` adalah versi yang dirender untuk
+pengunjung; `draft_config` adalah salinan kerja editor. Autosave (1,2 detik)
+menulis ke `draft_config` lewat `PUT /api/admin/template-records/[id]/draft`;
+`POST .../publish` menaikkannya jadi `config`. Karena itu mengedit template
+yang sudah terbit tidak lagi langsung mengubah undangan pelanggan, dan draft
+tidak lagi hilang saat ganti browser (dulu disimpan di `localStorage`).
+
+**Angka pemakaian.** `usage_count` dihitung dari tabel undangan
+(`templateRecords.usageCounts()`), bukan dari counter — counter lamanya tidak
+pernah dinaikkan siapa pun sehingga selalu 0.
 
 ---
 

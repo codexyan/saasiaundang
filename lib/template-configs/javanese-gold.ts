@@ -5,6 +5,7 @@ const JAVANESE_GOLD: TemplateRecord = {
   name: 'Javanese Gold',
   slug: 'javanese-gold',
   category: 'tradisional',
+  description: 'Nuansa Jawa klasik dengan aksen emas — cocok untuk akad adat dan resepsi bernuansa tradisional.',
   thumbnail_url: 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=400&h=600&fit=crop',
   status: 'active',
   sort_order: 1,
@@ -12,17 +13,9 @@ const JAVANESE_GOLD: TemplateRecord = {
   price: 0,
   required_package: 'all',
   created_at: '2026-01-01T00:00:00.000Z',
+  updated_at: '2026-01-01T00:00:00.000Z',
   config: {
     meta: {
-      name: 'Javanese Gold',
-      slug: 'javanese-gold',
-      category: 'tradisional',
-      thumbnail: 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=400&h=600&fit=crop',
-      preview_images: [
-        'https://images.unsplash.com/photo-1519741497674-611481863552?w=600&h=900&fit=crop',
-        'https://images.unsplash.com/photo-1606216794079-73f85bbd57d5?w=600&h=900&fit=crop',
-        'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=600&h=900&fit=crop',
-      ],
       color_scheme: {
         primary: '#1a4a1a',
         accent: '#d4af37',

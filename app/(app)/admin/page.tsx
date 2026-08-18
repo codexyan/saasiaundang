@@ -16,7 +16,10 @@ export default async function AdminPage() {
   const allOrders = await orders.findAll()
   const allProofs = await paymentProofs.findAll()
   const appSettings = await settings.get()
-  const allTemplateRecords = await templateRecords.findAll()
+  // findAllWithUsage(): koleksi template di panel admin menampilkan "dipakai N
+  // undangan", dan angkanya dihitung dari tabel undangan — bukan dari kolom
+  // usage_count yang tidak pernah diisi siapa pun.
+  const allTemplateRecords = await templateRecords.findAllWithUsage()
 
   const regularUsers = allUsers.filter((u) => u.role !== 'admin' && u.email !== adminEmail)
 
@@ -65,7 +68,6 @@ export default async function AdminPage() {
         price: appSettings.price,
         packageName: appSettings.packageName,
         packageDuration: appSettings.packageDuration,
-        templates: appSettings.templates,
         categories: appSettings.categories,
         colorPalettes: appSettings.colorPalettes,
         priceTiers: appSettings.priceTiers,

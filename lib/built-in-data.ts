@@ -13,6 +13,11 @@
  */
 import type { TemplateCategory, TierFeatures, PriceTier, ColorPalette } from './types'
 
+/** Template yang hidup di lib/template-configs, bukan di database.
+ *  Tidak bisa dihapus — kalau baris DB-nya hilang, kodenya tetap
+ *  mengembalikannya, jadi tombol Hapus hanya akan membingungkan. */
+export const BUILT_IN_TEMPLATE_IDS = ['javanese-gold', 'rose-garden', 'midnight-luxe'] as const
+
 export const BUILT_IN_CATEGORIES: TemplateCategory[] = [
   { slug: 'modern',      label: 'Modern',      is_built_in: true },
   { slug: 'tradisional', label: 'Tradisional', is_built_in: true },

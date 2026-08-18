@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { orders, invitations, settings } from '@/lib/db'
+import { orders, invitations, settings, templateRecords } from '@/lib/db'
 import { notifyUser } from '@/lib/notifications'
 import { runAfterResponse } from '@/lib/after-response'
 import { randomString } from '@/lib/random'
@@ -123,7 +123,36 @@ export async function POST(req: NextRequest) {
     if (!tier) {
       return NextResponse.json({ error: 'Paket yang dipilih belum kami kenali. Silakan pilih ulang paketnya.' }, { status: 400 })
     }
-    const amount = tier.price
+    // Template harus ada, aktif, dan boleh diakses paket yang dipilih.
+    //
+    // `required_package` selama ini bisa diatur admin tapi TIDAK PERNAH dicek
+    // di mana pun: pembeli paket Starter bisa memesan tema yang ditandai
+    // Eksklusif, dan template berstatus draft/arsip pun bisa dipesan lewat
+    // tautan lama karena hanya galeri yang menyaringnya.
+    const template = await templateRecords.findById(template_id)
+    if (!template || template.status !== 'active') {
+      return NextResponse.json(
+        { error: 'Template yang dipilih sudah tidak tersedia. Silakan pilih tema lain ya.' },
+        { status: 400 },
+      )
+    }
+
+    const TIER_RANK: Record<string, number> = { starter: 1, popular: 2, eksklusif: 3 }
+    if (template.required_package !== 'all') {
+      const needed = TIER_RANK[template.required_package] ?? 0
+      const chosen = TIER_RANK[package_tier] ?? 0
+      if (chosen < needed) {
+        const label = appSettings.priceTiers.find(t => t.id === template.required_package)?.label
+          ?? template.required_package
+        return NextResponse.json(
+          { error: `Tema "${template.name}" tersedia mulai paket ${label}. Pilih paket itu atau tema lain ya.` },
+          { status: 400 },
+        )
+      }
+    }
+
+    // Harga khusus per template (kalau diisi admin) menang atas harga paket.
+    const amount = template.price > 0 ? template.price : tier.price
 
     const uniqueCode = generateUniqueCode()
     const totalAmount = amount + uniqueCode

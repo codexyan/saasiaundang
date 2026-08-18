@@ -5,6 +5,7 @@ const ROSE_GARDEN: TemplateRecord = {
   name: 'Rose Garden',
   slug: 'rose-garden',
   category: 'floral',
+  description: 'Taman mawar yang lembut dan romantis, pas untuk resepsi outdoor bertema floral.',
   thumbnail_url: 'https://images.unsplash.com/photo-1522748906645-95d8adfd52c7?w=400&h=600&fit=crop',
   status: 'active',
   sort_order: 2,
@@ -12,17 +13,9 @@ const ROSE_GARDEN: TemplateRecord = {
   price: 0,
   required_package: 'popular',
   created_at: '2026-01-01T00:00:00.000Z',
+  updated_at: '2026-01-01T00:00:00.000Z',
   config: {
     meta: {
-      name: 'Rose Garden',
-      slug: 'rose-garden',
-      category: 'floral',
-      thumbnail: 'https://images.unsplash.com/photo-1522748906645-95d8adfd52c7?w=400&h=600&fit=crop',
-      preview_images: [
-        'https://images.unsplash.com/photo-1490750967868-88aa4f44baee?w=600&h=900&fit=crop',
-        'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=600&h=900&fit=crop',
-        'https://images.unsplash.com/photo-1470165451690-bfb7cc004f0c?w=600&h=900&fit=crop',
-      ],
       color_scheme: {
         primary: '#6b3a3a',
         accent: '#d4918b',

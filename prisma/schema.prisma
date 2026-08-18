@@ -137,7 +137,11 @@ model TemplateRecord {
   name            String
   slug            String   @unique
   category        String
+  description     String   @default("")
+  /// Versi yang dilihat pengunjung. Hanya berubah saat admin menekan Terbitkan.
   config          Json
+  /// Salinan kerja editor (autosave). null = tidak ada perubahan tertunda.
+  draftConfig     Json?    @map("draft_config")
   thumbnailUrl    String   @default("") @map("thumbnail_url")
   status          String   @default("draft")
   sortOrder       Int      @default(0) @map("sort_order")
@@ -145,7 +149,9 @@ model TemplateRecord {
   price           Int      @default(0)
   requiredPackage String   @default("all") @map("required_package")
   createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
+  @@index([status])
   @@map("template_records")
 }
 
