@@ -463,6 +463,24 @@ export default function TemplateEditor({
     return () => window.removeEventListener('beforeunload', onBeforeUnload)
   }, [])
 
+  /**
+   * Simpan terakhir saat editor dilepas.
+   *
+   * Panel admin me-render tab secara bersyarat, jadi berpindah dari tab
+   * Template MELEPAS editor ini — dan cleanup autosave membatalkan timer yang
+   * sedang menunggu. Tanpa ini, perubahan dalam 1,2 detik terakhir hilang
+   * diam-diam: persis kelas bug yang dibuang bersama tombol "Simpan Draf &
+   * Pergi" yang lama.
+   *
+   * Sengaja tanpa await — komponen sudah dilepas dan tidak ada lagi yang bisa
+   * menunggu. fetch() yang sudah berangkat tetap diselesaikan browser selama
+   * halamannya tidak ikut ditutup, dan untuk kasus halaman ditutup sudah ada
+   * penjaga beforeunload di atas.
+   */
+  const saveDraftRef = useRef(saveDraft)
+  useEffect(() => { saveDraftRef.current = saveDraft }, [saveDraft])
+  useEffect(() => () => { void saveDraftRef.current() }, [])
+
   /** Keluar dari editor. Simpan dulu apa pun yang belum tersimpan — tidak ada
    *  lagi dialog "tinggalkan tanpa menyimpan", karena draf memang selalu aman
    *  disimpan (yang dilihat pengunjung tetap versi terbit).

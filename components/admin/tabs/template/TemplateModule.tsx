@@ -186,24 +186,6 @@ export default function TemplateModule({
     } finally { setConfirmBusy(false) }
   }
 
-  //  Editor
-
-  if (editingRecord) {
-    return (
-      <TemplateEditor
-        key={editingRecord.id}
-        record={editingRecord}
-        categories={categories}
-        palettes={palettes}
-        onExit={() => setEditingId(null)}
-        onRecordChange={upsertLocal}
-        onOpenSettings={() => setSettingsId(editingRecord.id)}
-      />
-    )
-  }
-
-  //  Koleksi
-
   const confirmCopy = pending && {
     delete: {
       title: 'Hapus template?',
@@ -228,23 +210,40 @@ export default function TemplateModule({
     },
   }[pending.kind]
 
+  // Koleksi dan editor bergantian, TAPI panel Pengaturan dan Kategori dirender
+  // di LUAR percabangan itu — keduanya bisa dibuka dari kedua sisi. Versi
+  // pertama return lebih awal saat editor terbuka, sehingga tombol Pengaturan
+  // di header editor menyetel state tapi drawer-nya tidak pernah ikut dirender:
+  // tombol yang tidak melakukan apa-apa.
   return (
     <>
-      <TemplateCollection
-        records={records}
-        categories={categories}
-        tiers={tiers}
-        busyId={busyId}
-        onCreate={() => setShowCreate(true)}
-        onManageCategories={() => setShowCategories(true)}
-        onEditDesign={rec => setEditingId(rec.id)}
-        onOpenSettings={rec => setSettingsId(rec.id)}
-        onDuplicate={handleDuplicate}
-        onPublish={handlePublish}
-        onUnpublish={rec => setPending({ kind: 'unpublish', record: rec })}
-        onArchive={rec => setPending({ kind: 'archive', record: rec })}
-        onDelete={rec => setPending({ kind: 'delete', record: rec })}
-      />
+      {editingRecord ? (
+        <TemplateEditor
+          key={editingRecord.id}
+          record={editingRecord}
+          categories={categories}
+          palettes={palettes}
+          onExit={() => setEditingId(null)}
+          onRecordChange={upsertLocal}
+          onOpenSettings={() => setSettingsId(editingRecord.id)}
+        />
+      ) : (
+        <TemplateCollection
+          records={records}
+          categories={categories}
+          tiers={tiers}
+          busyId={busyId}
+          onCreate={() => setShowCreate(true)}
+          onManageCategories={() => setShowCategories(true)}
+          onEditDesign={rec => setEditingId(rec.id)}
+          onOpenSettings={rec => setSettingsId(rec.id)}
+          onDuplicate={handleDuplicate}
+          onPublish={handlePublish}
+          onUnpublish={rec => setPending({ kind: 'unpublish', record: rec })}
+          onArchive={rec => setPending({ kind: 'archive', record: rec })}
+          onDelete={rec => setPending({ kind: 'delete', record: rec })}
+        />
+      )}
 
       <NewTemplateDialog
         open={showCreate}
@@ -277,7 +276,7 @@ export default function TemplateModule({
         onChanged={onCategoriesUpdate}
       />
 
-      {confirmCopy && (
+      {!editingRecord && confirmCopy && (
         <ConfirmDialog
           open
           busy={confirmBusy}
