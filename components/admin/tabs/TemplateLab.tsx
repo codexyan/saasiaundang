@@ -4316,6 +4316,7 @@ export default function TemplateLab({ onGoToManagement, onTemplateReleased, edit
             <InvitationRenderer
               key={`fs-renderer-${showFullscreen}`}
               invitationId="lab-fullscreen"
+              mode="preview"
               invitationData={previewData}
               template={config}
               initialWishes={PREVIEW_WISHES}

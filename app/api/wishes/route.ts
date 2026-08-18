@@ -6,8 +6,10 @@ import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
+// Lihat catatan di app/api/rsvp/route.ts: id undangan adalah cuid, bukan uuid.
+// z.string().uuid() di sini menolak setiap ucapan dari undangan sungguhan.
 const schema = z.object({
-  invitationId: z.string().uuid(),
+  invitationId: z.string().min(1).max(64),
   name: z.string().min(1).max(100),
   message: z.string().min(1).max(500),
 })

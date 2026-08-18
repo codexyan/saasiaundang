@@ -11,7 +11,22 @@ interface Props {
   defaultColor?: string
   /** Warna highlight tab aktif (indigo di admin, gold di studio) */
   accent?: string
+  /**
+   * Siapa yang memakai kontrol ini.
+   *
+   * Bukan sekadar penamaan: 'admin' mengunggah ke /api/admin/upload yang
+   * dibungkus withAdminAuth. Kontrol ini dipakai BERSAMA oleh TemplateLab
+   * (admin) dan Studio (pelanggan), dan sebelum prop ini ada, upload latar
+   * dari Studio selalu membalas 403 untuk akun non-admin.
+   */
+  context?: 'admin' | 'studio'
 }
+
+/** Endpoint + folder per konteks. Folder harus ada di ALLOWED_FOLDERS route-nya. */
+const UPLOAD_TARGET = {
+  admin:  { url: '/api/admin/upload', image: 'covers', video: 'bg-videos' },
+  studio: { url: '/api/user/upload',  image: 'photos', video: 'videos' },
+} as const
 
 const TYPES = [
   { id: 'color', label: 'Warna' },
@@ -24,9 +39,10 @@ const TYPES = [
  * Diekstrak dari pola TemplateLab supaya bisa dipakai bersama di admin & Studio.
  */
 export default function SectionBackgroundControl({
-  value, onChange, defaultColor = '#1a1a1a', accent = '#6366f1',
+  value, onChange, defaultColor = '#1a1a1a', accent = '#6366f1', context = 'admin',
 }: Props) {
   const type = value.type === 'gradient' ? 'color' : value.type
+  const target = UPLOAD_TARGET[context]
 
   return (
     <div>
@@ -79,6 +95,8 @@ export default function SectionBackgroundControl({
             value={value.url}
             onChange={url => onChange({ ...value, url, type: 'image' })}
             hint="JPG, PNG, WebP, atau GIF animasi"
+            uploadUrl={target.url}
+            folder={target.image}
           />
           {value.url && <OverlaySlider value={value} onChange={onChange} fallback={0.4} />}
         </div>
@@ -90,6 +108,8 @@ export default function SectionBackgroundControl({
             value={value.url}
             onChange={url => onChange({ ...value, url, type: 'video' })}
             hint="MP4, WebM (maks 50MB)"
+            uploadUrl={target.url}
+            folder={target.video}
           />
           {value.url && <OverlaySlider value={value} onChange={onChange} fallback={0.45} />}
         </div>

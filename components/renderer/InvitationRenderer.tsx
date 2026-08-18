@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import type { TemplateRecord, NewInvitationData, Wish, SectionConfig } from '@/lib/types'
+import type { TemplateRecord, NewInvitationData, Wish, SectionConfig, RenderMode } from '@/lib/types'
 import { mergeDecorationAssets } from '@/lib/decoration-utils'
 import LoadingScreen from './LoadingScreen'
 import OpeningScene from './OpeningScene'
@@ -14,6 +14,16 @@ interface Props {
   invitationId: string
   invitationData: NewInvitationData
   template: TemplateRecord
+  /**
+   * WAJIB — sengaja tanpa nilai bawaan.
+   *
+   * Kalau prop ini punya default, satu call site yang lupa mengisinya akan
+   * diam-diam salah: 'live' sebagai default membuat pratinjau editor menulis
+   * RSVP sungguhan; 'preview' sebagai default membuat undangan asli berhenti
+   * menyimpan — persis bug yang perbaikan ini tutup. Dibuat wajib supaya
+   * kompilator yang menegur, bukan pelanggan.
+   */
+  mode: RenderMode
   initialWishes?: Wish[]
   musicUrl?: string
   /** Contained mode   absolute positioning, untuk preview dalam container (demo/fullscreen) */
@@ -34,6 +44,7 @@ export default function InvitationRenderer({
   invitationId,
   invitationData,
   template,
+  mode,
   initialWishes = [],
   musicUrl,
   contained,
@@ -219,6 +230,7 @@ export default function InvitationRenderer({
                   invitationData={invitationData}
                   templateMeta={meta}
                   invitationId={invitationId}
+                  mode={mode}
                   initialWishes={section.type === 'wishes' ? initialWishes : undefined}
                 />
               </div>

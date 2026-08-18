@@ -18,13 +18,27 @@ const schema = z.object({
   data: z.record(z.unknown()).optional().default({}),
 })
 
+/**
+ * Batas jumlah undangan per akun.
+ *
+ * B2C: satu akun boleh punya banyak undangan (anak kedua, pesanan untuk
+ * saudara, dst). Batas ini bukan aturan bisnis melainkan pagar penyalahgunaan —
+ * tanpa batas, satu akun bisa memborong subdomain lewat trial gratis 7 hari
+ * secara massal. Jalur berbayar (provisionPaidOrder) sengaja TIDAK tunduk pada
+ * batas ini: pesanan yang sudah dibayar tidak boleh gagal disediakan.
+ */
+const MAX_INVITATIONS_PER_USER = 10
+
 // GET /api/invitations   ambil undangan milik user yang login
 export async function GET() {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
 
-  const inv = await invitations.findByUserId(session.userId)
-  return NextResponse.json({ invitation: inv })
+  const list = await invitations.findManyByUserId(session.userId)
+  // `invitation` (tunggal) dipertahankan sebagai kompatibilitas mundur —
+  // isinya undangan terbaru. Boleh dihapus setelah tidak ada lagi pemanggil
+  // yang membacanya (per hari ini: tidak ada di dalam repo).
+  return NextResponse.json({ invitations: list, invitation: list[0] ?? null })
 }
 
 // POST /api/invitations   buat undangan baru
@@ -47,8 +61,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Desain undangan ini sudah tidak tersedia. Silakan pilih yang lain.' }, { status: 400 })
   }
 
-  if (await invitations.findByUserId(session.userId)) {
-    return NextResponse.json({ error: 'Kalian sudah punya undangan. Buka dari halaman utama untuk mengeditnya.' }, { status: 409 })
+  const ownedCount = await invitations.countByUserId(session.userId)
+  if (ownedCount >= MAX_INVITATIONS_PER_USER) {
+    return NextResponse.json(
+      { error: `Satu akun maksimal ${MAX_INVITATIONS_PER_USER} undangan. Hapus undangan lama dulu, atau hubungi kami kalau butuh lebih.` },
+      { status: 409 }
+    )
   }
 
   if (await invitations.slugExists(slug)) {
@@ -73,10 +91,16 @@ export async function POST(req: NextRequest) {
   })
 
   await subscriptions.createTrial(inv.id, session.userId)
-  runAfterResponse(
-    notifyUser('trial_started', session.email, { slug, name: session.email }),
-    'notifyUser(trial_started)'
-  )
+  // Email "trial dimulai" hanya untuk undangan PERTAMA. Sekarang satu akun bisa
+  // membuat sampai MAX_INVITATIONS_PER_USER undangan; mengirim email onboarding
+  // yang sama sepuluh kali ke alamat yang sama adalah jalan cepat menuju folder
+  // spam — dan reputasi domain pengirim berlaku untuk seluruh pelanggan.
+  if (ownedCount === 0) {
+    runAfterResponse(
+      notifyUser('trial_started', session.email, { slug, name: session.email }),
+      'notifyUser(trial_started)'
+    )
+  }
 
   return NextResponse.json({ invitation: inv }, { status: 201 })
 }

@@ -41,7 +41,8 @@ export interface TemplateInfo {
 
 interface Props {
   user: { id: string; email: string }
-  invitation: Invitation | null
+  /** Semua undangan milik user, terbaru dulu. Boleh kosong (user belum punya). */
+  invitations: Invitation[]
   selectedTemplateId: string
   allTemplates: TemplateInfo[]
   isAdmin?: boolean
@@ -75,10 +76,45 @@ function getDisplayNames(inv: Invitation): { groom: string; bride: string } {
   return { groom: d.groom_name || '', bride: d.bride_name || '' }
 }
 
-export default function DashboardClient({ user, invitation, selectedTemplateId, allTemplates, isAdmin, paymentSuccess }: Props) {
+export default function DashboardClient({ user, invitations, selectedTemplateId, allTemplates, isAdmin, paymentSuccess }: Props) {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>('overview')
-  const [inv, setInv] = useState<Invitation | null>(invitation)
+
+  // Daftar undangan + penunjuk yang sedang dibuka.
+  //
+  // `inv` tetap SATU objek supaya seluruh panel anak (TemplateModule,
+  // GuestManager, RSVPList, AnalyticsPanel, SettingsPanel, DashboardOverview)
+  // tidak perlu diubah sama sekali. Yang berubah hanya dari mana objek itu
+  // berasal.
+  const [list, setList] = useState<Invitation[]>(invitations)
+  const [activeId, setActiveId] = useState<string | null>(invitations[0]?.id ?? null)
+  // `creating` = pengguna menekan "Buat undangan baru" walau sudah punya satu.
+  const [creating, setCreating] = useState(false)
+
+  // Fallback ke list[0] disengaja: setelah sebuah undangan dihapus, dashboard
+  // langsung berpindah ke undangan tersisa alih-alih menampilkan layar kosong.
+  const inv = list.find(i => i.id === activeId) ?? list[0] ?? null
+
+  /**
+   * Pengganti setInv lama — sengaja bernama sama supaya ketiga pemanggil yang
+   * ada (togglePublish, TemplateModule.onInvitationUpdate,
+   * SettingsPanel.onDeleted) tidak perlu diubah. Bersifat UPSERT, karena
+   * OnboardingWizard memakai callback yang sama untuk undangan yang BARU dibuat.
+   */
+  function setInv(updated: Invitation | null) {
+    if (!updated) {
+      const removedId = inv?.id
+      setList(prev => prev.filter(i => i.id !== removedId))
+      setActiveId(null)
+      return
+    }
+    setList(prev => prev.some(i => i.id === updated.id)
+      ? prev.map(i => (i.id === updated.id ? updated : i))
+      : [updated, ...prev])
+    setActiveId(updated.id)
+    setCreating(false)
+  }
+
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false)
   const [showFullPreview, setShowFullPreview] = useState(false)
@@ -152,6 +188,9 @@ export default function DashboardClient({ user, invitation, selectedTemplateId, 
 
   function navTo(id: Tab) {
     setTab(id)
+    // Berpindah menu membatalkan niat "buat undangan baru" — kalau tidak,
+    // wizardnya akan muncul lagi diam-diam saat kembali ke Beranda.
+    setCreating(false)
     setSidebarOpen(false)
     setMobileMoreOpen(false)
   }
@@ -222,6 +261,35 @@ export default function DashboardClient({ user, invitation, selectedTemplateId, 
             )}
           </div>
         </div>
+
+        {/* Pemilih undangan — hanya muncul kalau akun ini punya lebih dari satu */}
+        {list.length > 1 && (
+          <div className="mx-3 mb-3">
+            <label className="block text-[9px] uppercase tracking-[0.2em] font-semibold text-white/20 mb-1.5 px-1">
+              Undangan Aktif
+            </label>
+            <select
+              value={inv?.id ?? ''}
+              onChange={e => { setActiveId(e.target.value); setCreating(false) }}
+              className="w-full bg-white/[0.06] border border-white/[0.08] rounded-lg px-3 py-2 text-[12px] text-white/80 outline-none focus:border-white/20 transition-colors"
+            >
+              {list.map(i => (
+                <option key={i.id} value={i.id} className="bg-[#1a1a1a]">
+                  {i.slug}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {list.length > 0 && !creating && (
+          <button
+            onClick={() => { setCreating(true); setTab('overview'); setSidebarOpen(false) }}
+            className="mx-3 mb-3 flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-white/15 px-3 py-2 text-[11px] text-white/50 hover:text-white/80 hover:border-white/30 transition-colors"
+          >
+            + Buat undangan baru
+          </button>
+        )}
 
         {/* Navigation */}
         <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
@@ -316,7 +384,7 @@ export default function DashboardClient({ user, invitation, selectedTemplateId, 
             />
           ) : (
             <div className="max-w-4xl mx-auto p-4 md:p-6 lg:p-8">
-              {!inv && (
+              {(!inv || creating) && (
                 <OnboardingWizard
                   invitation={null}
                   onInvitationCreated={setInv}
@@ -324,7 +392,7 @@ export default function DashboardClient({ user, invitation, selectedTemplateId, 
                 />
               )}
 
-              {inv && (
+              {inv && !creating && (
                 <>
                   {!isPaid && !isAdmin && tab === 'overview' && (
                     <UpgradeBanner
@@ -442,6 +510,10 @@ export default function DashboardClient({ user, invitation, selectedTemplateId, 
               {previewTemplate && !(LEGACY_TEMPLATE_IDS as string[]).includes(inv.template_id) ? (
                 <InvitationRenderer
                   invitationId={inv.id}
+                  // id-nya asli, tapi ini panel pratinjau milik pemilik. Tanpa
+                  // baris ini, mencoba form RSVP di dashboard akan memasukkan
+                  // tamu palsu ke daftar tamu sungguhan.
+                  mode="preview"
                   invitationData={inv.data as unknown as NewInvitationData}
                   template={previewTemplate}
                   initialWishes={[]}

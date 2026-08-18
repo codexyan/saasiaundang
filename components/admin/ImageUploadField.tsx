@@ -3,16 +3,25 @@
 import { useRef, useState } from 'react'
 import { Upload, X, ImageIcon, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { compressUploadImage } from '@/lib/image-compress'
 
 interface Props {
   value: string | undefined
   onChange: (url: string | undefined) => void
   label?: string
   hint?: string
+  /**
+   * Endpoint upload. Bawaannya endpoint ADMIN — komponen ini lahir di panel
+   * admin. Pemanggil dari sisi pelanggan WAJIB mengoper '/api/user/upload',
+   * karena /api/admin/upload dibungkus withAdminAuth dan membalas 403 untuk
+   * akun biasa. Pakai <StudioImageField> supaya tidak perlu mengingatnya.
+   */
   uploadUrl?: string
+  /** Folder tujuan di bucket. Harus ada di ALLOWED_FOLDERS route yang dipakai. */
+  folder?: string
 }
 
-export default function ImageUploadField({ value, onChange, label, hint, uploadUrl }: Props) {
+export default function ImageUploadField({ value, onChange, label, hint, uploadUrl, folder = 'covers' }: Props) {
   const [uploading, setUploading] = useState(false)
   const [dragging, setDragging] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -26,9 +35,19 @@ export default function ImageUploadField({ value, onChange, label, hint, uploadU
 
     setUploading(true)
     try {
+      // Dikecilkan dulu di browser (maks 500 KB / 1920 px). Gagal = null, dan
+      // file ASLI yang diupload — pola yang sama dengan GalleryManager dan
+      // ImagePicker. Sebelumnya komponen ini mengirim berkas mentah, padahal
+      // ia dipakai 5 form studio + kontrol latar section.
+      const compressed = await compressUploadImage(file)
+
       const formData = new FormData()
-      formData.append('file', file)
-      formData.append('folder', 'covers')
+      formData.append('file', compressed?.file ?? file)
+      formData.append('folder', folder)
+      if (compressed?.width && compressed?.height) {
+        formData.append('width', String(compressed.width))
+        formData.append('height', String(compressed.height))
+      }
       // Session cookie (__ku_session) otomatis dikirim browser
       const res = await fetch(uploadUrl ?? '/api/admin/upload', { method: 'POST', body: formData })
       const data = await res.json()

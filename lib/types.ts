@@ -169,6 +169,19 @@ export type OpeningType =
   | 'frosted-blur'
   | 'parallax-split'
 
+/**
+ * Konteks render undangan.
+ *
+ * 'live'    = halaman undangan sungguhan. Aksi tamu (RSVP, ucapan) dikirim ke API.
+ * 'preview' = editor, demo, atau Template Lab. Aksi tamu HANYA disimulasikan.
+ *
+ * Sengaja prop WAJIB di InvitationRenderer/SectionRenderer, bukan ditebak dari
+ * bentuk invitationId: penebakan lewat regex UUID-lah yang dulu membuat seluruh
+ * undangan produksi diperlakukan sebagai preview sehingga RSVP dan ucapan tamu
+ * tidak pernah dikirim ke server sama sekali.
+ */
+export type RenderMode = 'live' | 'preview'
+
 export interface BackgroundConfig {
   type: 'image' | 'video' | 'color' | 'gradient'
   url?: string              // untuk image dan video

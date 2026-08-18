@@ -164,7 +164,7 @@ Central data access layer. All Prisma queries wrapped in typed functions.
 
 **Service objects:**
 - `users` — findByEmail, findById, create, findAll, delete, updatePassword, updateRole, findByReferralCode, setReferralCode
-- `invitations` — findBySlug, findByUserId, findById, findAll, create, update, delete, slugExists
+- `invitations` — findBySlug, findManyByUserId, countByUserId, findById, findAll, create, update, delete, slugExists
 - `galleries` — findByInvitationId, findById, create, update, delete, reorder
 - `guests` — findByInvitationId, create, update, delete, markBlastSent, countByInvitation
 - `wishes` — findByInvitationId, create, delete

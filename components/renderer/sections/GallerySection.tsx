@@ -6,6 +6,7 @@ import type { SectionConfig, NewInvitationData, TemplateMeta } from '@/lib/types
 import SectionWrapper, { resolveFont, fsh, fsb } from '../SectionWrapper'
 import SectionOrnament from '../SectionOrnament'
 import { usePreviewContext } from '../PreviewContext'
+import { getOptimizedImageUrl, fallbackToOriginal } from '@/lib/image-utils'
 import { X, ChevronLeft, ChevronRight, ImageIcon } from 'lucide-react'
 
 interface Props {
@@ -100,7 +101,12 @@ function Lightbox({ photos, index, onClose, onPrev, onNext }: {
         }}>
         <motion.img
           key={index}
-          src={photos[index]} alt="Foto"
+          // 1080, bukan 1440: sumbernya sendiri sudah dibatasi 1920 px oleh
+          // kompresi unggah, dan tiap lebar tambahan adalah satu transformasi
+          // unik lagi per foto per bulan (docs/REPORT_OPTIMASI.md §0.4).
+          src={getOptimizedImageUrl(photos[index], 1080)}
+          onError={fallbackToOriginal(photos[index])}
+          alt="Foto"
           initial={{ opacity: 0, scale: 0.94 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.94 }}
@@ -158,7 +164,11 @@ function DefaultView({ section, ctx }: { section: SectionConfig; ctx: StyleCtx }
             display: 'block', width: '100%', position: 'relative', overflow: 'hidden',
             cursor: 'pointer', border: 'none', padding: 0, background: 'none',
           }}>
-            <img src={photos[0]} alt="Foto utama" style={{ width: '100%', aspectRatio: '4 / 5', objectFit: 'cover', display: 'block' }} />
+            <img
+              src={getOptimizedImageUrl(photos[0], 1080)}
+              onError={fallbackToOriginal(photos[0])}
+              alt="Foto utama" loading="lazy" decoding="async"
+              style={{ width: '100%', aspectRatio: '4 / 5', objectFit: 'cover', display: 'block' }} />
             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 60, background: `linear-gradient(to top, ${accent}22, transparent)` }} />
           </button>
         </motion.div>
@@ -177,7 +187,11 @@ function DefaultView({ section, ctx }: { section: SectionConfig; ctx: StyleCtx }
                     variants={{ hidden: { opacity: 0, y: 14 }, visible: { opacity: 1, y: 0 } }}
                     onClick={() => onOpen(idx)}
                     style={{ display: 'block', overflow: 'hidden', cursor: 'pointer', border: 'none', padding: 0, background: 'none' }}>
-                    <img src={url} alt={`Foto ${idx + 1}`} style={{ width: '100%', display: 'block', objectFit: 'cover', aspectRatio: ci % 3 === 0 ? '3 / 4' : '1 / 1' }} />
+                    <img
+                      src={getOptimizedImageUrl(url, 480)}
+                      onError={fallbackToOriginal(url)}
+                      alt={`Foto ${idx + 1}`} loading="lazy" decoding="async"
+                      style={{ width: '100%', display: 'block', objectFit: 'cover', aspectRatio: ci % 3 === 0 ? '3 / 4' : '1 / 1' }} />
                   </motion.button>
                 )
               })}
@@ -190,7 +204,11 @@ function DefaultView({ section, ctx }: { section: SectionConfig; ctx: StyleCtx }
                     variants={{ hidden: { opacity: 0, y: 14 }, visible: { opacity: 1, y: 0 } }}
                     onClick={() => onOpen(idx)}
                     style={{ display: 'block', overflow: 'hidden', cursor: 'pointer', border: 'none', padding: 0, background: 'none' }}>
-                    <img src={url} alt={`Foto ${idx + 1}`} style={{ width: '100%', display: 'block', objectFit: 'cover', aspectRatio: ci % 3 === 1 ? '3 / 4' : '1 / 1' }} />
+                    <img
+                      src={getOptimizedImageUrl(url, 480)}
+                      onError={fallbackToOriginal(url)}
+                      alt={`Foto ${idx + 1}`} loading="lazy" decoding="async"
+                      style={{ width: '100%', display: 'block', objectFit: 'cover', aspectRatio: ci % 3 === 1 ? '3 / 4' : '1 / 1' }} />
                   </motion.button>
                 )
               })}
@@ -246,7 +264,9 @@ function DramaticView({ section, ctx }: { section: SectionConfig; ctx: StyleCtx 
           transition={{ duration: 0.7, ease: 'easeOut' }}
           style={{
             position: 'absolute', inset: 0,
-            backgroundImage: `url(${photos[current]})`,
+            // Latar full-bleed. Tanpa onError seperti latar CSS lainnya —
+            // lihat catatan di SectionWrapper.tsx.
+            backgroundImage: `url(${getOptimizedImageUrl(photos[current], 1080)})`,
             backgroundSize: 'cover', backgroundPosition: 'center',
           }}
         />
@@ -331,7 +351,12 @@ function DramaticView({ section, ctx }: { section: SectionConfig; ctx: StyleCtx 
             padding: 0, background: 'none', opacity: i === current ? 1 : 0.5,
             transition: 'all 0.3s',
           }}>
-            <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            {/* Pemilih 32x32 — bucket terkecil sudah lebih dari cukup. */}
+            <img
+              src={getOptimizedImageUrl(url, 320)}
+              onError={fallbackToOriginal(url)}
+              alt="" loading="lazy" decoding="async"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           </button>
         ))}
       </div>
@@ -436,7 +461,10 @@ function MosaicTile({ url, idx, onOpen, style }: {
         overflow: 'hidden', cursor: 'pointer', border: 'none', padding: 0,
         background: 'none', position: 'relative', display: 'block', ...style,
       }}>
-      <img src={url} alt={`Foto ${idx + 1}`}
+      <img
+        src={getOptimizedImageUrl(url, 480)}
+        onError={fallbackToOriginal(url)}
+        alt={`Foto ${idx + 1}`} loading="lazy" decoding="async"
         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
     </motion.button>
   )
@@ -499,7 +527,10 @@ function FilmstripView({ section, ctx }: { section: SectionConfig; ctx: StyleCtx
                   width: isFeature ? 220 : 150,
                   height: isFeature ? 300 : 260,
                 }}>
-                <img src={url} alt={`Foto ${i + 1}`}
+                <img
+                  src={getOptimizedImageUrl(url, 480)}
+                  onError={fallbackToOriginal(url)}
+                  alt={`Foto ${i + 1}`} loading="lazy" decoding="async"
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 {/* Number overlay */}
                 <div style={{
@@ -593,7 +624,10 @@ function CollageView({ section, ctx }: { section: SectionConfig; ctx: StyleCtx }
                   padding: 5, background: '#fff',
                   boxShadow: '0 4px 24px rgba(0,0,0,0.1), 0 1px 4px rgba(0,0,0,0.06)',
                 }}>
-                  <img src={url} alt={`Foto ${i + 1}`}
+                  <img
+                    src={getOptimizedImageUrl(url, 480)}
+                    onError={fallbackToOriginal(url)}
+                    alt={`Foto ${i + 1}`} loading="lazy" decoding="async"
                     style={{ width: '100%', aspectRatio: lay.aspectRatio, objectFit: 'cover', display: 'block' }} />
                 </div>
               </motion.button>
@@ -614,7 +648,11 @@ function CollageView({ section, ctx }: { section: SectionConfig; ctx: StyleCtx }
                   flexShrink: 0, width: 72, height: 72, overflow: 'hidden',
                   cursor: 'pointer', border: 'none', padding: 0, background: 'none',
                 }}>
-                  <img src={url} alt={`Foto ${idx + 1}`}
+                  {/* Strip mini 72x72 */}
+                  <img
+                    src={getOptimizedImageUrl(url, 320)}
+                    onError={fallbackToOriginal(url)}
+                    alt={`Foto ${idx + 1}`} loading="lazy" decoding="async"
                     style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 </button>
               )

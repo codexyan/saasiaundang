@@ -8,9 +8,17 @@ interface Props {
   value: string | undefined
   onChange: (url: string | undefined) => void
   hint?: string
+  /**
+   * Endpoint upload. Bawaannya endpoint ADMIN. Pemanggil dari sisi pelanggan
+   * WAJIB mengoper '/api/user/upload' — /api/admin/upload dibungkus
+   * withAdminAuth dan membalas 403 untuk akun biasa.
+   */
+  uploadUrl?: string
+  /** Folder tujuan. Harus ada di ALLOWED_FOLDERS route yang dipakai. */
+  folder?: string
 }
 
-export default function VideoUploadField({ value, onChange, hint }: Props) {
+export default function VideoUploadField({ value, onChange, hint, uploadUrl, folder = 'bg-videos' }: Props) {
   const [uploading, setUploading] = useState(false)
   const [dragging, setDragging] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -32,8 +40,8 @@ export default function VideoUploadField({ value, onChange, hint }: Props) {
     try {
       const formData = new FormData()
       formData.append('file', file)
-      formData.append('folder', 'bg-videos')
-      const res  = await fetch('/api/admin/upload', { method: 'POST', body: formData })
+      formData.append('folder', folder)
+      const res  = await fetch(uploadUrl ?? '/api/admin/upload', { method: 'POST', body: formData })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Upload gagal')
       onChange(data.url)

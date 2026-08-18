@@ -4,6 +4,7 @@ import { useRef, useState } from 'react'
 import { Upload, X, Loader2, Link as LinkIcon, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { resizeArticleImage } from '@/lib/image-resize'
+import { compressUploadImage } from '@/lib/image-compress'
 
 interface UploadMeta { width?: number; height?: number; bytes?: number; lowRes?: boolean }
 
@@ -63,15 +64,23 @@ export default function ImagePicker({
       // Resize di browser (dulu dikerjakan server pakai sharp). Kalau gagal,
       // `resized` null dan file asli yang diupload — upload tidak pernah gagal
       // gara-gara langkah ini.
-      const resized = variant ? await resizeArticleImage(file, variant) : null
+      // Varian 'cover' TETAP lewat jalur kanvas: ia butuh crop tengah 1.91:1
+      // (standar OG image), dan browser-image-compression tidak bisa memotong.
+      // Tanpa variant (gambar inline artikel) dulu tidak dikompresi sama sekali.
+      const resized    = variant ? await resizeArticleImage(file, variant) : null
+      const compressed = resized ? null : await compressUploadImage(file)
+
+      const upload = resized?.file ?? compressed?.file ?? file
+      const width  = resized?.width  ?? compressed?.width
+      const height = resized?.height ?? compressed?.height
 
       const formData = new FormData()
-      formData.append('file', resized?.file ?? file)
+      formData.append('file', upload)
       formData.append('folder', folder)
-      if (resized) {
-        formData.append('width', String(resized.width))
-        formData.append('height', String(resized.height))
-        formData.append('lowRes', String(resized.lowRes))
+      if (width && height) {
+        formData.append('width', String(width))
+        formData.append('height', String(height))
+        formData.append('lowRes', String(resized?.lowRes ?? false))
       }
       const res = await fetch(uploadUrl, { method: 'POST', body: formData })
       const data = await res.json()

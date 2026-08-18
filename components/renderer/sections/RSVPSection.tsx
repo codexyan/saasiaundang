@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { SectionConfig, NewInvitationData, TemplateMeta } from '@/lib/types'
+import type { SectionConfig, NewInvitationData, TemplateMeta, RenderMode } from '@/lib/types'
 import SectionWrapper, { resolveFont, fsh, fsb, hasMediaBg, cardBg } from '../SectionWrapper'
 import SectionOrnament from '../SectionOrnament'
 import { getComponentStyle, btnStyle, btnRadius, inputBorderStyle, cardRadius } from '@/lib/component-styles'
@@ -13,13 +13,15 @@ interface Props {
   data: NewInvitationData
   meta: TemplateMeta
   invitationId: string
+  /** Wajib. 'live' = kirim ke /api/rsvp, 'preview' = simulasi lokal. */
+  mode: RenderMode
 }
 
 function Ornament({ accent }: { accent: string }) {
   return <SectionOrnament accent={accent} />
 }
 
-export default function RSVPSection({ section, data, meta, invitationId }: Props) {
+export default function RSVPSection({ section, data, meta, invitationId, mode }: Props) {
   const { accent, text } = meta.color_scheme
   const font = resolveFont(meta, section)
   const cs = getComponentStyle(meta.component_style)
@@ -32,7 +34,7 @@ export default function RSVPSection({ section, data, meta, invitationId }: Props
   const [submitted,   setSubmitted]   = useState(false)
   const [error,       setError]       = useState('')
 
-  const isPreview = !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(invitationId)
+  const isPreview = mode === 'preview'
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -52,10 +54,18 @@ export default function RSVPSection({ section, data, meta, invitationId }: Props
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ invitationId, name: name.trim(), attending, totalGuests: attending ? totalGuests : 0 }),
       })
-      if (!res.ok) throw new Error('Gagal mengirim')
+      // Pesan error server ikut ditampilkan. Sebelumnya semua kegagalan runtuh
+      // jadi satu kalimat generik — itulah kenapa 400 dari validasi uuid tidak
+      // pernah terlihat oleh siapa pun.
+      if (!res.ok) {
+        const payload = await res.json().catch(() => null)
+        throw new Error(payload?.error || 'Konfirmasinya gagal terkirim.')
+      }
       setSubmitted(true)
-    } catch { setError('Terjadi kesalahan, coba lagi') }
-    finally   { setLoading(false) }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Terjadi kesalahan, coba lagi')
+    }
+    finally { setLoading(false) }
   }
 
   const headingFont = `'${font.heading}', serif`

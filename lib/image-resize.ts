@@ -12,6 +12,7 @@
  * Hanya boleh dipanggil dari komponen client.
  */
 import { ARTICLE_IMAGE, type ImageVariant } from './image-process'
+import { compressUploadImage } from './image-compress'
 
 export interface ResizedImage {
   file: File
@@ -103,7 +104,23 @@ export async function resizeArticleImage(
  * Foto galeri justru yang PALING SERING diunduh (setiap tamu yang membuka
  * undangan memuat galerinya), jadi ini yang paling berdampak ke pengalaman
  * tamu, bukan cuma ke pemilik undangan.
+ *
+ * Sekarang jalur UTAMANYA adalah compressUploadImage() (target 500 KB /
+ * 1920 px), dengan resize kanvas di atas sebagai CADANGAN — bukan diganti.
+ * Kanvas tetap dibutuhkan saat pustaka gagal: browser tanpa Web Worker,
+ * memori habis di HP lawas, atau berkas yang tidak bisa di-decode.
+ * Dua-duanya boleh mengembalikan null; pemanggil mengupload file asli.
  */
-export function resizeGalleryPhoto(file: File): Promise<ResizedImage | null> {
+export async function resizeGalleryPhoto(file: File): Promise<ResizedImage | null> {
+  const compressed = await compressUploadImage(file)
+  if (compressed) {
+    const width = compressed.width ?? 0
+    return {
+      file: compressed.file,
+      width,
+      height: compressed.height ?? 0,
+      lowRes: width > 0 && width < ARTICLE_IMAGE.coverMinWidth,
+    }
+  }
   return resizeArticleImage(file, 'inline')
 }

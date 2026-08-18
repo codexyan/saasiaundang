@@ -58,6 +58,7 @@ export default function SectionAppearanceControls({ section, data, onUpdate, pri
           onChange={setBg}
           defaultColor={primaryColor}
           accent={STUDIO_ACCENT}
+          context="studio"
         />
       </div>
 

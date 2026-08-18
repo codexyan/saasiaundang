@@ -73,6 +73,7 @@ export default function DemoEditorClient({ template, demoData, demoWishes }: Pro
       <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
       <InvitationRenderer
         invitationId={`demo-${template.id}`}
+        mode="preview"
         invitationData={editedData}
         template={editedTemplate}
         initialWishes={demoWishes}

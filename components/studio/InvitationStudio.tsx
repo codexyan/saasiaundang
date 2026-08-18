@@ -529,6 +529,7 @@ export default function InvitationStudio({ invitation, template, onSaved, isAdmi
                 <InvitationRenderer
                   key={`preview-${previewKey}-${activeSection}`}
                   invitationId={`preview-${invitation.id}`}
+                  mode="preview"
                   invitationData={debouncedData}
                   template={previewTemplate}
                   contained
@@ -821,6 +822,7 @@ export default function InvitationStudio({ invitation, template, onSaved, isAdmi
               <InvitationRenderer
                 key={`fs-${previewKey}`}
                 invitationId={`fullscreen-${invitation.id}`}
+                mode="preview"
                 invitationData={debouncedData}
                 template={previewTemplate}
                 contained

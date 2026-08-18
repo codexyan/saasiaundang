@@ -104,6 +104,9 @@ export default async function InvitationPage(props0: Props) {
     const content = (
       <InvitationRenderer
         invitationId={invitation.id}
+        // SATU-SATUNYA call site yang live: di sinilah RSVP dan ucapan tamu
+        // benar-benar dikirim ke server.
+        mode="live"
         invitationData={invitation.data as unknown as NewInvitationData}
         template={template}
         initialWishes={invWishes}

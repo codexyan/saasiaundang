@@ -33,6 +33,27 @@ function generateWaLink(phone: string, message: string): string {
   return `https://wa.me/${normalizePhone(phone)}?text=${encodeURIComponent(message)}`
 }
 
+/**
+ * Sisipkan `?to=<nama tamu>` ke tautan undangan.
+ *
+ * Renderer membaca nama tamu dari query `to` untuk sampul "Kepada Yth."
+ * (lihat OpeningScene dan components/templates/*). Tanpa parameter ini seluruh
+ * blast WA mengirim tautan generik dan setiap tamu melihat
+ * "Bapak/Ibu/Saudara/i" — fitur personalisasinya tidak pernah aktif.
+ *
+ * Separator dihitung, bukan ditebak: getInvitationUrl() mengembalikan
+ * `https://slug.iaundang.online` di produksi (perlu "?") tetapi
+ * `http://localhost:3000?slug=x` saat pengembangan (perlu "&").
+ * Fragment (#) dipertahankan di ekor supaya query tidak ikut tertelan hash.
+ */
+function withGuestName(baseUrl: string, guestName: string): string {
+  const encoded = encodeURIComponent(guestName.trim())
+  if (!encoded) return baseUrl
+  const [path, hash] = baseUrl.split('#')
+  const separator = path.includes('?') ? '&' : '?'
+  return `${path}${separator}to=${encoded}${hash ? `#${hash}` : ''}`
+}
+
 export default function GuestManager({ invitation }: Props) {
   const [contacts, setContacts] = useState<Guest[]>([])
   const [stats, setStats] = useState<GuestStats>({ total: 0, attending: 0, declined: 0, pending: 0 })
@@ -50,9 +71,10 @@ export default function GuestManager({ invitation }: Props) {
 
   const invUrl = getInvitationUrl(invitation.slug)
 
-  const defaultMessage = useCallback((name: string) =>
-    `Assalamu'alaikum Yth. ${name},\n\nKami mengundang kehadiran Bapak/Ibu/Saudara/i dalam acara pernikahan kami.\n\n🔗 Undangan digital: ${invUrl}\n\nMohon hadir ya, terima kasih 💝`,
-    [invUrl])
+  const defaultMessage = useCallback((name: string) => {
+    const personalUrl = withGuestName(invUrl, name)
+    return `Assalamu'alaikum Yth. ${name},\n\nKami mengundang kehadiran Bapak/Ibu/Saudara/i dalam acara pernikahan kami.\n\n🔗 Undangan digital: ${personalUrl}\n\nMohon hadir ya, terima kasih 💝`
+  }, [invUrl])
 
   const fetchGuests = useCallback(async () => {
     try {
@@ -478,7 +500,9 @@ export default function GuestManager({ invitation }: Props) {
         <div className="bg-white rounded-xl p-3 text-xs text-gray-600 font-mono leading-relaxed border border-blue-100">
           Assalamu&apos;alaikum Yth. <strong>[Nama Tamu]</strong>,<br />
           Kami mengundang kehadiran...<br />
-          🔗 {invUrl}
+          {/* Pratinjau ikut memperlihatkan ?to= supaya pemilik tahu tautannya
+              memang dipersonalisasi per tamu, bukan tautan generik. */}
+          🔗 {withGuestName(invUrl, '[Nama Tamu]')}
         </div>
       </div>
     </div>

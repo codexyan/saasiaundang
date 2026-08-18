@@ -4,7 +4,7 @@ import { BookOpen, Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
 import FormField from '../ui/FormField'
 import { StudioInput, StudioTextarea } from '../ui/StudioInput'
 import SectionCard from '../ui/SectionCard'
-import ImageUploadField from '@/components/admin/ImageUploadField'
+import StudioImageField from '@/components/studio/ui/StudioImageField'
 import type { StoryChapter } from '@/lib/types'
 
 interface StoryFormProps {
@@ -139,7 +139,7 @@ export default function StoryForm({
               </FormField>
 
               <FormField label="Foto Latar" hint="Foto latar untuk bab ini">
-                <ImageUploadField
+                <StudioImageField
                   value={ch.photo_url}
                   onChange={(url) => updateChapter(idx, 'photo_url', url || '')}
                   hint="Opsional"

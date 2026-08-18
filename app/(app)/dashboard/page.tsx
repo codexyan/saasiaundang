@@ -16,7 +16,7 @@ export default async function DashboardPage(props: Props) {
   const session = await getSession()
   if (!session) redirect('/login')
 
-  const invitation = await invitations.findByUserId(session.userId) as Invitation | null
+  const invitationList = await invitations.findManyByUserId(session.userId) as Invitation[]
 
   const allTemplates = (await templateRecords.findActive()).map(t => ({
     id: t.id,
@@ -33,7 +33,7 @@ export default async function DashboardPage(props: Props) {
   return (
     <DashboardClient
       user={{ id: session.userId, email: session.email }}
-      invitation={invitation}
+      invitations={invitationList}
       selectedTemplateId={selectedTemplateId}
       allTemplates={allTemplates}
       isAdmin={isAdmin(session)}

@@ -4,7 +4,7 @@ import { MapPin } from 'lucide-react'
 import FormField from '../ui/FormField'
 import { StudioInput, StudioTextarea } from '../ui/StudioInput'
 import SectionCard from '../ui/SectionCard'
-import ImageUploadField from '@/components/admin/ImageUploadField'
+import StudioImageField from '@/components/studio/ui/StudioImageField'
 
 interface EventData {
   date: string
@@ -75,7 +75,7 @@ function EventBlock({
             placeholder="https://maps.app.goo.gl/..." />
         </FormField>
         <FormField label="Foto Tempat">
-          <ImageUploadField value={event.venue_photo_url}
+          <StudioImageField value={event.venue_photo_url}
             onChange={(url) => onChange({ venue_photo_url: url || '' })} hint="Opsional" />
         </FormField>
       </div>

@@ -4,7 +4,7 @@ import { ShoppingBag, Plus, Trash2 } from 'lucide-react'
 import FormField from '../ui/FormField'
 import { StudioInput, StudioSelect } from '../ui/StudioInput'
 import SectionCard from '../ui/SectionCard'
-import ImageUploadField from '@/components/admin/ImageUploadField'
+import StudioImageField from '@/components/studio/ui/StudioImageField'
 import type { GiftRegistryLink } from '@/lib/types'
 
 interface GiftRegistryFormProps {
@@ -69,7 +69,7 @@ export default function GiftRegistryForm({ items, onItemsChange }: GiftRegistryF
                 placeholder="Rp 250.000" />
             </FormField>
             <FormField label="Foto Produk">
-              <ImageUploadField
+              <StudioImageField
                 value={item.image_url}
                 onChange={(url) => updateItem(idx, { image_url: url || '' })}
                 hint="Opsional"

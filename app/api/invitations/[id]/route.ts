@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/session-server'
-import { invitations, musicTracks } from '@/lib/db'
-import { prisma } from '@/lib/prisma'
+import { invitations } from '@/lib/db'
 import { getTierFeatures } from '@/lib/packages'
 import type { PackageTier } from '@/lib/packages'
 import { readJsonBody } from '@/lib/request-body'
+import { newInvitationDataSchema } from '@/lib/schemas/invitation-data'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,18 +59,45 @@ export async function PATCH(req: NextRequest, props: Params) {
       if (rawBody[field] !== undefined) body[field] = rawBody[field]
     }
 
+    // VALIDASI JSONB — body.data dulu diteruskan MENTAH ke invitations.update().
+    //
+    // Allowlist di atas hanya menjaga FIELD MANA yang boleh ditulis, bukan
+    // ISINYA. Payload seperti { data: { gallery_photos: "bukan-array" } } lolos
+    // ke kolom JSONB, lalu halaman undangan publik runtuh saat GallerySection
+    // memanggil .map() — kegagalan render yang hanya bisa dipulihkan lewat
+    // perbaikan database manual.
+    //
+    // Skemanya sengaja permisif (semua field opsional + passthrough): yang
+    // dijaga adalah tipe dan batas ukuran, bukan kelengkapan. Baca komentar
+    // panjang di lib/schemas/invitation-data.ts sebelum memperketatnya —
+    // autosave studio mengirim seluruh objek data, jadi skema yang membuang
+    // field tak dikenal berarti kehilangan data permanen.
+    if (body.data !== undefined) {
+      if (typeof body.data !== 'object' || body.data === null || Array.isArray(body.data)) {
+        return NextResponse.json({ error: 'Format data undangannya tidak sesuai.' }, { status: 400 })
+      }
+      const parsedData = newInvitationDataSchema.safeParse(body.data)
+      if (!parsedData.success) {
+        console.warn('Invitation PATCH: data ditolak', params.id, parsedData.error.flatten())
+        return NextResponse.json(
+          { error: 'Ada isian undangan yang formatnya tidak sesuai. Coba periksa lagi ya.', details: parsedData.error.flatten() },
+          { status: 400 }
+        )
+      }
+      body.data = parsedData.data
+    }
+
     if (body.slug && body.slug !== inv.slug && (await invitations.slugExists(body.slug, params.id))) {
       return NextResponse.json({ error: 'Alamat undangan ini sudah dipakai. Coba nama lain ya.' }, { status: 409 })
     }
 
-    const newMusicUrl = body.data?.music?.url
-    const oldMusicUrl = (inv.data as unknown as { music?: { url?: string } })?.music?.url
-    if (newMusicUrl && newMusicUrl !== oldMusicUrl) {
-      try {
-        const track = await prisma.musicTrack.findFirst({ where: { url: newMusicUrl } })
-        if (track) await musicTracks.incrementUsage(track.id)
-      } catch { /* non-critical */ }
-    }
+    // Blok penghitung pemakaian musik dihapus dari sini. Isinya membaca
+    // `body.data.music.url` — bentuk bersarang yang TIDAK PERNAH dikirim
+    // siapa pun: studio menulis `music_url` datar (lihat
+    // lib/schemas/invitation-data.ts), jadi kondisinya selalu false dan
+    // angka pemakaian permanen nol sejak dirilis. Sekarang angkanya dihitung
+    // langsung dari tabel undangan di musicTracks.usageCounts(), yang selalu
+    // benar tanpa perlu hook di jalur tulis mana pun.
 
     // Server-side tier enforcement for decoration overrides
     if (body.data?.section_decoration_overrides || body.data?.opening_decoration_overrides) {

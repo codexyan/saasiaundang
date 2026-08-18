@@ -30,9 +30,26 @@ export const invitations = {
     const i = await prisma.invitation.findUnique({ where: { slug } })
     return i ? mapInvitation(i) : null
   }),
-  async findByUserId(userId: string): Promise<Invitation | null> {
-    const i = await prisma.invitation.findFirst({ where: { userId }, orderBy: { createdAt: 'desc' } })
-    return i ? mapInvitation(i) : null
+  // Satu akun boleh punya banyak undangan (model B2C). findByUserId yang lama
+  // memakai findFirst dan mengembalikan SATU objek — undangan kedua milik
+  // pelanggan yang sama (dibuat lewat provisionPaidOrder, yang mencari via
+  // findBySlug, bukan per-user) tidak pernah muncul di dashboard meski sudah
+  // dibayar.
+  //
+  // Namanya diganti, bukan ditambah, supaya kompilator menunjuk seluruh
+  // pemanggil lama alih-alih membiarkan keduanya hidup berdampingan.
+  //
+  // take:100 sebagai pagar pengaman, sejalan dengan findAll().
+  async findManyByUserId(userId: string): Promise<Invitation[]> {
+    const all = await prisma.invitation.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    })
+    return all.map(mapInvitation)
+  },
+  async countByUserId(userId: string): Promise<number> {
+    return prisma.invitation.count({ where: { userId } })
   },
   async findById(id: string): Promise<Invitation | null> {
     const i = await prisma.invitation.findUnique({ where: { id } })

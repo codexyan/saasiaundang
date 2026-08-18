@@ -75,11 +75,17 @@ const nextConfig = {
   },
 
   images: {
-    // Optimizer bawaan Next memakai `sharp`, yang tidak bisa jalan di Workers.
-    // Gambar disajikan apa adanya dari Supabase Storage; ukurannya sudah
-    // dikecilkan di sisi browser sebelum upload (lihat lib/image-resize.ts).
-    // Kalau nanti berlangganan Cloudflare Images, ganti ini dengan loader
-    // kustom dan hapus `unoptimized`.
+    // Optimizer bawaan Next memakai `sharp`, yang tidak bisa jalan di Workers,
+    // jadi `next/image` memang tidak dipakai di app ini.
+    //
+    // Optimasi gambar ditangani dua lapis di luar Next (docs/REPORT_OPTIMASI.md):
+    //   1. Sebelum upload — dikecilkan di browser ke maks 500 KB / 1920 px
+    //      (lib/image-compress.ts, dengan lib/image-resize.ts sebagai cadangan)
+    //   2. Saat penyajian — Cloudflare Image Resizing lewat URL /cdn-cgi/image/
+    //      (lib/image-utils.ts), di belakang NEXT_PUBLIC_CF_IMAGE_RESIZING
+    //
+    // `unoptimized: true` tetap benar dan tidak perlu dicabut: lapis 2 bekerja
+    // pada <img> biasa dan latar CSS, bukan lewat loader next/image.
     unoptimized: true,
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [

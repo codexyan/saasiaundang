@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import type { SectionConfig, TemplateMeta, FontConfig } from '@/lib/types'
 import { getTransitionVariants } from './transitions/useTransition'
 import { usePreviewContext } from './PreviewContext'
+import { getOptimizedImageUrl } from '@/lib/image-utils'
 import DecorationAssetLayer from './DecorationAssetLayer'
 
 interface Props {
@@ -109,7 +110,17 @@ export default function SectionWrapper({ section, children, className = '', over
   } else if (bg.type === 'gradient' && bg.value) {
     bgStyle.background = bg.value
   } else if (bg.type === 'image' && bg.url) {
-    bgStyle.backgroundImage = `url(${bg.url})`
+    // 1080 px: undangan dirender di kolom selebar telepon (maks ±430 px CSS),
+    // jadi 1080 sudah menutup layar dpr 2,5 dengan aman. Satu baris ini
+    // mencakup latar SELURUH section — termasuk Foto Pembuka, karena
+    // HeroSection tidak merender fotonya sendiri melainkan mengopernya ke sini
+    // sebagai background (lihat HeroSection.tsx, cabang `hasPhoto`).
+    //
+    // CATATAN: latar CSS tidak punya onError, jadi tidak ada jaring pengaman
+    // per-gambar di sini (bandingkan fallbackToOriginal di lib/image-utils.ts).
+    // Itu sebabnya NEXT_PUBLIC_CF_IMAGE_RESIZING baru boleh dinyalakan setelah
+    // uji curl di docs/REPORT_OPTIMASI.md §0.3 hijau.
+    bgStyle.backgroundImage = `url(${getOptimizedImageUrl(bg.url, 1080)})`
     bgStyle.backgroundSize = 'cover'
     bgStyle.backgroundPosition = 'center'
     bgStyle.backgroundRepeat = 'no-repeat'

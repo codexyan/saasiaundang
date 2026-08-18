@@ -6,11 +6,17 @@ import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
 
+// invitationId BUKAN UUID. Prisma membuatnya dengan @default(cuid())
+// (lihat prisma/schema.prisma), contoh: "clzk9r3v10001qw8h2t7x4b6d".
+// z.string().uuid() menolak SETIAP id undangan asli, jadi tidak ada satu pun
+// RSVP yang pernah lolos ke database sejak validasi ini dipasang.
+// Keabsahan id tetap dijaga oleh invitations.findById() + pemeriksaan
+// is_published di bawah — bukan oleh bentuk stringnya.
 const schema = z.object({
-  invitationId: z.string().uuid(),
+  invitationId: z.string().min(1).max(64),
   name: z.string().min(1).max(100),
   attending: z.boolean(),
-  totalGuests: z.number().min(0).max(10),
+  totalGuests: z.number().int().min(0).max(10),
 })
 
 export async function POST(req: NextRequest) {

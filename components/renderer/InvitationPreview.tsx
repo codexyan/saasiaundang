@@ -72,6 +72,8 @@ export default function InvitationPreview({
               invitationData={data}
               templateMeta={meta}
               invitationId={invitationId}
+              // Komponen ini memang khusus pratinjau — tidak ada jalur live-nya.
+              mode="preview"
               initialWishes={section.type === 'wishes' ? initialWishes : undefined}
             />
           )

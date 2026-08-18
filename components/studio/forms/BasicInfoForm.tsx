@@ -6,7 +6,8 @@ import toast from 'react-hot-toast'
 import FormField from '../ui/FormField'
 import { StudioInput } from '../ui/StudioInput'
 import SectionCard from '../ui/SectionCard'
-import ImageUploadField from '@/components/admin/ImageUploadField'
+import StudioImageField from '@/components/studio/ui/StudioImageField'
+import { compressUploadImage } from '@/lib/image-compress'
 
 interface BasicInfoFormProps {
   groomName: string
@@ -57,8 +58,14 @@ export default function BasicInfoForm({
 
   async function handleUpload(file: File) {
     setUploading(true)
+    // Foto Pembuka dipakai ulang sebagai latar Hero, latar Countdown, DAN foto
+    // Story — satu berkas ini yang paling menentukan waktu muat undangan.
+    // Sebelumnya diupload mentah: foto 4 MB langsung dari kamera HP lolos utuh
+    // sampai batas server 8 MB. Gagal = null, dan file asli yang dipakai.
+    const compressed = await compressUploadImage(file)
+
     const form = new FormData()
-    form.append('file', file)
+    form.append('file', compressed?.file ?? file)
     form.append('folder', 'hero')
     try {
       const res = await fetch('/api/user/upload', { method: 'POST', body: form })
@@ -139,7 +146,7 @@ export default function BasicInfoForm({
         </div>
         <div className="grid grid-cols-2 gap-2.5">
           <FormField label="Foto Profil">
-            <ImageUploadField value={groomPhotoUrl} onChange={onGroomPhotoChange} hint="Opsional" />
+            <StudioImageField value={groomPhotoUrl} onChange={onGroomPhotoChange} hint="Opsional" />
           </FormField>
           <FormField label="Bio Singkat">
             <StudioInput type="text" value={groomBio ?? ''}
@@ -176,7 +183,7 @@ export default function BasicInfoForm({
         </div>
         <div className="grid grid-cols-2 gap-2.5">
           <FormField label="Foto Profil">
-            <ImageUploadField value={bridePhotoUrl} onChange={onBridePhotoChange} hint="Opsional" />
+            <StudioImageField value={bridePhotoUrl} onChange={onBridePhotoChange} hint="Opsional" />
           </FormField>
           <FormField label="Bio Singkat">
             <StudioInput type="text" value={brideBio ?? ''}

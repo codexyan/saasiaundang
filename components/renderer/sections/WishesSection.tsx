@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { SectionConfig, NewInvitationData, TemplateMeta, Wish } from '@/lib/types'
+import type { SectionConfig, NewInvitationData, TemplateMeta, Wish, RenderMode } from '@/lib/types'
 import SectionWrapper, { resolveFont, fsh, fsb, hasMediaBg, cardBg } from '../SectionWrapper'
 import SectionOrnament from '../SectionOrnament'
 import { getComponentStyle, btnStyle, inputBorderStyle, cardRadius } from '@/lib/component-styles'
@@ -16,6 +16,8 @@ interface Props {
   meta: TemplateMeta
   invitationId: string
   initialWishes?: Wish[]
+  /** Wajib. 'live' = kirim ke /api/wishes, 'preview' = simulasi lokal. */
+  mode: RenderMode
 }
 
 function makePreviewWishes(): Wish[] {
@@ -140,12 +142,12 @@ function WishMarquee({ wishes, accent, text, headingFont, bodyFont }: {
   )
 }
 
-export default function WishesSection({ section, data, meta, invitationId, initialWishes = [] }: Props) {
+export default function WishesSection({ section, data, meta, invitationId, initialWishes = [], mode }: Props) {
   const { accent, text } = meta.color_scheme
   const font = resolveFont(meta, section)
   const cs = getComponentStyle(meta.component_style)
 
-  const isPreview = !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(invitationId)
+  const isPreview = mode === 'preview'
 
   const [wishes,  setWishes]  = useState<Wish[]>(initialWishes)
   const [name,    setName]    = useState('')
@@ -186,14 +188,21 @@ export default function WishesSection({ section, data, meta, invitationId, initi
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ invitationId, name: name.trim(), message: message.trim() }),
       })
-      if (!res.ok) throw new Error('Gagal mengirim')
+      // Sama seperti RSVPSection: pesan server jangan ditelan, karena itulah
+      // yang membuat 400 dari validasi uuid tidak pernah terlihat.
+      if (!res.ok) {
+        const payload = await res.json().catch(() => null)
+        throw new Error(payload?.error || 'Ucapannya gagal terkirim.')
+      }
       const { wish } = await res.json()
       setWishes(prev => [wish, ...prev])
       setName(''); setMessage('')
       setJustSent(true)
       setTimeout(() => setJustSent(false), 3000)
-    } catch { setError('Terjadi kesalahan, coba lagi') }
-    finally   { setLoading(false) }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Terjadi kesalahan, coba lagi')
+    }
+    finally { setLoading(false) }
   }
 
   const MAX_MSG = 300

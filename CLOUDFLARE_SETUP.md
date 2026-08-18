@@ -125,7 +125,20 @@ lewat Workers Builds (CI dari GitHub), isi juga di
 | `NEXT_PUBLIC_APP_URL` | `https://iaundang.online` |
 | `NEXT_PUBLIC_APP_DOMAIN` | `iaundang.online` |
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://[ref].supabase.co` |
+| `NEXT_PUBLIC_CF_IMAGE_RESIZING` | `false` sampai prasyarat Images selesai — lihat di bawah |
 | `DATABASE_URL` | pooler Supabase — dipakai `prisma generate` saat build |
+
+**Tentang `NEXT_PUBLIC_CF_IMAGE_RESIZING`.** Menyalakannya (`true`) membuat
+seluruh gambar undangan disajikan lewat `/cdn-cgi/image/`. Dua prasyarat
+dashboard harus selesai LEBIH DULU, kalau tidak semua gambar gagal dimuat —
+bukan sebagian:
+
+1. **Images → Transformations** diaktifkan untuk zona `iaundang.online`
+2. **Images → Transformations → Sources**: tambahkan origin `*.supabase.co`
+   (bucket kita ada di luar zona, dan origin luar zona ditolak secara bawaan)
+
+Langkah verifikasi dengan `curl` dan anggaran kuota paket Free (5.000
+transformasi unik/bulan) ada di `docs/REPORT_OPTIMASI.md` §0.
 
 Deploy dari laptop tidak perlu ini; `.env.local` sudah dibaca.
 
