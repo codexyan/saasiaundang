@@ -26,7 +26,6 @@ import OnboardingWizard from './OnboardingWizard'
 import SupportTickets from './SupportTickets'
 import AnalyticsPanel from './AnalyticsPanel'
 import ReferralPanel from './ReferralPanel'
-import FeedbackWidget from './FeedbackWidget'
 
 const InvitationRenderer = dynamic(() => import('@/components/renderer/InvitationRenderer'), { ssr: false })
 
@@ -540,7 +539,6 @@ export default function DashboardClient({ user, invitations, selectedTemplateId,
         </div>
       )}
 
-      {inv && <FeedbackWidget />}
     </div>
   )
 }

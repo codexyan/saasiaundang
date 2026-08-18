@@ -465,53 +465,6 @@ model Subscription {
   @@map("subscriptions")
 }
 
-// ─── A/B EXPERIMENTS ─────────────────────────────────────────
-model Experiment {
-  id          String   @id @default(cuid())
-  key         String   @unique
-  name        String
-  description String   @default("")
-  variants    Json
-  traffic     Int      @default(100)
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  events ExperimentEvent[]
-
-  @@map("experiments")
-}
-
-model ExperimentEvent {
-  id           String   @id @default(cuid())
-  experimentId String   @map("experiment_id")
-  variant      String
-  event        String   @default("view")
-  sessionId    String   @default("") @map("session_id")
-  userId       String?  @map("user_id")
-  createdAt    DateTime @default(now()) @map("created_at")
-
-  experiment Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
-
-  @@index([experimentId])
-  @@index([variant])
-  @@map("experiment_events")
-}
-
-// ─── USER FEEDBACK ───────────────────────────────────────────
-model UserFeedback {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
-  type      String   @default("nps")
-  score     Int
-  comment   String   @default("")
-  page      String   @default("")
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@index([userId])
-  @@index([type])
-  @@map("user_feedback")
-}
-
 // ─── USER REFERRALS ──────────────────────────────────────────
 model UserReferral {
   id          String    @id @default(cuid())

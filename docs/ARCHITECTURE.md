@@ -19,7 +19,6 @@
 10. [Subscription Lifecycle](#subscription-lifecycle)
 11. [Notification System](#notification-system)
 12. [Analytics System](#analytics-system)
-13. [A/B Testing](#ab-testing)
 14. [Referral Program](#referral-program)
 15. [SEO Infrastructure](#seo-infrastructure)
 16. [Environment Variables](#environment-variables)
@@ -85,7 +84,6 @@ lib/
 ├── session-server.ts # Server-side getSession()
 ├── subscription.ts   # Subscription domain service
 ├── notifications.ts  # Notification service (12 types, Resend transport)
-├── experiments.ts    # A/B testing service
 ├── packages.ts       # Package/tier definitions (starter, popular, eksklusif)
 ├── utils.ts          # Shared utilities
 ├── demo-data.ts      # Demo/preview data
@@ -142,9 +140,6 @@ docs/
 | Model | Purpose | Key Fields |
 |-------|---------|------------|
 | `InvitationView` | Page view tracking | invitationId, viewedAt, referrer, userAgent |
-| `Experiment` | A/B test config | key, name, variants (JSON), traffic, isActive |
-| `ExperimentEvent` | A/B test events | experimentId, variant, event (view/conversion), sessionId |
-| `UserFeedback` | NPS + user feedback | userId, type, score (0-10), comment, page |
 
 #### System
 | Model | Purpose | Key Fields |
@@ -178,7 +173,6 @@ Central data access layer. All Prisma queries wrapped in typed functions.
 - `referrals` — findByAffiliateId, create
 - `userReferrals` — create, findByReferrerId, countByReferrer, markCompleted
 - `invitationViews` — record, countByInvitation, countByDateRange, dailyCounts, topReferrers
-- `userFeedback` — create, findByUserId, hasRecentFeedback, getAverageNps, findAll
 - `landingSections` — get, save
 
 ### `lib/subscription.ts` — Subscription Domain
@@ -196,13 +190,6 @@ Lifecycle: `active` → `expiring_soon` → `expired` → `cancelled`
 Transport: Resend (with `RESEND_API_KEY`) or console fallback.
 
 Types: `welcome`, `trial_started`, `trial_expiring`, `trial_expired`, `order_created`, `order_approved`, `order_rejected`, `payment_received`, `subscription_active`, `subscription_expiring`, `subscription_expired`, `password_reset`
-
-### `lib/experiments.ts` — A/B Testing Service
-Hash-based deterministic variant assignment (same session → same variant).
-
-- `experiments.assign(key, sessionId)` — pick variant + record view
-- `experiments.trackConversion(key, sessionId, variant)` — record conversion
-- `experiments.getReport(id)` — per-variant stats (views, conversions, rate)
 
 ### `lib/packages.ts` — Tier Definitions
 
@@ -235,7 +222,6 @@ Hash-based deterministic variant assignment (same session → same variant).
 | GET | `/api/music` | Music library |
 | POST | `/api/views` | Record invitation view |
 | POST | `/api/referral` | Affiliate click tracking |
-| POST | `/api/experiments/assign` | A/B variant assignment |
 | GET | `/api/articles` | Published articles |
 | GET | `/api/payment/config` | Payment config |
 
@@ -247,8 +233,6 @@ Hash-based deterministic variant assignment (same session → same variant).
 | GET | `/api/analytics?invitation_id=X` | Invitation analytics |
 | GET | `/api/referral` | User referral code + stats |
 | GET | `/api/user/subscription` | Subscription status |
-| POST | `/api/feedback` | Submit NPS feedback |
-| GET | `/api/feedback` | Feedback history |
 | POST/GET | `/api/invitations` | Invitation CRUD |
 | POST | `/api/payment/proof` | Upload payment proof |
 | POST | `/api/galleries/upload` | Upload gallery image |
@@ -263,10 +247,7 @@ Hash-based deterministic variant assignment (same session → same variant).
 | GET/POST/DELETE | `/api/admin/users` | User management |
 | GET/POST/PATCH | `/api/admin/template-records` | Template CRUD |
 | GET/PUT | `/api/admin/settings` | App settings |
-| GET | `/api/admin/feedback` | All feedback + NPS stats |
-| GET/POST | `/api/experiments` | A/B test CRUD |
-| GET/PATCH/DELETE | `/api/experiments/[id]` | A/B test management |
-
+| GET/PATCH/DELETE 
 ### Cron
 | Method | Route | Purpose |
 |--------|-------|---------|
@@ -290,20 +271,17 @@ User dashboard (`/dashboard`) — 9 tabs:
 | Bantuan | `SupportTickets` | Support ticket system |
 | Settings | `SettingsPanel` | Account settings, delete invitation |
 
-Additional: `FeedbackWidget` — floating NPS popup (appears after 10s if no recent feedback)
-
 ---
 
 ## Admin Panel
 
-Admin panel (`/admin`) — 13 tabs in 7 groups:
+Admin panel (`/admin`) — 11 tabs in 6 groups:
 
 **Utama:** Dashboard (stats, revenue, recent activity), Pengguna
 **Konten:** Artikel, Writer
 **Template:** Template, Musik
 **Transaksi:** Pembayaran, Pesanan, Paket & Promo
 **Marketing:** Afiliasi
-**Insights:** Feedback (NPS dashboard), A/B Testing (experiments)
 **Sistem:** Pengaturan (branding, payment, domain)
 
 ### Modul Template (`components/admin/tabs/template/`)
@@ -427,16 +405,6 @@ Order → Invitation → Subscription traceability chain fully linked.
 - Dashboard `AnalyticsPanel`: daily views chart, RSVP breakdown, top referrers
 - Date range selector: 7/14/30 days
 - Stats: totalViews, viewsThisWeek, attending rate
-
----
-
-## A/B Testing
-
-- `Experiment` defines test with variants (JSON: weight + value per variant)
-- `ExperimentEvent` tracks views and conversions per variant
-- Hash-based assignment ensures deterministic variant per session
-- Admin UI: create/toggle/delete experiments, view conversion reports
-- Public API: `POST /api/experiments/assign` for client-side assignment
 
 ---
 

@@ -33,8 +33,6 @@ const PricingTab = dynamic(() => import('./tabs/pricing/PricingTab'), { loading:
 const ArticlesTab = dynamic(() => import('./tabs/ArticlesTab'), { loading: () => TAB_LOADING, ssr: false })
 const WriterTab = dynamic(() => import('./tabs/WriterTab'), { loading: () => TAB_LOADING, ssr: false })
 const AffiliatesTab = dynamic(() => import('./tabs/AffiliatesTab'), { loading: () => TAB_LOADING, ssr: false })
-const FeedbackTab = dynamic(() => import('./tabs/FeedbackTab'), { loading: () => TAB_LOADING, ssr: false })
-const ExperimentsTab = dynamic(() => import('./tabs/ExperimentsTab'), { loading: () => TAB_LOADING, ssr: false })
 // PackagesTab removed  tier management consolidated into TemplatesTab config drawer
 const NewSettingsTab = dynamic(() => import('./tabs/SettingsTab'), { loading: () => TAB_LOADING, ssr: false })
 
@@ -142,9 +140,9 @@ interface Props {
   adminEmail: string
 }
 
-type NavTab = 'dashboard' | 'users' | 'template' | 'music' | 'pricing' | 'orders' | 'payment' | 'articles' | 'writers' | 'affiliates' | 'feedback' | 'experiments' | 'settings'
+type NavTab = 'dashboard' | 'users' | 'template' | 'music' | 'pricing' | 'orders' | 'payment' | 'articles' | 'writers' | 'affiliates' | 'settings'
 
-const VALID_TABS: NavTab[] = ['dashboard', 'users', 'template', 'music', 'pricing', 'orders', 'payment', 'articles', 'writers', 'affiliates', 'feedback', 'experiments', 'settings']
+const VALID_TABS: NavTab[] = ['dashboard', 'users', 'template', 'music', 'pricing', 'orders', 'payment', 'articles', 'writers', 'affiliates', 'settings']
 
 /** Tab yang mengelola tinggi layarnya sendiri (punya panel/scroll internal).
  *  Sisanya dibiarkan halaman yang men-scroll. */
@@ -447,8 +445,6 @@ export default function AdminPanel({
           <WriterTab onViewArticles={(id, name) => { setArticleAuthorFilter({ id, name }); handleTabChange('articles') }} />
         )}
         {activeTab === 'affiliates' && <AffiliatesTab />}
-        {activeTab === 'feedback' && <FeedbackTab />}
-        {activeTab === 'experiments' && <ExperimentsTab />}
         {activeTab === 'settings' && (
           <NewSettingsTab
             settings={{
@@ -529,13 +525,6 @@ const NAV_GROUPS = [
     label: 'Marketing',
     items: [
       { id: 'affiliates'  as NavTab, label: 'Afiliasi',           icon: Megaphone,       desc: 'Kelola program affiliate' },
-    ],
-  },
-  {
-    label: 'Insights',
-    items: [
-      { id: 'feedback'     as NavTab, label: 'Feedback',           icon: MessageSquarePlus, desc: 'NPS & feedback pengguna' },
-      { id: 'experiments'  as NavTab, label: 'A/B Testing',        icon: FlaskConical,      desc: 'Eksperimen & variant test' },
     ],
   },
   {
