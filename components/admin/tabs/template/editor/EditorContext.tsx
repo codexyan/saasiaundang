@@ -113,6 +113,17 @@ export interface EditorContextValue {
   setDecorEditMode: Dispatch<SetStateAction<boolean>>
   selectedAssetId: string | null
   setSelectedAssetId: Dispatch<SetStateAction<string | null>>
+  /** Aset yang disembunyikan sementara di editor.
+   *
+   *  SENGAJA tidak ikut tersimpan: kalau dipersistensi, admin yang lupa
+   *  menyalakannya lagi akan menerbitkan template dengan dekorasi hilang tanpa
+   *  jejak. Statusnya hidup di context (bukan di dalam kanvas seperti dulu)
+   *  supaya daftar aset di panel dan kanvas melihat kebenaran yang sama. */
+  hiddenAssetIds: Set<string>
+  setHiddenAssetIds: Dispatch<SetStateAction<Set<string>>>
+  /** Aset yang dikunci dari interaksi kanvas. Juga khusus editor. */
+  lockedAssetIds: Set<string>
+  setLockedAssetIds: Dispatch<SetStateAction<Set<string>>>
 
   //  Perpustakaan musik (dibaca dari /api/admin/music)
   musicLibrary: MusicLibraryEntry[]

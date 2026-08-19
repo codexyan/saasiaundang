@@ -235,15 +235,6 @@ export interface SectionConfig {
   hero_icon_size?: number           // px ukuran brand mark iaundang di atas hero (default 40)
 }
 
-export type AssetPosition =
-  | 'top-left' | 'top-center' | 'top-right'
-  | 'center-left' | 'center' | 'center-right'
-  | 'bottom-left' | 'bottom-center' | 'bottom-right'
-  | 'top-quarter-left' | 'top-quarter-right'
-  | 'bottom-quarter-left' | 'bottom-quarter-right'
-  | 'edge-left' | 'edge-right'
-  | 'edge-top' | 'edge-bottom'
-
 export type AssetAnimation =
   | 'none' | 'fade-in' | 'slide-left' | 'slide-right'
   | 'slide-up' | 'slide-down' | 'zoom-in' | 'rotate-in'
@@ -276,15 +267,40 @@ export interface AssetKeyframeConfig {
   easing?: AssetKeyframeEasing   // default 'ease'
 }
 
+/**
+ * Aset dekorasi yang ditempel di atas opening atau sebuah seksi.
+ *
+ * KOORDINAT PERSEN, bukan anchor + offset piksel.
+ *
+ * Model lama memakai `position` (17 anchor preset seperti 'edge-left',
+ * 'bottom-quarter-right') DITAMBAH `offset_x`/`offset_y` dalam piksel absolut.
+ * Dua sistem koordinat untuk satu pertanyaan yang sama, dan keduanya saling
+ * meniadakan: menyeret aset di kanvas selalu menulis ulang
+ * `position: 'top-left'`, jadi pilihan anchor admin terhapus diam-diam begitu
+ * ia menggeser satu piksel. Piksel absolut juga berarti dekorasi TIDAK ikut
+ * menyesuaikan lebar layar tamu — dirancang di 390px, melenceng di 430px.
+ *
+ * Sekarang: satu sistem, semua relatif ukuran kanvas.
+ *   x, y = titik PUSAT aset, dalam persen lebar/tinggi kanvas
+ *   w    = lebar aset, dalam persen lebar kanvas
+ *   h    = tinggi opsional; kosong berarti ikut rasio asli gambar
+ *
+ * Nilai di luar 0–100 SENGAJA diizinkan supaya aset bisa menggantung keluar
+ * bingkai (ornamen sudut, sulur yang terpotong tepi) — itu justru kebutuhan
+ * desain yang paling sering dipakai.
+ */
 export interface DecorationAsset {
   id: string
   url: string
   label?: string
-  position: AssetPosition
-  offset_x?: number        // px, geser dari anchor
-  offset_y?: number
-  width?: number           // px, default 80
-  scale?: number           // 0.1-3, default 1
+  /** Pusat horizontal, % lebar kanvas. Boleh < 0 atau > 100. */
+  x: number
+  /** Pusat vertikal, % tinggi kanvas. Boleh < 0 atau > 100. */
+  y: number
+  /** Lebar, % lebar kanvas. */
+  w: number
+  /** Tinggi, % tinggi kanvas. Kosong = ikut rasio asli gambar. */
+  h?: number
   rotation?: number        // derajat
   flip_h?: boolean
   flip_v?: boolean

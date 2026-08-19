@@ -3,7 +3,8 @@
 import dynamic from 'next/dynamic'
 import { AnimatePresence } from 'framer-motion'
 import { RefreshCw, Maximize2, Play, X, Undo2, Redo2 } from 'lucide-react'
-import DecorationMoodboard from '@/components/admin/DecorationMoodboard'
+import SectionRenderer from '@/components/renderer/SectionRenderer'
+import DecorationCanvas from '../DecorationCanvas'
 import { PREVIEW_WISHES } from '../parts/constants'
 import { useEditor } from '../EditorContext'
 
@@ -27,7 +28,8 @@ export default function EditorPreview() {
     previewMode, setPreviewMode, previewKey, setPreviewKey,
     previewPlaying, setPreviewPlaying, previewLoading, setPreviewLoading,
     decorPreviewKey, setDecorPreviewKey, decorEditMode,
-    selectedAssetId, setSelectedAssetId, sectionReplay,
+    decorScope, selectedAssetId, setSelectedAssetId, sectionReplay,
+    hiddenAssetIds, lockedAssetIds, updateSection,
     showFullscreen, setShowFullscreen,
     undo, redo, canUndo, canRedo, updateOpening,
   } = useEditor()
@@ -146,19 +148,65 @@ export default function EditorPreview() {
                 </div>
               </div>
 
-              {/*  Moodboard overlay   drag decoration assets  */}
-              {decorEditMode && previewMode === 'opening' && !previewPlaying && (
-                <div style={{ width: 390, zoom: 340 / 390, height: 845, position: 'absolute', inset: 0, zIndex: 30 }}>
-                  <DecorationMoodboard
-                    assets={cfg.opening.decoration_assets ?? []}
-                    onUpdate={assets => updateOpening({ decoration_assets: assets })}
-                    selectedId={selectedAssetId}
-                    onSelect={setSelectedAssetId}
-                    containerWidth={390}
-                    containerHeight={845}
-                  />
-                </div>
-              )}
+              {/*  Panggung dekorasi.
+                   Menggantikan overlay "moodboard" lama yang HANYA bekerja
+                   untuk opening — aset milik seksi cuma bisa digeser lewat
+                   input angka. Sekarang seksi punya panggungnya sendiri:
+                   seksi yang sedang digarap dirender tunggal pada kotak yang
+                   sama persis dengan kanvas (390x845), jadi koordinat persen
+                   kanvas memetakan 1:1 ke hasil render sungguhan. Merender
+                   satu seksi (bukan menumpang pratinjau yang bisa di-scroll)
+                   membuat penempatannya tidak pernah meleset saat digulir.  */}
+              {decorEditMode && !previewPlaying && (() => {
+                const onOpening = decorScope === 'opening'
+                const target = onOpening ? null : sections.find(sec => sec.id === decorScope)
+                if (!onOpening && !target) return null
+
+                const stageAssets = onOpening
+                  ? (cfg.opening.decoration_assets ?? [])
+                  : (target!.decoration_assets ?? [])
+
+                return (
+                  <div style={{ position: 'absolute', inset: 0, zIndex: 30, background: cfg.meta.color_scheme.background }}>
+                    <div style={{ width: 390, zoom: 340 / 390, height: 845, position: 'relative', overflow: 'hidden' }}>
+                      {onOpening ? (
+                        <OpeningScene
+                          key={`stage-opening-${decorPreviewKey}-${cfg.opening.type}`}
+                          config={cfg.opening}
+                          data={previewData}
+                          meta={cfg.meta}
+                          positionMode="absolute"
+                          onOpen={() => setDecorPreviewKey(k => k + 1)}
+                          previewGuestName={previewGuestName}
+                        />
+                      ) : (
+                        <div key={`stage-section-${target!.id}-${decorPreviewKey}`} style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+                          <SectionRenderer
+                            sectionConfig={target!}
+                            invitationData={previewData}
+                            templateMeta={cfg.meta}
+                            invitationId="decor-stage"
+                            mode="preview"
+                          />
+                        </div>
+                      )}
+
+                      <DecorationCanvas
+                        assets={stageAssets}
+                        onUpdate={next => onOpening
+                          ? updateOpening({ decoration_assets: next })
+                          : updateSection(target!.id, { decoration_assets: next })}
+                        selectedId={selectedAssetId}
+                        onSelect={setSelectedAssetId}
+                        hiddenIds={hiddenAssetIds}
+                        lockedIds={lockedAssetIds}
+                        width={390}
+                        height={845}
+                      />
+                    </div>
+                  </div>
+                )
+              })()}
 
               {/*  Invitation preview   scroll-snap, satu section = satu layar  */}
               <div key={previewKey} style={{

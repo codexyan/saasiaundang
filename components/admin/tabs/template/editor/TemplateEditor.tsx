@@ -116,6 +116,8 @@ export default function TemplateEditor({
   const [decorPreviewKey, setDecorPreviewKey]       = useState(0)
   const [decorEditMode, setDecorEditMode]          = useState(false)
   const [selectedAssetId, setSelectedAssetId]      = useState<string | null>(null)
+  const [hiddenAssetIds, setHiddenAssetIds]        = useState<Set<string>>(new Set())
+  const [lockedAssetIds, setLockedAssetIds]        = useState<Set<string>>(new Set())
   const [decorScope, setDecorScope]                = useState<'opening' | string>('opening')
   const [sectionReplay, setSectionReplay]           = useState<{ id: string; key: number } | null>(null)
   const [saveState, setSaveState] = useState<SaveState>('idle')
@@ -162,19 +164,19 @@ export default function TemplateEditor({
   }, [config.config.meta.font.custom_fonts])
 
 
+  // Kanvas dekorasi TIDAK lagi diatur dari sini. Dulu blok ini menyalakannya
+  // hanya saat scope-nya opening dan mematikannya untuk seksi — itulah sebabnya
+  // aset seksi cuma bisa digeser lewat input angka. Sekarang DecorPanel sendiri
+  // yang menyalakannya selama tab-nya terbuka, untuk scope apa pun.
   useEffect(() => {
-    if (activeTab !== 'opening' && activeTab !== 'decor') { setDecorEditMode(false); setSelectedAssetId(null) }
-    if (activeTab === 'decor') {
-      if (decorScope === 'opening') { setPreviewMode('opening'); setDecorEditMode(true) }
-      else { setPreviewMode('invitation'); setDecorEditMode(false) }
-    }
-    else if (activeTab === 'tampilan' || activeTab === 'opening') setPreviewMode('opening')
+    if (activeTab !== 'decor') setSelectedAssetId(null)
+    if (activeTab === 'tampilan' || activeTab === 'opening') setPreviewMode('opening')
     else if (activeTab === 'konten' || activeTab === 'music') setPreviewMode('invitation')
     if (activeTab !== 'music') {
       musicAudioRef.current?.pause()
       setMusicPreviewId(null)
     }
-  }, [activeTab, decorScope])
+  }, [activeTab])
 
   const toggleMusicPreview = useCallback((songId: string, songUrl: string) => {
     if (musicPreviewId === songId) {
@@ -584,6 +586,7 @@ export default function TemplateEditor({
 
     decorScope, setDecorScope, decorEditMode, setDecorEditMode,
     selectedAssetId, setSelectedAssetId,
+    hiddenAssetIds, setHiddenAssetIds, lockedAssetIds, setLockedAssetIds,
 
     musicLibrary, musicLibraryCats, musicLibraryCat, setMusicLibraryCat,
     musicPreviewId, setMusicPreviewId, musicAudioRef, toggleMusicPreview,

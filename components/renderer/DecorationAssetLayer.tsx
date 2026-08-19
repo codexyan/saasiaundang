@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import type { Variants, TargetAndTransition, Transition } from 'framer-motion'
-import type { DecorationAsset, AssetPosition, AssetIdleAnimation, AssetExitAnimation, AssetKeyframeState, AssetKeyframeConfig, AssetKeyframeEasing } from '@/lib/types'
+import type { DecorationAsset, AssetIdleAnimation, AssetExitAnimation, AssetKeyframeState, AssetKeyframeConfig, AssetKeyframeEasing } from '@/lib/types'
 import { resolveAssetUrl } from '@/lib/built-in-assets'
 
 interface LayerProps {
@@ -12,25 +12,6 @@ interface LayerProps {
   exiting?: boolean
 }
 
-const ANCHOR: Record<AssetPosition, React.CSSProperties> = {
-  'top-left':       { top: 0,    left: 0 },
-  'top-center':     { top: 0,    left: '50%', transform: 'translateX(-50%)' },
-  'top-right':      { top: 0,    right: 0 },
-  'center-left':    { top: '50%', left: 0, transform: 'translateY(-50%)' },
-  'center':         { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' },
-  'center-right':   { top: '50%', right: 0, transform: 'translateY(-50%)' },
-  'bottom-left':    { bottom: 0, left: 0 },
-  'bottom-center':  { bottom: 0, left: '50%', transform: 'translateX(-50%)' },
-  'bottom-right':   { bottom: 0, right: 0 },
-  'top-quarter-left':    { top: '25%', left: 0, transform: 'translateY(-50%)' },
-  'top-quarter-right':   { top: '25%', right: 0, transform: 'translateY(-50%)' },
-  'bottom-quarter-left': { top: '75%', left: 0, transform: 'translateY(-50%)' },
-  'bottom-quarter-right':{ top: '75%', right: 0, transform: 'translateY(-50%)' },
-  'edge-left':      { top: '50%', left: 0, transform: 'translateY(-50%) translateX(-30%)' },
-  'edge-right':     { top: '50%', right: 0, transform: 'translateY(-50%) translateX(30%)' },
-  'edge-top':       { top: 0, left: '50%', transform: 'translateX(-50%) translateY(-30%)' },
-  'edge-bottom':    { bottom: 0, left: '50%', transform: 'translateX(-50%) translateY(30%)' },
-}
 
 type MotionTarget = TargetAndTransition
 
@@ -130,8 +111,6 @@ function DecorationAssetItem({ asset, doAnimate, exiting }: ItemProps) {
     if (doAnimate) setEntryDone(asset.animation === 'none')
   }, [doAnimate, asset.animation])
 
-  const w         = asset.width ?? 80
-  const sc        = asset.scale ?? 1
   const rotate    = asset.rotation ?? 0
   const flipH     = asset.flip_h ? -1 : 1
   const flipV     = asset.flip_v ? -1 : 1
@@ -144,19 +123,31 @@ function DecorationAssetItem({ asset, doAnimate, exiting }: ItemProps) {
   const exitDelay = (asset.exit_delay ?? 0) / 1000
   const src       = resolveAssetUrl(asset.url)
 
-  const anchorStyle = ANCHOR[asset.position] ?? ANCHOR['top-left']
-
-  const wrapStyle: React.CSSProperties = {
+  /**
+   * Penempatan dipisah dua lapis dengan sengaja.
+   *
+   * LUAR memegang posisi (left/top persen + translate(-50%,-50%) supaya x,y
+   * berarti TITIK PUSAT aset). DALAM yang dianimasikan framer-motion.
+   *
+   * Kalau keduanya digabung seperti dulu, transform animasi milik motion
+   * MENIMPA transform penempatan — anchor yang butuh translate (mis. 'center')
+   * jadi meleset begitu animasinya jalan. Bug laten yang tidak pernah terlihat
+   * hanya karena belum ada template yang memakai kombinasi itu.
+   */
+  const outerStyle: React.CSSProperties = {
     position: 'absolute',
-    width: w * sc,
+    left: `${asset.x}%`,
+    top: `${asset.y}%`,
+    width: `${asset.w}%`,
+    ...(asset.h != null ? { height: `${asset.h}%` } : {}),
+    transform: 'translate(-50%, -50%)',
     zIndex: 15 + zLayer,
-    ...anchorStyle,
-    ...(asset.offset_x != null ? { marginLeft: asset.offset_x } : {}),
-    ...(asset.offset_y != null ? { marginTop: asset.offset_y } : {}),
   }
 
   const imgStyle: React.CSSProperties = {
-    width: '100%', height: 'auto',
+    width: '100%',
+    height: asset.h != null ? '100%' : 'auto',
+    objectFit: asset.h != null ? 'fill' : undefined,
     opacity,
     transform: `rotate(${rotate}deg) scale(${flipH}, ${flipV})`,
     display: 'block',
@@ -178,14 +169,15 @@ function DecorationAssetItem({ asset, doAnimate, exiting }: ItemProps) {
     }
     const hasCustomInit = exitAnim === 'custom' && exitKf
     return (
-      <motion.div
-        style={wrapStyle}
-        {...(hasCustomInit ? { initial: keyframeToMotion(exitKf.from) as any } : {})}
-        animate={exitTarget}
-        transition={exitTransition}
-      >
-        <img src={src} alt="" draggable={false} style={imgStyle} />
-      </motion.div>
+      <div style={outerStyle}>
+        <motion.div
+          {...(hasCustomInit ? { initial: keyframeToMotion(exitKf.from) as any } : {})}
+          animate={exitTarget}
+          transition={exitTransition}
+        >
+          <img src={src} alt="" draggable={false} style={imgStyle} />
+        </motion.div>
+      </div>
     )
   }
 
@@ -193,9 +185,11 @@ function DecorationAssetItem({ asset, doAnimate, exiting }: ItemProps) {
 
   if (!doAnimate || asset.animation === 'none') {
     return (
-      <motion.div style={wrapStyle} {...idleProps}>
-        <img src={src} alt="" draggable={false} style={imgStyle} />
-      </motion.div>
+      <div style={outerStyle}>
+        <motion.div {...idleProps}>
+          <img src={src} alt="" draggable={false} style={imgStyle} />
+        </motion.div>
+      </div>
     )
   }
 
@@ -214,17 +208,18 @@ function DecorationAssetItem({ asset, doAnimate, exiting }: ItemProps) {
   }
 
   return (
-    <motion.div
-      style={wrapStyle}
-      initial="hidden"
-      animate={entryDone ? undefined : 'visible'}
-      variants={entryVariants}
-      transition={entryTransition}
-      onAnimationComplete={() => setEntryDone(true)}
-      {...(entryDone ? idleProps : {})}
-    >
-      <img src={src} alt="" draggable={false} style={imgStyle} />
-    </motion.div>
+    <div style={outerStyle}>
+      <motion.div
+        initial="hidden"
+        animate={entryDone ? undefined : 'visible'}
+        variants={entryVariants}
+        transition={entryTransition}
+        onAnimationComplete={() => setEntryDone(true)}
+        {...(entryDone ? idleProps : {})}
+      >
+        <img src={src} alt="" draggable={false} style={imgStyle} />
+      </motion.div>
+    </div>
   )
 }
 

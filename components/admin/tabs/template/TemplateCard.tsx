@@ -77,12 +77,15 @@ export default function TemplateCard({
   return (
     <div
       ref={wrapRef}
-      className={`group relative bg-white rounded-2xl overflow-hidden border border-gray-200/70 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 ${busy ? 'opacity-50 pointer-events-none' : ''}`}
+      // TANPA overflow-hidden di akar: itulah yang memotong menu aksi.
+      // Pembulatan sudut dipindah ke elemen sampul di dalamnya. z-30 saat menu
+      // terbuka supaya menunya tidak tertimpa kartu berikutnya dalam grid.
+      className={`group relative bg-white rounded-2xl border border-gray-200/70 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 ${menuOpen ? 'z-30' : ''} ${busy ? 'opacity-50 pointer-events-none' : ''}`}
     >
       {/* Sampul — klik di mana pun membuka editor desain, aksi paling sering */}
       <button
         onClick={() => onEditDesign(record)}
-        className="block w-full aspect-[9/16] relative text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-inset"
+        className="block w-full aspect-[9/16] relative text-left overflow-hidden rounded-t-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-inset"
         aria-label={`Edit desain ${record.name}`}
       >
         <TemplateThumb record={record} />
@@ -117,7 +120,7 @@ export default function TemplateCard({
         </button>
 
         {menuOpen && (
-          <div className="absolute right-0 mt-1 w-52 bg-white rounded-xl shadow-xl border border-gray-200/70 py-1 z-20 overflow-hidden">
+          <div className="absolute right-0 mt-1 w-52 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-xl border border-gray-200/70 py-1 z-50 overflow-hidden">
             <MenuItem icon={Pencil} label="Edit desain" onClick={() => run(() => onEditDesign(record))} />
             <MenuItem icon={Settings2} label="Pengaturan & harga" onClick={() => run(() => onOpenSettings(record))} />
             <MenuItem icon={Copy} label="Duplikat" onClick={() => run(() => onDuplicate(record))} />

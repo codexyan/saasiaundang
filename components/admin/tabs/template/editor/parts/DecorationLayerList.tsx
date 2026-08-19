@@ -78,8 +78,9 @@ export default function DecorationLayerList({
             onChange={e => up(asset.id, { label: e.target.value })}
             className="w-full text-xs font-bold text-gray-800 bg-transparent focus:outline-none placeholder:text-gray-400"
           />
-          <div className="flex items-center gap-2 text-[8px] text-gray-400 font-mono mt-0.5">
-            <span>{Math.round((asset.scale ?? 1) * 100)}%</span>
+          <div className="flex items-center gap-2 text-[8px] text-gray-400 font-mono mt-0.5 tabular-nums">
+            <span>{Math.round(asset.x)},{Math.round(asset.y)}</span>
+            <span>{Math.round(asset.w)}%{asset.h != null ? `×${Math.round(asset.h)}%` : ''}</span>
             <span>{asset.rotation ?? 0}°</span>
             <span className="text-indigo-500 font-bold">L{asset.z_layer ?? 0}</span>
           </div>
@@ -107,11 +108,40 @@ export default function DecorationLayerList({
 
       <div className="px-3 py-3 space-y-4">
 
-        {/*  TRANSFORM  */}
+        {/*  POSISI & UKURAN
+             Semua dalam persen kanvas. Angka boleh di luar 0-100 supaya aset
+             bisa sengaja menggantung keluar bingkai — itu justru penempatan
+             yang paling sering dipakai untuk ornamen sudut.  */}
         <div className="space-y-2">
-          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Transform</p>
-          <DSlider label="Ukuran" value={Math.round((asset.scale ?? 1) * 100)} min={10} max={300} step={5} unit="%"
-            onChange={v => up(asset.id, { scale: v / 100 })} />
+          <div className="flex items-center justify-between">
+            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Posisi &amp; Ukuran</p>
+            <span className="text-[8px] text-gray-300">% kanvas</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <NumField label="X" value={asset.x} onChange={v => up(asset.id, { x: v })} />
+            <NumField label="Y" value={asset.y} onChange={v => up(asset.id, { y: v })} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <NumField label="Lebar" value={asset.w} min={1} onChange={v => up(asset.id, { w: Math.max(1, v) })} />
+            <NumField
+              label="Tinggi"
+              value={asset.h}
+              min={1}
+              placeholder="auto"
+              onChange={v => up(asset.id, { h: v > 0 ? v : undefined })}
+            />
+          </div>
+          {asset.h != null && (
+            <button
+              onClick={() => up(asset.id, { h: undefined })}
+              className="text-[9px] font-semibold text-indigo-600 hover:text-indigo-800 hover:underline"
+            >
+              Kembalikan tinggi ke rasio asli gambar
+            </button>
+          )}
+
           <DSlider label="Opacity" value={asset.opacity ?? 100} min={5} max={100} step={5} unit="%"
             onChange={v => up(asset.id, { opacity: v })} />
           <DSlider label="Rotasi" value={asset.rotation ?? 0} min={-180} max={180} step={5} unit="°"
@@ -226,6 +256,34 @@ export default function DecorationLayerList({
 }
 
 //  Decoration sub-components 
+
+/** Angka bebas dalam persen. Sengaja tanpa clamp atas/bawah — menggantung di
+ *  luar bingkai adalah penempatan yang sah, bukan kesalahan input. */
+function NumField({ label, value, onChange, min, placeholder }: {
+  label: string
+  value: number | undefined
+  onChange: (v: number) => void
+  min?: number
+  placeholder?: string
+}) {
+  return (
+    <label className="block">
+      <span className="block text-[9px] font-semibold text-gray-400 mb-0.5">{label}</span>
+      <input
+        type="number"
+        step={0.5}
+        min={min}
+        value={value ?? ''}
+        placeholder={placeholder}
+        onChange={e => {
+          const raw = e.target.value
+          onChange(raw === '' ? 0 : Number(raw))
+        }}
+        className="w-full px-2 py-1 text-[11px] font-mono tabular-nums border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400"
+      />
+    </label>
+  )
+}
 
 function QBtn({ label, onClick, icon, active }: { label: string; onClick: () => void; icon: string; active?: boolean }) {
   return (
