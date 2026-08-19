@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/session-server'
 import { galleries, invitations } from '@/lib/db'
+import { resolveTierFeatures } from '@/lib/tiers'
 import { uploadToStorage } from '@/lib/supabase'
 import { fileExtension } from '@/lib/upload-utils'
 
 export const dynamic = 'force-dynamic'
 
-const MAX_FILES = 10
+/** Batas cadangan kalau paket undangan tidak dikenal. */
+const FALLBACK_MAX_FILES = 10
 const MAX_SIZE = 5 * 1024 * 1024 // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const ALLOWED_EXTS = ['.jpg', '.jpeg', '.png', '.webp']
@@ -39,9 +41,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Datanya tidak ditemukan.' }, { status: 404 })
     }
 
+    /**
+      * Batas foto mengikuti PAKET, bukan satu angka tetap.
+      *
+      * Dulu di sini `MAX_FILES = 10` untuk semua orang. Akibatnya pelanggan
+      * Eksklusif yang membayar untuk 50 foto tetap berhenti di 10 — dashboard
+      * mereka menampilkan "12 dari 50 foto" sementara server menolak yang ke-11.
+      * Fitur berbayar yang tidak pernah benar-benar diberikan.
+      */
+    let maxPhotos = FALLBACK_MAX_FILES
+    try {
+      const features = await resolveTierFeatures(inv.package_tier)
+      maxPhotos = features.max_photos
+    } catch {
+      // Paket tidak dikenal (mis. undangan lama tanpa tier): pakai cadangan.
+    }
+
     const existing = await galleries.findByInvitationId(invitationId)
-    if (existing.length >= MAX_FILES) {
-      return NextResponse.json({ error: `Maksimal ${MAX_FILES} foto ya.` }, { status: 400 })
+    // -1 = tanpa batas.
+    if (maxPhotos !== -1 && existing.length >= maxPhotos) {
+      return NextResponse.json(
+        { error: `Paketmu memuat maksimal ${maxPhotos} foto. Tingkatkan paket untuk menambah lagi ya.` },
+        { status: 400 },
+      )
     }
 
     if (file.size > MAX_SIZE) {

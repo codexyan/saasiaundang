@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/session-server'
 import { invitations } from '@/lib/db'
-import { getTierFeatures } from '@/lib/packages'
+import { resolveTierFeatures } from '@/lib/tiers'
 import type { PackageTier } from '@/lib/packages'
 import { readJsonBody } from '@/lib/request-body'
 import { newInvitationDataSchema } from '@/lib/schemas/invitation-data'
@@ -102,7 +102,9 @@ export async function PATCH(req: NextRequest, props: Params) {
     // Server-side tier enforcement for decoration overrides
     if (body.data?.section_decoration_overrides || body.data?.opening_decoration_overrides) {
       const tier = (inv as unknown as Record<string, unknown>).package_tier as PackageTier | undefined
-      const features = getTierFeatures(tier)
+      // Dari pengaturan admin — getTierFeatures() yang lama membaca konstanta
+      // hardcoded, jadi seluruh matriks fitur di panel bersifat write-only.
+      const features = await resolveTierFeatures(tier)
       if (!features.decoration_editing) {
         delete body.data.section_decoration_overrides
         delete body.data.opening_decoration_overrides

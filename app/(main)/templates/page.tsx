@@ -3,6 +3,7 @@ import Image from 'next/image'
 import type { Metadata } from 'next'
 import { templateRecords, settings } from '@/lib/db'
 import type { TemplateRecord, PriceTier, FlashSale } from '@/lib/types'
+import { computePrice } from '@/lib/pricing'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,33 +16,29 @@ function formatRp(n: number) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 }
 
-function getActiveFlashSale(tierId: string, flashSales: FlashSale[]): FlashSale | null {
-  const now = new Date()
-  return flashSales.find(s =>
-    s.is_active &&
-    new Date(s.start_date) <= now &&
-    new Date(s.end_date) >= now &&
-    (s.scope === 'all' || (s.scope === 'tier' && s.scope_ids.includes(tierId)))
-  ) ?? null
-}
-
-function calcDiscount(price: number, sale: FlashSale): number {
-  if (sale.discount_type === 'percentage') return Math.round(price * (1 - sale.discount_value / 100))
-  return Math.max(0, price - sale.discount_value)
-}
-
-function TemplateCard({ rec, tier, flashSale }: {
+function TemplateCard({ rec, tier, flashSales }: {
   rec: TemplateRecord
   tier?: PriceTier
-  flashSale: FlashSale | null
+  flashSales: FlashSale[]
 }) {
   const cs = rec.config.meta.color_scheme
   const opening = rec.config?.opening
   const coverPhoto = opening?.cover_photo_url || opening?.background_image
   const demoUrl = `/demo/renderer?id=${rec.id}`
   // rec.price > 0 = harga khusus template ini; 0 = ikut harga paketnya.
-  const price = rec.price > 0 ? rec.price : (tier?.price ?? 0)
-  const discountedPrice = flashSale ? calcDiscount(price, flashSale) : null
+  const basePrice = rec.price > 0 ? rec.price : (tier?.price ?? 0)
+  // FUNGSI YANG SAMA dengan /api/orders. Dulu halaman ini punya perhitungan
+  // diskonnya sendiri sementara endpoint pesanan tidak menyebut promo sama
+  // sekali — pembeli melihat harga diskon lalu ditagih harga penuh.
+  const breakdown = computePrice({
+    basePrice,
+    tierId: rec.required_package,
+    category: rec.category,
+    flashSales,
+    coupons: [],
+  })
+  const price = basePrice
+  const discountedPrice = breakdown.flashSale ? breakdown.final : null
 
   return (
     <div className="bg-chalk rounded-card overflow-hidden border border-hairline shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 flex flex-col group">
@@ -97,7 +94,7 @@ function TemplateCard({ rec, tier, flashSale }: {
               {discountedPrice != null ? (
                 <div className="flex flex-col items-end gap-1">
                   <span className="text-label-sm px-2 py-0.5 rounded-md bg-red-600 text-white">
-                    {flashSale!.discount_type === 'percentage' ? `-${flashSale!.discount_value}%` : `-${formatRp(flashSale!.discount_value)}`}
+                    &minus;{formatRp(breakdown.flashSale!.saved)}
                   </span>
                   <span className="text-label-base px-2.5 py-1 rounded-lg bg-chalk/90 text-graphite backdrop-blur-sm shadow-sm">
                     {formatRp(discountedPrice)}
@@ -292,10 +289,8 @@ export default async function TemplatesPage(props: { searchParams: Promise<{ kat
               .sort((a, b) => a.sort_order - b.sort_order)
               .map(rec => {
                 const tier = findTier(rec)
-                const tierId = tier?.id ?? rec.required_package
-                const sale = getActiveFlashSale(tierId, flashSales)
                 return (
-                  <TemplateCard key={rec.id} rec={rec} tier={tier} flashSale={sale} />
+                  <TemplateCard key={rec.id} rec={rec} tier={tier} flashSales={flashSales} />
                 )
               })}
           </div>

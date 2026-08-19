@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Check, ArrowRight, ShieldCheck, MessageCircle } from 'lucide-react'
 import { PRICING_CONFIG } from '@/lib/pricing-config'
+import { computePrice } from '@/lib/pricing'
 import { SectionContainer } from '@/components/marketing/SectionContainer'
 import { EASE, VIEWPORT_ONCE } from '@/lib/motion'
 import type { PriceTier, FlashSale } from '@/lib/types'
@@ -12,21 +13,6 @@ type CardVariant = 'light' | 'dark' | 'gold'
 
 function formatRp(n: number) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
-}
-
-function getActiveFlashSale(tierId: string, flashSales: FlashSale[]): FlashSale | null {
-  const now = new Date()
-  return flashSales.find(s =>
-    s.is_active &&
-    new Date(s.start_date) <= now &&
-    new Date(s.end_date) >= now &&
-    (s.scope === 'all' || (s.scope === 'tier' && s.scope_ids.includes(tierId)))
-  ) ?? null
-}
-
-function calcDiscountedPrice(price: number, sale: FlashSale): number {
-  if (sale.discount_type === 'percentage') return Math.round(price * (1 - sale.discount_value / 100))
-  return Math.max(0, price - sale.discount_value)
 }
 
 function PricingCard({
@@ -184,8 +170,16 @@ export default function Pricing({ priceTiers, flashSales }: PricingProps) {
             .filter(t => ['starter', 'popular', 'eksklusif'].includes(t.id))
             .sort((a, b) => a.price - b.price)
             .map((tier, i) => {
-              const sale = getActiveFlashSale(tier.id, sales)
-              const discounted = sale ? calcDiscountedPrice(tier.price, sale) : null
+              // computePrice() — FUNGSI YANG SAMA dengan /api/orders. Halaman
+              // ini dulu punya perhitungan diskonnya sendiri, jadi angka yang
+              // dipajang bisa berbeda dari yang benar-benar ditagih.
+              const breakdown = computePrice({
+                basePrice: tier.price,
+                tierId: tier.id,
+                flashSales: sales,
+                coupons: [],
+              })
+              const discounted = breakdown.flashSale ? breakdown.final : null
               const variant = TIER_VARIANTS[tier.id] ?? 'light'
               const cta = TIER_CTA[tier.id] ?? { label: `Pilih ${tier.label}`, hint: '' }
               const features = buildFeatureList(tier)
@@ -199,7 +193,7 @@ export default function Pricing({ priceTiers, flashSales }: PricingProps) {
                   badge={tier.id === 'popular' ? 'PALING DIPILIH' : tier.label.toUpperCase()}
                   price={formatRp(discounted ?? tier.price)}
                   originalPrice={discounted ? formatRp(tier.price) : undefined}
-                  discountLabel={sale ? (sale.discount_type === 'percentage' ? `-${sale.discount_value}%` : `-${formatRp(sale.discount_value)}`) : undefined}
+                  discountLabel={breakdown.flashSale ? `−${formatRp(breakdown.flashSale.saved)}` : undefined}
                   duration={tier.features ? `${tier.features.validity_days} hari` : '30 hari'}
                   features={features}
                   highlightedFeature={highlighted}

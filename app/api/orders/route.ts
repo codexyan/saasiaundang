@@ -6,6 +6,7 @@ import { runAfterResponse } from '@/lib/after-response'
 import { randomString } from '@/lib/random'
 import { createMayarPayment } from '@/lib/mayar'
 import { PACKAGES, type PackageTier } from '@/lib/packages'
+import { computePrice, checkCoupon } from '@/lib/tiers'
 import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
@@ -64,6 +65,9 @@ const orderSchema = z.object({
   template_id: z.string().min(1).max(100),
   package_tier: z.string().min(1).max(50),
   referred_by: z.string().max(50).nullish(),
+  /** Kode kupon opsional. Divalidasi ULANG di server — nilai diskon TIDAK
+   *  pernah diterima dari client. */
+  coupon_code: z.string().max(40).nullish(),
 })
 
 export async function POST(req: NextRequest) {
@@ -85,7 +89,7 @@ export async function POST(req: NextRequest) {
       groom_father, groom_mother, bride_father, bride_mother,
       groom_profession, bride_profession,
       subdomain, template_id, package_tier,
-      referred_by,
+      referred_by, coupon_code,
     } = parsed.data
 
     const slug = subdomain.toLowerCase().replace(/[^a-z0-9-]/g, '')
@@ -152,7 +156,44 @@ export async function POST(req: NextRequest) {
     }
 
     // Harga khusus per template (kalau diisi admin) menang atas harga paket.
-    const amount = template.price > 0 ? template.price : tier.price
+    const basePrice = template.price > 0 ? template.price : tier.price
+
+    /**
+     * Promo DITERAPKAN DI SINI, bukan cuma ditampilkan.
+     *
+     * Sebelumnya flash sale hanya dihitung di halaman landing dan galeri
+     * template untuk dipajang, sementara endpoint ini tidak menyebut promo
+     * sama sekali: pembeli melihat "Rp 104.300 (diskon 30%)" lalu ditagih
+     * Rp 149.000 penuh. Kupon bahkan tidak punya jalur sama sekali — tidak
+     * ada input kodenya di mana pun dan `used_count` tidak akan pernah naik.
+     *
+     * computePrice() adalah fungsi YANG SAMA yang dipakai halaman publik dan
+     * endpoint pengecekan kupon, jadi angka yang dilihat dan angka yang
+     * ditagih tidak bisa lagi berbeda.
+     */
+    // Kupon yang dikirim tapi ditolak harus MENGGAGALKAN pesanan, bukan
+    // diam-diam diabaikan — pembeli sudah melihat harga berdiskon di layar.
+    if (coupon_code) {
+      const check = checkCoupon(
+        appSettings.coupons,
+        coupon_code,
+        { tierId: package_tier, category: template.category },
+      )
+      if (!check.ok) {
+        return NextResponse.json({ error: check.message }, { status: 400 })
+      }
+    }
+
+    const price = computePrice({
+      basePrice,
+      tierId: package_tier,
+      category: template.category,
+      flashSales: appSettings.flashSales,
+      coupons: appSettings.coupons,
+      couponCode: coupon_code,
+    })
+
+    const amount = price.final
 
     const uniqueCode = generateUniqueCode()
     const totalAmount = amount + uniqueCode
@@ -186,6 +227,31 @@ export async function POST(req: NextRequest) {
       mayar_payment_link: null,
       payment_method: null,
     })
+
+    /**
+     * Kuota kupon dipakai SETELAH pesanan benar-benar terbentuk.
+     *
+     * Dinaikkan lebih awal berarti kuota terbakar walau pembuatan pesanannya
+     * gagal. Dinaikkan lewat settings.save() penuh memang bukan operasi atomik
+     * — dua pesanan yang tepat bersamaan bisa saling menimpa dan menghitung
+     * satu kali saja. Itu diterima: konsekuensi terburuknya satu kupon terpakai
+     * melebihi kuota, jauh lebih ringan daripada pembeli membayar lalu kuponnya
+     * hangus karena pesanannya gagal dibuat.
+     */
+    if (price.coupon) {
+      try {
+        const fresh = await settings.get()
+        const idx = fresh.coupons.findIndex(c => c.code === price.coupon!.code)
+        if (idx >= 0) {
+          fresh.coupons[idx] = { ...fresh.coupons[idx], used_count: fresh.coupons[idx].used_count + 1 }
+          await settings.save(fresh)
+        }
+      } catch (err) {
+        // Jangan menggagalkan pesanan yang sudah jadi hanya karena penghitung
+        // kupon gagal naik.
+        console.error('Gagal menaikkan used_count kupon:', err)
+      }
+    }
 
     runAfterResponse(
       notifyUser('order_created', order.email, {

@@ -51,6 +51,12 @@ export default async function OrderPage({ searchParams }: { searchParams: Promis
     <OrderForm
       templateId={template.id}
       templateName={template.name}
+      // Harga khusus template (0 = ikut harga paket) dan kategorinya ikut
+      // diturunkan supaya ringkasan di form memakai dasar harga YANG SAMA
+      // dengan yang dipakai server saat menagih.
+      templatePrice={template.price}
+      templateCategory={template.category}
+      flashSales={appSettings.flashSales}
       tiers={tiers}
       paymentConfig={paymentConfig}
     />

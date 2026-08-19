@@ -15,7 +15,6 @@ export interface BankAccount {
 export interface AppSettings {
   price: number
   packageName: string
-  packageDuration: number
   promoEndDate: string
   categories: TemplateCategory[]
   colorPalettes: ColorPalette[]
@@ -50,7 +49,7 @@ export interface AppSettings {
 export { BUILT_IN_CATEGORIES, BUILT_IN_PRICE_TIERS, BUILT_IN_PALETTES }
 
 const DEFAULT_SETTINGS: AppSettings = {
-  price: 149000, packageName: 'Popular', packageDuration: 3, promoEndDate: '2026-08-31',
+  price: 149000, packageName: 'Popular', promoEndDate: '2026-08-31',
   categories: BUILT_IN_CATEGORIES, colorPalettes: BUILT_IN_PALETTES,
   priceTiers: BUILT_IN_PRICE_TIERS, flashSales: [], coupons: [],
   deletedCategoryIds: [], deletedTierIds: [],

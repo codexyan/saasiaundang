@@ -3,6 +3,7 @@ import { withAdminAuth } from '@/lib/route-guards'
 import { paymentProofs, invitations, affiliates, users, settings } from '@/lib/db'
 import { subscriptions } from '@/lib/subscription'
 import { PACKAGES, type PackageTier } from '@/lib/packages'
+import { resolveExpiry } from '@/lib/tiers'
 import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
@@ -12,7 +13,7 @@ interface Params { params: Promise<{ id: string }> }
 export const PATCH = withAdminAuth<Params>(async (req, session, props) => {
   const params = await props.params;
   try {
-    const body = await readJsonBody(req) as { status: 'approved' | 'rejected'; admin_notes?: string; packageDuration?: number }
+    const body = await readJsonBody(req) as { status: 'approved' | 'rejected'; admin_notes?: string }
     const proof = await paymentProofs.findById(params.id)
     if (!proof) return NextResponse.json({ error: 'Datanya tidak ditemukan.' }, { status: 404 })
 
@@ -49,8 +50,11 @@ export const PATCH = withAdminAuth<Params>(async (req, session, props) => {
           throw new Error(`Paket "${tier}" tidak dikenal — approval dibatalkan`)
         }
 
-        const expiresAt = new Date()
-        expiresAt.setMonth(expiresAt.getMonth() + pkg.activeMonths)
+        // Masa aktif dari pengaturan admin. `packageDuration` yang dikirim
+        // panel di body request memang tidak pernah dipakai di sini — dan itu
+        // membuat PaymentTab menampilkan janji yang salah ke admin
+        // ("aktif 3 bulan") untuk paket yang sebenarnya 1 bulan.
+        const expiresAt = await resolveExpiry(tier)
 
         await invitations.update(proof.invitation_id, {
           is_paid: true,

@@ -62,12 +62,15 @@ export default async function AdminPage() {
         totalActive: allInvitations.filter((i) => i.is_published && i.is_paid).length,
         totalPaid: paidCount,
         totalUnpaid: allInvitations.filter((i) => !i.is_paid).length,
-        totalRevenue: paidCount * appSettings.price,
+        // Dijumlahkan dari pesanan yang benar-benar disetujui. Dulu
+        // `paidCount * appSettings.price` — mengalikan jumlah undangan lunas
+        // dengan SATU harga global, padahal pelanggan membayar tarif paket
+        // yang berbeda-beda dan kini bisa berdiskon.
+        totalRevenue: allOrders
+          .filter((o) => o.status === 'approved')
+          .reduce((sum, o) => sum + o.total_amount, 0),
       }}
       settings={{
-        price: appSettings.price,
-        packageName: appSettings.packageName,
-        packageDuration: appSettings.packageDuration,
         categories: appSettings.categories,
         colorPalettes: appSettings.colorPalettes,
         priceTiers: appSettings.priceTiers,

@@ -1,5 +1,6 @@
 import { prisma } from './prisma'
-import { PACKAGES, type PackageTier } from './packages'
+import type { PackageTier } from './packages'
+import { resolveExpiry } from './tiers'
 
 // ─── Domain Types ────────────────────────────────────────────
 
@@ -120,10 +121,9 @@ export const subscriptions = {
   },
 
   async create(input: CreateSubscriptionInput): Promise<SubscriptionRecord> {
-    const pkg = PACKAGES[input.tier]
     const startsAt = new Date()
-    const expiresAt = new Date()
-    expiresAt.setMonth(expiresAt.getMonth() + pkg.activeMonths)
+    // validity_days dari pengaturan admin — satu satuan untuk seluruh sistem.
+    const expiresAt = await resolveExpiry(input.tier, startsAt)
 
     const row = await prisma.subscription.create({
       data: {
@@ -188,10 +188,8 @@ export const subscriptions = {
     })
 
     const renewTier = (tier ?? old.tier) as PackageTier
-    const pkg = PACKAGES[renewTier]
     const startsAt = new Date(Math.max(old.expiresAt.getTime(), Date.now()))
-    const expiresAt = new Date(startsAt)
-    expiresAt.setMonth(expiresAt.getMonth() + pkg.activeMonths)
+    const expiresAt = await resolveExpiry(renewTier, startsAt)
 
     await prisma.subscription.update({
       where: { id: subscriptionId },

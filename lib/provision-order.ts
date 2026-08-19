@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs'
 import { orders, users, invitations } from './db'
 import { subscriptions } from './subscription'
 import { PACKAGES, type PackageTier } from './packages'
+import { resolveExpiry } from './tiers'
 import { randomString } from './random'
 import type { InvitationData } from './types'
 
@@ -77,8 +78,13 @@ export async function provisionPaidOrder(
   }
 
   // ── 2. Undangan ────────────────────────────────────────────────────────
-  const expiresAt = new Date()
-  expiresAt.setMonth(expiresAt.getMonth() + pkg.activeMonths)
+  //
+  // Masa aktif dari `validity_days` milik paket DI PENGATURAN ADMIN, bukan
+  // `pkg.activeMonths` yang hardcoded. Dulu keduanya hidup berdampingan:
+  // checkout memamerkan "aktif 90 hari" dari pengaturan, penyediaan memakai
+  // 3 bulan dari konstanta — setara hari ini, dan langsung melenceng begitu
+  // admin menyentuh salah satunya.
+  const expiresAt = await resolveExpiry(tier)
 
   // Kolom slug unik. Kalau percobaan sebelumnya sempat membuat undangannya lalu
   // gagal di langkah berikutnya, create() akan melempar — jadi pakai yang ada.

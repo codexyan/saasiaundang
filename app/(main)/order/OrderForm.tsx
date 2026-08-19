@@ -1,5 +1,8 @@
 'use client'
 
+import { computePrice } from '@/lib/pricing'
+import type { FlashSale } from '@/lib/types'
+
 import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   ChevronRight, ChevronLeft, Check, Crown, Rocket, Gem,
@@ -55,6 +58,9 @@ interface PaymentConfig {
 interface Props {
   templateId: string
   templateName: string
+  templatePrice: number
+  templateCategory: string
+  flashSales: FlashSale[]
   tiers: TierInfo[]
   paymentConfig: PaymentConfig
 }
@@ -99,7 +105,7 @@ function buildTierFeatureList(tierId: string, f: TierFeatures): FeatureItem[] {
   return list
 }
 
-export default function OrderForm({ templateId, templateName, tiers, paymentConfig }: Props) {
+export default function OrderForm({ templateId, templateName, templatePrice, templateCategory, flashSales, tiers, paymentConfig }: Props) {
   const [step, setStep] = useState<Step>(0)
 
   // Step 0: Couple data
@@ -126,6 +132,13 @@ export default function OrderForm({ templateId, templateName, tiers, paymentConf
 
   // Step 3: Payment result
   const [order, setOrder] = useState<{ order_number: string; total_amount: number; unique_code: number; amount: number } | null>(null)
+
+  //  Kupon
+  const [couponInput, setCouponInput] = useState('')
+  const [couponCode, setCouponCode] = useState<string | null>(null)
+  const [couponMsg, setCouponMsg] = useState<string | null>(null)
+  const [couponAmount, setCouponAmount] = useState<number | null>(null)
+  const [checkingCoupon, setCheckingCoupon] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null)
@@ -178,7 +191,8 @@ export default function OrderForm({ templateId, templateName, tiers, paymentConf
           bride_father: brideFather, bride_mother: brideMother,
           groom_profession: groomProfession, bride_profession: brideProfession,
           subdomain, template_id: templateId,
-          package_tier: packageTier, amount: tier?.price ?? 0,
+          package_tier: packageTier,
+          coupon_code: couponCode,
         }),
       })
       if (!res.ok) {
@@ -228,6 +242,61 @@ export default function OrderForm({ templateId, templateName, tiers, paymentConf
   }
 
   const selectedTier = tiers.find(t => t.id === packageTier)
+
+  /**
+   * Rincian harga memakai computePrice() — FUNGSI YANG SAMA dengan
+   * /api/orders. Ringkasan lama menampilkan `selectedTier.price` mentah, jadi
+   * harga khusus template dan diskon flash sale tidak terlihat sama sekali:
+   * pembeli melihat satu angka di layar ini lalu angka lain di layar transfer.
+   */
+  const priceBreakdown = selectedTier
+    ? computePrice({
+        basePrice: templatePrice > 0 ? templatePrice : selectedTier.price,
+        tierId: selectedTier.id,
+        category: templateCategory,
+        flashSales,
+        coupons: [],
+      })
+    : null
+
+  async function applyCoupon() {
+    const code = couponInput.trim()
+    if (!code || !packageTier) return
+    setCheckingCoupon(true)
+    setCouponMsg(null)
+    try {
+      const res = await fetch('/api/orders/check-coupon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, package_tier: packageTier, template_id: templateId }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!data?.ok) {
+        setCouponCode(null)
+        setCouponAmount(null)
+        setCouponMsg(data?.message || 'Kupon tidak bisa dipakai.')
+        return
+      }
+      const saved = Number(data.price?.coupon?.saved ?? 0)
+      setCouponCode(data.code)
+      setCouponAmount(saved)
+      setCouponMsg(`Kupon "${data.code}" dipakai — hemat Rp ${saved.toLocaleString('id-ID')}`)
+    } finally {
+      setCheckingCoupon(false)
+    }
+  }
+
+  function clearCoupon() {
+    setCouponCode(null)
+    setCouponAmount(null)
+    setCouponInput('')
+    setCouponMsg(null)
+  }
+
+  // Diskon kupon dihitung ulang di sini hanya untuk DITAMPILKAN. Angka yang
+  // menentukan tagihan tetap dihitung server saat pesanan dibuat.
+  const couponSaved = couponCode && couponAmount != null ? couponAmount : 0
+  const finalPrice = Math.max(0, (priceBreakdown?.final ?? 0) - couponSaved)
 
   return (
     <div className="min-h-screen bg-ivory pt-24 pb-16">
@@ -489,8 +558,70 @@ export default function OrderForm({ templateId, templateName, tiers, paymentConf
                     <div className="flex justify-between text-body-sm"><span className="text-concrete">Template</span><span className="font-medium text-graphite">{templateName}</span></div>
                     <div className="flex justify-between text-body-sm"><span className="text-concrete">Paket</span><span className="font-medium text-graphite">{selectedTier.label}</span></div>
                     <div className="border-t border-hairline my-2" />
-                    <div className="flex justify-between items-baseline"><span className="text-body-base font-semibold text-carbon">Total</span><span className="font-display text-h2 text-forest-deep">Rp {selectedTier.price.toLocaleString('id-ID')}</span></div>
+
+                    <div className="flex justify-between text-body-sm">
+                      <span className="text-concrete">Harga</span>
+                      <span className="text-graphite">Rp {(priceBreakdown?.base ?? 0).toLocaleString('id-ID')}</span>
+                    </div>
+                    {priceBreakdown?.flashSale && (
+                      <div className="flex justify-between text-body-sm">
+                        <span className="text-forest">{priceBreakdown.flashSale.label}</span>
+                        <span className="text-forest">&minus; Rp {priceBreakdown.flashSale.saved.toLocaleString('id-ID')}</span>
+                      </div>
+                    )}
+                    {couponSaved > 0 && (
+                      <div className="flex justify-between text-body-sm">
+                        <span className="text-forest">Kupon {couponCode}</span>
+                        <span className="text-forest">&minus; Rp {couponSaved.toLocaleString('id-ID')}</span>
+                      </div>
+                    )}
+
+                    <div className="border-t border-hairline my-2" />
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-body-base font-semibold text-carbon">Total</span>
+                      <span className="font-display text-h2 text-forest-deep">
+                        Rp {finalPrice.toLocaleString('id-ID')}
+                      </span>
+                    </div>
                   </div>
+
+                  {/* Kode kupon — sebelumnya fitur kupon tidak punya jalur
+                      masuk sama sekali, jadi kode yang dibuat admin tidak
+                      pernah bisa dipakai siapa pun. */}
+                  <div className="mt-4 pt-4 border-t border-hairline">
+                    {couponCode ? (
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-body-sm text-forest font-medium">{couponMsg}</p>
+                        <button type="button" onClick={clearCoupon}
+                          className="text-body-xs text-concrete hover:text-graphite underline shrink-0">
+                          Hapus
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <label className="block text-label-sm text-concrete mb-1.5">Punya kode kupon?</label>
+                        <div className="flex gap-2">
+                          <input
+                            value={couponInput}
+                            onChange={e => setCouponInput(e.target.value.toUpperCase())}
+                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); applyCoupon() } }}
+                            placeholder="KODEKUPON"
+                            className="flex-1 px-3 py-2 text-body-sm font-mono uppercase border border-hairline rounded-button focus:outline-none focus:ring-2 focus:ring-forest/30"
+                          />
+                          <button
+                            type="button"
+                            onClick={applyCoupon}
+                            disabled={!couponInput.trim() || checkingCoupon}
+                            className="px-4 py-2 text-button-sm font-semibold text-graphite bg-mist rounded-button hover:bg-hairline disabled:opacity-40 transition-colors shrink-0"
+                          >
+                            {checkingCoupon ? 'Cek...' : 'Pakai'}
+                          </button>
+                        </div>
+                        {couponMsg && <p className="mt-1.5 text-body-xs text-red-600">{couponMsg}</p>}
+                      </>
+                    )}
+                  </div>
+
                   <p className="text-body-xs text-concrete mt-3">* Kami tambahkan kode unik kecil saat konfirmasi supaya pembayaran kalian lebih mudah dicek</p>
                 </div>
               )}

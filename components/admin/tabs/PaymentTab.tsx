@@ -24,7 +24,6 @@ interface PaymentConfig {
 interface Props {
   config: PaymentConfig
   proofs: PaymentProof[]
-  packageDuration: number
   onConfigUpdate: (config: PaymentConfig) => void
   onProofReview: (proofId: string, status: 'approved' | 'rejected', notes: string) => Promise<void>
 }
@@ -58,7 +57,7 @@ const BANK_PRESETS: { name: string; color: string; textColor: string }[] = [
   { name: 'Seabank', color: '#2AA0A0', textColor: '#ffffff' },
 ]
 
-export default function PaymentTab({ config, proofs, packageDuration, onConfigUpdate, onProofReview }: Props) {
+export default function PaymentTab({ config, proofs, onConfigUpdate, onProofReview }: Props) {
   const [subTab, setSubTab] = useState<SubTab>('config')
   const pendingCount = proofs.filter((p) => p.status === 'pending').length
 
@@ -103,7 +102,7 @@ export default function PaymentTab({ config, proofs, packageDuration, onConfigUp
         <PaymentConfigTab config={config} onUpdate={onConfigUpdate} />
       )}
       {subTab === 'proofs' && (
-        <ProofsTab proofs={proofs} packageDuration={packageDuration} onReview={onProofReview} />
+        <ProofsTab proofs={proofs} onReview={onProofReview} />
       )}
     </div>
   )
@@ -513,9 +512,8 @@ function PaymentConfigTab({ config, onUpdate }: { config: PaymentConfig; onUpdat
 
 type ProofFilter = 'all' | 'pending' | 'approved' | 'rejected'
 
-function ProofsTab({ proofs, packageDuration, onReview }: {
+function ProofsTab({ proofs, onReview }: {
   proofs: PaymentProof[]
-  packageDuration: number
   onReview: (id: string, status: 'approved' | 'rejected', notes: string) => Promise<void>
 }) {
   const [filter, setFilter] = useState<ProofFilter>('pending')
@@ -726,7 +724,12 @@ function ProofsTab({ proofs, packageDuration, onReview }: {
                     <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                     <p className="text-sm font-semibold text-emerald-800">Setujui Transfer</p>
                   </div>
-                  <p className="text-xs text-emerald-700">Undangan <strong className="font-mono">/{proof.slug}</strong> akan langsung diaktifkan selama {packageDuration} bulan.</p>
+                  {/* Durasinya SENGAJA tidak disebut di sini. Kalimat lama menampilkan
+                      settings.packageDuration — satu angka global yang tidak pernah
+                      dipakai endpoint approval; paket Starter diaktifkan 30 hari
+                      sementara admin dijanjikan 3 bulan. Masa aktif kini dihitung
+                      server dari paket undangannya. */}
+                  <p className="text-xs text-emerald-700">Undangan <strong className="font-mono">/{proof.slug}</strong> akan langsung diaktifkan sesuai masa aktif paketnya.</p>
                   <textarea
                     value={adminNotes}
                     onChange={(e) => setAdminNotes(e.target.value)}

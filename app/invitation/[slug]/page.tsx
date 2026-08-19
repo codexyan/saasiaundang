@@ -3,7 +3,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { invitations, galleries, wishes, guests, templateRecords } from '@/lib/db'
 import { isExpired } from '@/lib/utils'
-import { getPackage, type PackageTier } from '@/lib/packages'
+import type { PackageTier } from '@/lib/packages'
+import { resolveTierFeatures } from '@/lib/tiers'
 import { subscriptions, isActive as isSubActive, isTrial, isInGracePeriod } from '@/lib/subscription'
 
 export const dynamic = 'force-dynamic'
@@ -68,8 +69,11 @@ export default async function InvitationPage(props0: Props) {
   }
 
   const tier = (invitation as unknown as Record<string, unknown>).package_tier as PackageTier | undefined
-  const pkg = getPackage(tier)
-  const showWatermark = !invitation.is_paid || !pkg.hasWatermarkFree
+  // Watermark mengikuti `remove_watermark` di PENGATURAN ADMIN. Dulu memakai
+  // `pkg.hasWatermarkFree` yang hardcoded, sehingga mematikan watermark lewat
+  // panel Paket & Promo tidak berpengaruh apa pun.
+  const tierFeatures = await resolveTierFeatures(tier).catch(() => null)
+  const showWatermark = !invitation.is_paid || !tierFeatures?.remove_watermark
 
   // Build Event structured data for SEO
   const isLegacyData = (LEGACY_TEMPLATE_IDS as string[]).includes(invitation.template_id)

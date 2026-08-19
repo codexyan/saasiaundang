@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getSession } from '@/lib/session-server'
+import { resolveTierFeatures } from '@/lib/tiers'
 import { guests, invitations } from '@/lib/db'
 import { readJsonBody } from '@/lib/request-body'
 
@@ -55,6 +56,30 @@ export async function POST(req: NextRequest) {
   const inv = await invitations.findById(parsed.data.invitation_id)
   if (!inv || inv.user_id !== session.userId) {
     return NextResponse.json({ error: 'Datanya tidak ditemukan.' }, { status: 404 })
+  }
+
+  /**
+   * Batas tamu mengikuti paket.
+   *
+   * `max_guests` sudah lama ada di definisi paket dan ditampilkan ke pembeli
+   * di halaman harga ("hingga 200 tamu"), tapi TIDAK ADA satu pun tempat yang
+   * menegakkannya — batas itu murni tulisan pemasaran. Sekarang ditegakkan di
+   * satu-satunya jalur yang menambah tamu.
+   */
+  try {
+    const features = await resolveTierFeatures(inv.package_tier)
+    // -1 = tanpa batas.
+    if (features.max_guests !== -1) {
+      const existing = await guests.findByInvitationId(parsed.data.invitation_id)
+      if (existing.length >= features.max_guests) {
+        return NextResponse.json(
+          { error: `Paketmu memuat maksimal ${features.max_guests} tamu. Tingkatkan paket untuk menambah lagi ya.` },
+          { status: 400 },
+        )
+      }
+    }
+  } catch {
+    // Paket tidak dikenal (undangan lama tanpa tier): jangan menghalangi.
   }
 
   const guest = await guests.create({
