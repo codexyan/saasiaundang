@@ -352,7 +352,6 @@ export default function TemplateEditor({
       order: maxOrder + 1,
       enabled: true,
       background: { type: 'color' as const, value: cfg.meta.color_scheme.primary },
-      decoration_images: [] as string[],
       transition_in: 'fade' as const,
       transition_out: 'fade' as const,
       user_fields: [] as string[],
