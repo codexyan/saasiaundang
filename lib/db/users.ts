@@ -20,9 +20,40 @@ function mapUser(u: { id: string; email: string; passwordHash: string; role: str
 //  USERS
 
 export const users = {
+  /**
+   * Cari akun lewat email, TANPA cache — pola `NOW()` yang sama dengan
+   * sessionEpoch() di bawah.
+   *
+   * Semua pemanggilnya bersifat akun-kritis: login, pendaftaran, pembuatan
+   * akun afiliasi, dan penyediaan pesanan yang disetujui. Cache query
+   * Hyperdrive (60 detik) merusak persis rangkaian itu, dan sudah dibuktikan
+   * langsung di produksi:
+   *
+   *   provisionPaidOrder() memanggil findByEmail(email) -> belum ada.
+   *   Hasil "tidak ada" itu tersimpan di cache. Akun lalu dibuat, admin
+   *   meneruskan kata sandinya, dan login pembeli dalam ~60 detik berikutnya
+   *   membaca jawaban lama yang sama: "Email atau passwordnya belum cocok."
+   *   Diuji tiap 10 detik: 401 pada detik 0/10/20/30/40/50/60, baru 200 pada
+   *   detik 70.
+   *
+   * Semua pemanggilnya jarang dan tidak pernah di jalur halaman publik, jadi
+   * satu round-trip database di sini tidak terasa.
+   */
   async findByEmail(email: string): Promise<DbUser | null> {
-    const u = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
-    return u ? mapUser(u) : null
+    const rows = await prisma.$queryRaw<{
+      id: string; email: string; password_hash: string; role: string
+      referral_code: string | null; created_at: Date
+    }[]>`
+      SELECT id, email, password_hash, role, referral_code, created_at, NOW() AS uncached_marker
+      FROM users WHERE email = ${email.toLowerCase()} LIMIT 1
+    `
+    if (rows.length === 0) return null
+    const u = rows[0]
+    return mapUser({
+      id: u.id, email: u.email, passwordHash: u.password_hash, role: u.role,
+      referralCode: u.referral_code,
+      createdAt: u.created_at instanceof Date ? u.created_at : new Date(u.created_at),
+    })
   },
   async findById(id: string): Promise<DbUser | null> {
     const u = await prisma.user.findUnique({ where: { id } })
