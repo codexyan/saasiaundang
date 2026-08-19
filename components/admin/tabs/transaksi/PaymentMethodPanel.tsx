@@ -3,13 +3,9 @@
 import { useState, useRef } from 'react'
 import toast from 'react-hot-toast'
 import {
-  Plus, Trash2, Save, CheckCircle2, XCircle, Clock,
-  Landmark, QrCode, Eye, Upload,
-  CreditCard, ToggleLeft, ToggleRight, Loader2,
-  Phone, FileText, AlertTriangle, Image as ImageIcon,
-  X, Edit3, Building2, Hash, User, Info,
+  Plus, Trash2, Save, Landmark, QrCode, Upload, ToggleLeft, ToggleRight, Loader2, Phone, FileText, X, Edit3, Building2, Hash, User,
 } from 'lucide-react'
-import type { BankAccount, PaymentProof } from '@/lib/db'
+import type { BankAccount } from '@/lib/db'
 import { formatPrice } from '@/lib/utils'
 import BankCard from '@/components/ui/BankCard'
 import { Button } from '@/components/ui/Button'
@@ -20,15 +16,6 @@ interface PaymentConfig {
   paymentInstructions: string
   confirmationWhatsapp: string
 }
-
-interface Props {
-  config: PaymentConfig
-  proofs: PaymentProof[]
-  onConfigUpdate: (config: PaymentConfig) => void
-  onProofReview: (proofId: string, status: 'approved' | 'rejected', notes: string) => Promise<void>
-}
-
-type SubTab = 'config' | 'proofs'
 
 const DEFAULT_INSTRUCTIONS = `Pastikan nominal transfer sesuai dengan total tagihan (termasuk kode unik) agar pembayaran dapat diverifikasi secara otomatis.
 
@@ -57,60 +44,17 @@ const BANK_PRESETS: { name: string; color: string; textColor: string }[] = [
   { name: 'Seabank', color: '#2AA0A0', textColor: '#ffffff' },
 ]
 
-export default function PaymentTab({ config, proofs, onConfigUpdate, onProofReview }: Props) {
-  const [subTab, setSubTab] = useState<SubTab>('config')
-  const pendingCount = proofs.filter((p) => p.status === 'pending').length
-
-  return (
-    <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
-          <CreditCard className="w-5 h-5 text-indigo-600" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Pembayaran</h1>
-          <p className="text-sm text-gray-500">Kelola metode pembayaran, QRIS, dan verifikasi transfer</p>
-        </div>
-      </div>
-
-      {/* Sub-tab switcher */}
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit">
-        <button
-          onClick={() => setSubTab('config')}
-          className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${subTab === 'config' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-        >
-          <Landmark className="w-4 h-4" />
-          Rekening & QRIS
-        </button>
-        <button
-          onClick={() => setSubTab('proofs')}
-          className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${subTab === 'proofs' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-        >
-          <Clock className="w-4 h-4" />
-          Verifikasi Transfer
-          {pendingCount > 0 && (
-            <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-              {pendingCount}
-            </span>
-          )}
-        </button>
-      </div>
-
-      {/* Content */}
-      {subTab === 'config' && (
-        <PaymentConfigTab config={config} onUpdate={onConfigUpdate} />
-      )}
-      {subTab === 'proofs' && (
-        <ProofsTab proofs={proofs} onReview={onProofReview} />
-      )}
-    </div>
-  )
-}
-
-// ─── Payment Config ─────────────────────────────────────────
-
-function PaymentConfigTab({ config, onUpdate }: { config: PaymentConfig; onUpdate: (c: PaymentConfig) => void }) {
+/**
+ * Metode pembayaran yang dilihat pembeli.
+ *
+ * Dulu ini separuh dari tab "Pembayaran"; separuh lainnya adalah antrean
+ * review bukti transfer yang TIDAK PERNAH menerima satu baris pun — tidak ada
+ * UI yang bisa mengirim bukti, jadi admin membuka antrean yang mustahil
+ * terisi. Separuh yang mati sudah dihapus, dan yang ini pindah ke modul
+ * Transaksi karena memang instruksi yang diikuti pembeli untuk membayar
+ * pesanannya.
+ */
+export default function PaymentMethodPanel({ config, onUpdate }: { config: PaymentConfig; onUpdate: (c: PaymentConfig) => void }) {
   const [accounts, setAccounts] = useState<BankAccount[]>(config.bankAccounts)
   const [qrisUrl, setQrisUrl] = useState(config.qrisImageUrl)
   const [instructions, setInstructions] = useState(config.paymentInstructions || DEFAULT_INSTRUCTIONS)
@@ -503,282 +447,6 @@ function PaymentConfigTab({ config, onUpdate }: { config: PaymentConfig; onUpdat
             {saving ? 'Menyimpan...' : 'Simpan Semua'}
           </Button>
         </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── Proofs Verification ────────────────────────────────────
-
-type ProofFilter = 'all' | 'pending' | 'approved' | 'rejected'
-
-function ProofsTab({ proofs, onReview }: {
-  proofs: PaymentProof[]
-  onReview: (id: string, status: 'approved' | 'rejected', notes: string) => Promise<void>
-}) {
-  const [filter, setFilter] = useState<ProofFilter>('pending')
-  const [reviewingId, setReviewingId] = useState<string | null>(null)
-  const [adminNotes, setAdminNotes] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  const filtered = proofs.filter((p) => filter === 'all' || p.status === filter)
-  const pendingCount = proofs.filter(p => p.status === 'pending').length
-  const approvedCount = proofs.filter(p => p.status === 'approved').length
-  const rejectedCount = proofs.filter(p => p.status === 'rejected').length
-
-  async function handleReview(proof: PaymentProof, status: 'approved' | 'rejected') {
-    setLoading(true)
-    await onReview(proof.id, status, adminNotes)
-    setLoading(false)
-    setReviewingId(null)
-    setAdminNotes('')
-  }
-
-  const FILTERS: { id: ProofFilter; label: string; count: number; color: string }[] = [
-    { id: 'pending', label: 'Menunggu', count: pendingCount, color: 'amber' },
-    { id: 'approved', label: 'Disetujui', count: approvedCount, color: 'emerald' },
-    { id: 'rejected', label: 'Ditolak', count: rejectedCount, color: 'red' },
-    { id: 'all', label: 'Semua', count: proofs.length, color: 'gray' },
-  ]
-
-  return (
-    <div className="space-y-5">
-
-      {/* Context: this tab is for manual payments only */}
-      <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex items-start gap-3">
-        <Info className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
-        <div>
-          <p className="text-sm font-semibold text-indigo-900">
-            Tab ini khusus untuk pembayaran manual (transfer bank)
-          </p>
-          <p className="text-xs text-indigo-600 mt-0.5">
-            Order yang dibayar via Mayar (QRIS/e-wallet) sudah otomatis aktif tanpa perlu verifikasi di sini.
-            Cek tab &ldquo;Pesanan&rdquo; untuk melihat semua order termasuk yang sudah otomatis.
-          </p>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-amber-50 rounded-2xl border border-amber-100 p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <Clock className="w-4 h-4 text-amber-500" />
-            <p className="text-[11px] text-amber-600 font-semibold uppercase tracking-wider">Menunggu</p>
-          </div>
-          <p className="text-2xl font-bold text-amber-800">{pendingCount}</p>
-        </div>
-        <div className="bg-emerald-50 rounded-2xl border border-emerald-100 p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-            <p className="text-[11px] text-emerald-600 font-semibold uppercase tracking-wider">Disetujui</p>
-          </div>
-          <p className="text-2xl font-bold text-emerald-800">{approvedCount}</p>
-        </div>
-        <div className="bg-red-50 rounded-2xl border border-red-100 p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <XCircle className="w-4 h-4 text-red-500" />
-            <p className="text-[11px] text-red-600 font-semibold uppercase tracking-wider">Ditolak</p>
-          </div>
-          <p className="text-2xl font-bold text-red-800">{rejectedCount}</p>
-        </div>
-      </div>
-
-      {/* Filter tabs */}
-      <div className="flex gap-1 bg-white border border-gray-100 rounded-xl p-1 w-fit shadow-sm">
-        {FILTERS.map((f) => (
-          <button
-            key={f.id}
-            onClick={() => setFilter(f.id)}
-            className={`px-4 py-2 text-xs font-medium rounded-lg transition-all flex items-center gap-1.5 ${
-              filter === f.id ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            {f.label}
-            {f.count > 0 && (
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                filter === f.id ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
-              }`}>
-                {f.count}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Empty state */}
-      {filtered.length === 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center shadow-sm">
-          <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
-            <CheckCircle2 className="w-6 h-6 text-gray-300" />
-          </div>
-          <p className="text-sm font-medium text-gray-500">
-            {filter === 'pending' ? 'Tidak ada bukti transfer yang menunggu verifikasi' : 'Tidak ada data untuk filter ini'}
-          </p>
-        </div>
-      )}
-
-      {/* Proof cards */}
-      <div className="space-y-3">
-        {filtered.map((proof) => (
-          <div key={proof.id} className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all ${
-            proof.status === 'pending' ? 'border-amber-200 hover:border-amber-300' :
-            proof.status === 'approved' ? 'border-emerald-200' : 'border-red-200'
-          }`}>
-            {/* Status accent */}
-            <div className={`h-1 ${
-              proof.status === 'pending' ? 'bg-amber-400' :
-              proof.status === 'approved' ? 'bg-emerald-400' : 'bg-red-400'
-            }`} />
-
-            <div className="p-5">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  {/* Status + timestamp */}
-                  <div className="flex items-center gap-2 flex-wrap mb-3">
-                    <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg ${
-                      proof.status === 'pending' ? 'bg-amber-100 text-amber-700' :
-                      proof.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
-                    }`}>
-                      {proof.status === 'pending' && <Clock className="w-3 h-3" />}
-                      {proof.status === 'approved' && <CheckCircle2 className="w-3 h-3" />}
-                      {proof.status === 'rejected' && <XCircle className="w-3 h-3" />}
-                      {proof.status === 'pending' ? 'Menunggu' : proof.status === 'approved' ? 'Disetujui' : 'Ditolak'}
-                    </span>
-                    <span className="text-[11px] text-gray-400">
-                      {new Date(proof.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-
-                  {/* Info grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3">
-                    <div>
-                      <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-0.5">Email</p>
-                      <p className="text-sm font-medium text-gray-800 break-all">{proof.user_email}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-0.5">Undangan</p>
-                      <p className="text-sm font-mono text-indigo-600 font-medium">/{proof.slug}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-0.5">Nominal</p>
-                      <p className="text-sm font-bold text-gray-900">{formatPrice(proof.amount)}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-0.5">Bank</p>
-                      <p className="text-sm text-gray-800">{proof.bank_name || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-0.5">Tanggal Transfer</p>
-                      <p className="text-sm text-gray-800">{proof.transfer_date || '-'}</p>
-                    </div>
-                    {proof.proof_url && (
-                      <div>
-                        <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-0.5">Bukti</p>
-                        <a href={proof.proof_url} target="_blank" rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-700 font-semibold">
-                          <Eye className="w-3 h-3" /> Lihat bukti
-                        </a>
-                      </div>
-                    )}
-                  </div>
-
-                  {proof.notes && (
-                    <div className="mt-3 rounded-lg bg-gray-50 px-3 py-2">
-                      <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-0.5">Catatan User</p>
-                      <p className="text-xs text-gray-700">{proof.notes}</p>
-                    </div>
-                  )}
-                  {proof.admin_notes && (
-                    <div className={`mt-2 rounded-lg px-3 py-2 ${
-                      proof.status === 'approved' ? 'bg-emerald-50' : proof.status === 'rejected' ? 'bg-red-50' : 'bg-gray-50'
-                    }`}>
-                      <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold mb-0.5">Catatan Admin</p>
-                      <p className="text-xs text-gray-700">{proof.admin_notes}</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Action buttons */}
-                {proof.status === 'pending' && reviewingId !== proof.id && reviewingId !== proof.id + '-reject' && (
-                  <div className="flex flex-col gap-2 shrink-0">
-                    <button
-                      onClick={() => { setReviewingId(proof.id); setAdminNotes('') }}
-                      className="flex items-center gap-1.5 bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-sm"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Setujui
-                    </button>
-                    <button
-                      onClick={() => { setReviewingId(proof.id + '-reject'); setAdminNotes('') }}
-                      className="flex items-center gap-1.5 bg-white text-red-600 border border-red-200 px-4 py-2.5 rounded-xl text-xs font-semibold hover:bg-red-50 transition-colors"
-                    >
-                      <XCircle className="w-3.5 h-3.5" /> Tolak
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Approve review form */}
-              {reviewingId === proof.id && (
-                <div className="mt-4 bg-emerald-50 border border-emerald-200 rounded-xl p-4 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <p className="text-sm font-semibold text-emerald-800">Setujui Transfer</p>
-                  </div>
-                  {/* Durasinya SENGAJA tidak disebut di sini. Kalimat lama menampilkan
-                      settings.packageDuration — satu angka global yang tidak pernah
-                      dipakai endpoint approval; paket Starter diaktifkan 30 hari
-                      sementara admin dijanjikan 3 bulan. Masa aktif kini dihitung
-                      server dari paket undangannya. */}
-                  <p className="text-xs text-emerald-700">Undangan <strong className="font-mono">/{proof.slug}</strong> akan langsung diaktifkan sesuai masa aktif paketnya.</p>
-                  <textarea
-                    value={adminNotes}
-                    onChange={(e) => setAdminNotes(e.target.value)}
-                    placeholder="Catatan untuk user (opsional)..."
-                    rows={2}
-                    className="w-full px-3.5 py-2.5 text-sm border border-emerald-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 resize-none bg-white"
-                  />
-                  <div className="flex gap-2">
-                    <button onClick={() => handleReview(proof, 'approved')} disabled={loading}
-                      className="flex items-center gap-1.5 bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 shadow-sm">
-                      {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                      {loading ? 'Memproses...' : 'Konfirmasi Setujui'}
-                    </button>
-                    <button onClick={() => setReviewingId(null)} className="px-4 py-2.5 text-sm text-gray-500 hover:text-gray-700 font-medium">
-                      Batal
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Reject review form */}
-              {reviewingId === proof.id + '-reject' && (
-                <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-4 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-red-600" />
-                    <p className="text-sm font-semibold text-red-800">Tolak Transfer</p>
-                  </div>
-                  <textarea
-                    value={adminNotes}
-                    onChange={(e) => setAdminNotes(e.target.value)}
-                    placeholder="Alasan penolakan (wajib diisi agar customer mengerti)..."
-                    rows={3}
-                    className="w-full px-3.5 py-2.5 text-sm border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 resize-none bg-white"
-                  />
-                  <div className="flex gap-2">
-                    <Button variant="danger" onClick={() => handleReview(proof, 'rejected')} disabled={loading || !adminNotes.trim()}
-                      className="px-5">
-                      {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
-                      {loading ? 'Memproses...' : 'Konfirmasi Tolak'}
-                    </Button>
-                    <button onClick={() => setReviewingId(null)} className="px-4 py-2.5 text-sm text-gray-500 hover:text-gray-700 font-medium">
-                      Batal
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   )

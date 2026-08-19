@@ -47,7 +47,6 @@ model User {
   sessionEpoch Int      @default(0) @map("session_epoch")
 
   invitations    Invitation[]
-  paymentProofs  PaymentProof[]
   articles       Article[]
   affiliate      Affiliate?
   writerProfile  WriterProfile?
@@ -76,7 +75,6 @@ model Invitation {
   galleries     Gallery[]
   guests        Guest[]
   wishes        Wish[]
-  paymentProofs PaymentProof[]
   giftProofs    GiftProof[]
   views         InvitationView[]
 
@@ -153,33 +151,6 @@ model TemplateRecord {
 
   @@index([status])
   @@map("template_records")
-}
-
-// ─── PAYMENT PROOFS ───────────────────────────────────────────
-model PaymentProof {
-  id           String    @id @default(cuid())
-  invitationId String    @map("invitation_id")
-  userId       String    @map("user_id")
-  orderId      String?   @map("order_id")
-  userEmail    String    @map("user_email")
-  slug         String
-  amount       Int       @default(0)
-  bankName     String    @default("") @map("bank_name")
-  transferDate String    @default("") @map("transfer_date")
-  proofUrl     String    @default("") @map("proof_url")
-  notes        String    @default("")
-  status       String    @default("pending")
-  adminNotes   String    @default("") @map("admin_notes")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  reviewedAt   DateTime? @map("reviewed_at")
-
-  invitation Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([orderId])
-  @@index([invitationId])
-  @@map("payment_proofs")
 }
 
 // ─── GIFT PROOFS ──────────────────────────────────────────────

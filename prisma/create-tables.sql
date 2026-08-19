@@ -72,24 +72,6 @@ create table if not exists template_records (
 );
 
 -- PAYMENT PROOFS
-create table if not exists payment_proofs (
-  id            text primary key,
-  invitation_id text not null references invitations(id) on delete cascade,
-  user_id       text not null references users(id) on delete cascade,
-  user_email    text not null,
-  slug          text not null,
-  amount        int  not null default 0,
-  bank_name     text not null default '',
-  transfer_date text not null default '',
-  proof_url     text not null default '',
-  notes         text not null default '',
-  status        text not null default 'pending',
-  admin_notes   text not null default '',
-  created_at    timestamptz not null default now(),
-  reviewed_at   timestamptz
-);
-create index if not exists idx_payment_proofs_user_id       on payment_proofs(user_id);
-create index if not exists idx_payment_proofs_invitation_id on payment_proofs(invitation_id);
 
 -- APP SETTINGS (satu row, key = 'main')
 create table if not exists app_settings (

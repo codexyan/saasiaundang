@@ -11,7 +11,7 @@ import {
 import Image from 'next/image'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
-import type { BankAccount, PaymentProof } from '@/lib/db'
+import type { BankAccount } from '@/lib/db'
 import type { TemplateRecord, TemplateCategory, ColorPalette, PriceTier, FlashSale, Coupon } from '@/lib/types'
 import DashboardTab from './tabs/DashboardTab'
 import type { SiteSettings } from './tabs/SettingsTab'
@@ -26,9 +26,8 @@ const TAB_LOADING = <div className="flex items-center justify-center py-24 text-
 const UsersTab = dynamic(() => import('./tabs/UsersTab'), { loading: () => TAB_LOADING, ssr: false })
 // InvitationsTab merged into UsersTab
 const TemplateModule = dynamic(() => import('./tabs/template/TemplateModule'), { loading: () => TAB_LOADING, ssr: false })
-const PaymentTab = dynamic(() => import('./tabs/PaymentTab'), { loading: () => TAB_LOADING, ssr: false })
 const MusicLibraryTab = dynamic(() => import('./tabs/music/MusicModule'), { loading: () => TAB_LOADING, ssr: false })
-const OrdersTab = dynamic(() => import('./tabs/orders/OrdersTab'), { loading: () => TAB_LOADING, ssr: false })
+const TransaksiModule = dynamic(() => import('./tabs/transaksi/TransaksiModule'), { loading: () => TAB_LOADING, ssr: false })
 const PricingTab = dynamic(() => import('./tabs/pricing/PricingTab'), { loading: () => TAB_LOADING, ssr: false })
 const ArticlesTab = dynamic(() => import('./tabs/ArticlesTab'), { loading: () => TAB_LOADING, ssr: false })
 const WriterTab = dynamic(() => import('./tabs/WriterTab'), { loading: () => TAB_LOADING, ssr: false })
@@ -107,38 +106,43 @@ interface Props {
   users: AdminUser[]
   invitations: AdminInvitation[]
   orders: AdminOrder[]
-  proofs: PaymentProof[]
   stats: Stats
   settings: LocalAppSettings
   templateRecords: TemplateRecord[]
   adminEmail: string
 }
 
-type NavTab = 'dashboard' | 'users' | 'template' | 'music' | 'pricing' | 'orders' | 'payment' | 'articles' | 'writers' | 'affiliates' | 'settings'
+type NavTab = 'dashboard' | 'users' | 'template' | 'music' | 'pricing' | 'transaksi' | 'articles' | 'writers' | 'affiliates' | 'settings'
 
-const VALID_TABS: NavTab[] = ['dashboard', 'users', 'template', 'music', 'pricing', 'orders', 'payment', 'articles', 'writers', 'affiliates', 'settings']
+const VALID_TABS: NavTab[] = ['dashboard', 'users', 'template', 'music', 'pricing', 'transaksi', 'articles', 'writers', 'affiliates', 'settings']
 
 /** Tab yang mengelola tinggi layarnya sendiri (punya panel/scroll internal).
  *  Sisanya dibiarkan halaman yang men-scroll. */
-const FULL_HEIGHT_TABS = new Set<NavTab>(['template', 'music', 'pricing', 'settings'])
+const FULL_HEIGHT_TABS = new Set<NavTab>(['template', 'music', 'pricing', 'transaksi', 'settings'])
 
 /** Tab lama -> tab baru. Tautan/bookmark ke ?tab=lab masih beredar di riwayat
  *  browser admin; tanpa peta ini mereka mendarat di Dashboard tanpa penjelasan. */
-const LEGACY_TAB_ALIASES: Record<string, NavTab> = { lab: 'template', packages: 'pricing' }
+const LEGACY_TAB_ALIASES: Record<string, NavTab> = {
+  lab: 'template', packages: 'pricing',
+  // Pembayaran + Pesanan digabung jadi satu modul.
+  payment: 'transaksi', orders: 'transaksi',
+}
 
 //  Main Component 
 
 export default function AdminPanel({
   users: initialUsers,
   invitations: initialInvitations,
-  orders,
-  proofs: initialProofs,
+  orders: initialOrders,
   stats: initialStats,
   settings: initialSettings,
   templateRecords: initialTemplateRecords,
   adminEmail,
 }: Props) {
   const [templateRecords, setTemplateRecords] = useState<TemplateRecord[]>(initialTemplateRecords)
+  // Pesanan jadi state supaya verifikasi di modul Transaksi langsung terlihat
+  // di lencana sidebar dan ringkasan dashboard tanpa reload halaman.
+  const [orders, setOrders] = useState(initialOrders)
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard')
   const [transitioning, setTransitioning] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
@@ -189,7 +193,6 @@ export default function AdminPanel({
   }
   const [users, setUsers] = useState(initialUsers)
   const [invitations, setInvitations] = useState(initialInvitations)
-  const [proofs, setProofs] = useState(initialProofs)
   const [stats, setStats] = useState(initialStats)
   const [appSettings, setAppSettings] = useState(initialSettings)
 
@@ -304,34 +307,14 @@ export default function AdminPanel({
     toast.success('Pengaturan tersimpan!')
   }
 
-  async function handleProofReview(proofId: string, status: 'approved' | 'rejected', notes: string) {
-    const res = await fetch(`/api/admin/proofs/${proofId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status, admin_notes: notes }),
-    })
-    if (!res.ok) { toast.error('Gagal memproses'); return }
-    const updatedProofs = proofs.map((p) => p.id === proofId ? { ...p, status, admin_notes: notes, reviewed_at: new Date().toISOString() } : p)
-    setProofs(updatedProofs)
-    if (status === 'approved') {
-      const proof = proofs.find((p) => p.id === proofId)
-      if (proof) {
-        const newInvs = invitations.map((i) => i.id === proof.invitation_id ? { ...i, is_paid: true, is_published: true } : i)
-        setInvitations(newInvs)
-        recalc(newInvs, users)
-      }
-      toast.success('Transfer disetujui! Undangan langsung aktif.')
-    } else {
-      toast.success('Transfer ditolak. User akan diberitahu.')
-    }
-  }
-
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' })
     window.location.href = '/login'
   }
 
-  const pendingProofs = proofs.filter((p) => p.status === 'pending').length
+  // Lencana sidebar sekarang menghitung PESANAN yang menunggu — dulu
+  // menghitung bukti pembayaran, antrean yang tidak pernah terisi sama sekali.
+  const pendingOrders = orders.filter((o) => o.status === 'pending').length
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
@@ -341,7 +324,7 @@ export default function AdminPanel({
         adminEmail={adminEmail}
         onLogout={handleLogout}
         stats={stats}
-        pendingProofs={pendingProofs}
+        pendingOrders={pendingOrders}
         pendingArticles={pendingArticles}
         siteName={appSettings.siteName ?? 'iaundang'}
         logoVerticalUrl={appSettings.logoVerticalUrl ?? '/logos/logo-vertical.png'}
@@ -354,7 +337,7 @@ export default function AdminPanel({
           style={{ transition: 'opacity 150ms ease, transform 150ms ease' }}
         >
         {activeTab === 'dashboard' && (
-          <DashboardTab stats={stats} users={users} invitations={invitations} pendingProofs={pendingProofs} onGoToTab={(t) => handleTabChange(t as NavTab)} />
+          <DashboardTab stats={stats} users={users} invitations={invitations} pendingOrders={pendingOrders} onGoToTab={(t) => handleTabChange(t as NavTab)} />
         )}
         {activeTab === 'users' && (
           <UsersTab
@@ -393,18 +376,18 @@ export default function AdminPanel({
           />
         )}
         {activeTab === 'music' && <MusicLibraryTab />}
-        {activeTab === 'orders' && <OrdersTab orders={orders} />}
-        {activeTab === 'payment' && (
-          <PaymentTab
-            config={{
+        {activeTab === 'transaksi' && (
+          <TransaksiModule
+            orders={orders}
+            onOrdersChange={setOrders}
+            paymentConfig={{
               bankAccounts: appSettings.bankAccounts,
               qrisImageUrl: appSettings.qrisImageUrl,
               paymentInstructions: appSettings.paymentInstructions,
               confirmationWhatsapp: appSettings.confirmationWhatsapp,
             }}
-            proofs={proofs}
-            onConfigUpdate={(cfg) => setAppSettings({ ...appSettings, ...cfg })}
-            onProofReview={handleProofReview}
+            onPaymentConfigChange={(cfg) => setAppSettings({ ...appSettings, ...cfg })}
+            appDomain={appSettings.appDomain ?? 'iaundang.online'}
           />
         )}
         {activeTab === 'articles' && (
@@ -489,8 +472,7 @@ const NAV_GROUPS = [
   {
     label: 'Transaksi',
     items: [
-      { id: 'payment'     as NavTab, label: 'Pembayaran',         icon: CreditCard,      desc: 'Bank, QRIS & verifikasi' },
-      { id: 'orders'      as NavTab, label: 'Pesanan',            icon: ShoppingCart,    desc: 'Riwayat transaksi' },
+      { id: 'transaksi'   as NavTab, label: 'Transaksi',          icon: CreditCard,      desc: 'Verifikasi pesanan & metode bayar' },
       { id: 'pricing'     as NavTab, label: 'Paket & Promo',      icon: Crown,           desc: 'Tier harga, flash sale & kupon' },
     ],
   },
@@ -509,14 +491,14 @@ const NAV_GROUPS = [
 ]
 
 function Sidebar({
-  activeTab, onTabChange, adminEmail, onLogout, stats, pendingProofs, pendingArticles, siteName, logoVerticalUrl,
+  activeTab, onTabChange, adminEmail, onLogout, stats, pendingOrders, pendingArticles, siteName, logoVerticalUrl,
 }: {
   activeTab: NavTab
   onTabChange: (t: NavTab) => void
   adminEmail: string
   onLogout: () => void
   stats: Stats
-  pendingProofs: number
+  pendingOrders: number
   pendingArticles: number
   siteName: string
   logoVerticalUrl: string
@@ -555,7 +537,7 @@ function Sidebar({
                 const isActive = activeTab === id
                 const badge =
                   id === 'users'       ? (stats.totalUsers   > 0 ? stats.totalUsers   : null) :
-                  id === 'payment'     ? (pendingProofs      > 0 ? pendingProofs      : null) :
+                  id === 'transaksi'   ? (pendingOrders      > 0 ? pendingOrders      : null) :
                   id === 'articles'    ? (pendingArticles    > 0 ? pendingArticles    : null) : null
                 return (
                   <button
@@ -577,7 +559,7 @@ function Sidebar({
                     )}
                     {badge != null && (
                       <span className={`${collapsed ? 'absolute -top-0.5 -right-0.5 w-4 h-4 text-[8px] flex items-center justify-center' : 'text-[10px] px-1.5 py-0.5 min-w-[18px] text-center'} font-bold rounded-full leading-none shrink-0 ${
-                        id === 'payment' || id === 'articles' ? 'bg-red-100 text-red-600 animate-pulse' :
+                        id === 'transaksi' || id === 'articles' ? 'bg-red-100 text-red-600 animate-pulse' :
                         'bg-gray-100 text-gray-600'
                       }`}>
                         {collapsed ? '' : badge}

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/session-server'
 import { isAdmin, getAdminEmail } from '@/lib/auth'
-import { invitations, orders, users, settings, paymentProofs, templateRecords } from '@/lib/db'
+import { invitations, orders, users, settings, templateRecords } from '@/lib/db'
 import AdminPanel from '@/components/admin/AdminPanel'
 
 export const dynamic = 'force-dynamic'
@@ -14,7 +14,6 @@ export default async function AdminPage() {
   const allUsers = await users.findAll()
   const allInvitations = await invitations.findAll()
   const allOrders = await orders.findAll()
-  const allProofs = await paymentProofs.findAll()
   const appSettings = await settings.get()
   // findAllWithUsage(): koleksi template di panel admin menampilkan "dipakai N
   // undangan", dan angkanya dihitung dari tabel undangan — bukan dari kolom
@@ -55,7 +54,6 @@ export default async function AdminPage() {
       users={usersWithInvitations}
       invitations={invitationsWithUsers}
       orders={allOrders}
-      proofs={allProofs}
       stats={{
         totalUsers: regularUsers.length,
         totalInvitations: allInvitations.length,

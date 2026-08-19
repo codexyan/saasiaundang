@@ -6,17 +6,28 @@ import {
   ArrowUpRight, Shield, Zap, Star, ExternalLink,
   Loader2, Receipt,
 } from 'lucide-react'
+import Link from 'next/link'
 import type { Invitation } from '@/lib/types'
 
 interface Props {
   invitation: Invitation
 }
 
-interface PaymentProof {
+/**
+ * Riwayat pembayaran dibaca dari PESANAN, bukan dari bukti transfer.
+ *
+ * Sebelumnya komponen ini menarik /api/payment/proof, yang membaca tabel
+ * payment_proofs. Tabel itu nol baris sepanjang sejarah aplikasi karena tidak
+ * pernah ada UI untuk mengunggah bukti — jadi bagian "Riwayat Pembayaran" ini
+ * selalu kosong dan banner "sedang diverifikasi" tidak pernah muncul, bahkan
+ * untuk pembeli yang pesanannya betul-betul sedang menunggu verifikasi.
+ */
+interface UserOrder {
   id: string
-  amount: number
-  bank_name: string
+  order_number: string
+  total_amount: number
   status: 'pending' | 'approved' | 'rejected'
+  payment_method: string | null
   created_at: string
 }
 
@@ -72,7 +83,7 @@ interface SubRecord {
 }
 
 export default function SubscriptionInfo({ invitation }: Props) {
-  const [proofs, setProofs] = useState<PaymentProof[]>([])
+  const [orders, setOrders] = useState<UserOrder[]>([])
   const [sub, setSub] = useState<SubRecord | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -80,10 +91,10 @@ export default function SubscriptionInfo({ invitation }: Props) {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/payment/proof').then(r => r.json()).catch(() => ({ proofs: [] })),
+      fetch('/api/user/orders').then(r => r.json()).catch(() => ({ orders: [] })),
       fetch('/api/user/subscription').then(r => r.json()).catch(() => ({ subscriptions: [] })),
-    ]).then(([proofData, subData]) => {
-      setProofs(proofData.proofs ?? [])
+    ]).then(([orderData, subData]) => {
+      setOrders(orderData.orders ?? [])
       const active = (subData.subscriptions ?? []).find(
         (s: SubRecord) => s.status === 'active' || s.status === 'expiring_soon'
       ) ?? (subData.subscriptions ?? [])[0] ?? null
@@ -100,7 +111,7 @@ export default function SubscriptionInfo({ invitation }: Props) {
   const ExpiryIcon = expiry.icon
   const expiresAtDisplay = sub?.expiresAt ?? invitation.expires_at
 
-  const hasPending = proofs.some(p => p.status === 'pending')
+  const hasPending = orders.some(o => o.status === 'pending')
 
   if (loading) {
     return (
@@ -229,14 +240,14 @@ export default function SubscriptionInfo({ invitation }: Props) {
             <p className="text-sm text-stone-500 mb-6 max-w-sm mx-auto">
               Anda sedang dalam mode Free Trial. Upgrade ke paket berbayar untuk menghapus watermark, membuka semua fitur, dan mempublikasikan undangan.
             </p>
-            <a
+            <Link
               href="/templates"
               className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-bold rounded-xl hover:shadow-lg hover:shadow-amber-500/25 transition-all"
             >
               <Zap size={16} />
               Pilih Paket & Upgrade
               <ArrowUpRight size={14} />
-            </a>
+            </Link>
           </div>
         </div>
       )}
@@ -254,26 +265,26 @@ export default function SubscriptionInfo({ invitation }: Props) {
                 Pilih template baru atau tingkatkan paket untuk fitur lebih lengkap. Hubungi admin untuk perpanjangan.
               </p>
             </div>
-            <a
+            <Link
               href="/templates"
               className="flex items-center justify-center gap-2 px-5 py-2.5 bg-stone-900 text-white text-xs font-bold rounded-xl hover:bg-stone-800 transition-colors shrink-0"
             >
               Lihat Template
               <ExternalLink size={12} />
-            </a>
+            </Link>
           </div>
         </div>
       )}
 
       {/* TRANSACTION HISTORY (compact) */}
-      {proofs.length > 0 && (
+      {orders.length > 0 && (
         <div className="rounded-3xl border border-stone-100 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
             <Receipt size={14} className="text-stone-400" />
             <p className="text-sm font-semibold text-stone-900">Riwayat Pembayaran</p>
           </div>
           <div className="space-y-2">
-            {proofs.map(p => (
+            {orders.map(p => (
               <div key={p.id} className={`flex items-center gap-3 rounded-xl border p-3 ${
                 p.status === 'approved' ? 'border-emerald-100 bg-emerald-50/30' :
                 p.status === 'pending' ? 'border-amber-100 bg-amber-50/30' :
@@ -290,8 +301,8 @@ export default function SubscriptionInfo({ invitation }: Props) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-stone-800">
-                    Rp {p.amount.toLocaleString('id-ID')}
-                    {p.bank_name && <span className="font-normal text-stone-500"> via {p.bank_name}</span>}
+                    Rp {p.total_amount.toLocaleString('id-ID')}
+                    <span className="font-normal text-stone-500"> · {p.order_number}</span>
                   </p>
                   <p className="text-[10px] text-stone-400">
                     {new Date(p.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}

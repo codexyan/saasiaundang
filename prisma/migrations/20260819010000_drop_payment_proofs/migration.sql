@@ -1,0 +1,23 @@
+-- Buang sistem bukti pembayaran (payment_proofs).
+--
+-- Tabel ini TIDAK PERNAH menerima satu baris pun sepanjang umur aplikasi, dan
+-- sebelum migrasi ini dijalankan isinya diperiksa lagi: 0 baris. Penyebabnya
+-- bukan kebetulan — tidak ada satu pun UI yang bisa mengunggah bukti transfer.
+-- POST /api/payment/proof ada, tapi nol pemanggil. Yang tersisa hanyalah dua
+-- layar yang mustahil terisi: antrean review di panel admin, dan bagian
+-- "Riwayat Pembayaran" di dashboard pengguna yang selalu kosong meskipun
+-- pembelinya sudah membayar.
+--
+-- Alur pembayaran yang sebenarnya berjalan lewat tabel `orders`: pembeli
+-- mengisi form pesanan, admin memverifikasi di modul Transaksi, lalu
+-- provisionPaidOrder() membuatkan akun dan undangannya. Riwayat pembayaran di
+-- dashboard sekarang dibaca dari `orders` lewat GET /api/user/orders.
+--
+-- Satu akibat serius dari jalur mati ini sudah diperbaiki terpisah: komisi
+-- afiliasi hanya dicatat di route approval bukti pembayaran, sehingga tidak
+-- pernah dibayarkan untuk pesanan mana pun. Pencatatannya dipindahkan ke
+-- provisionPaidOrder().
+--
+-- DESTRUKTIF dan tidak bisa dibalik oleh migrasi berikutnya.
+
+DROP TABLE IF EXISTS "payment_proofs";

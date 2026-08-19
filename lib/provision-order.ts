@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs'
-import { orders, users, invitations } from './db'
+import { orders, users, invitations, affiliates } from './db'
 import { subscriptions } from './subscription'
 import { PACKAGES, type PackageTier } from './packages'
 import { resolveExpiry } from './tiers'
@@ -130,7 +130,46 @@ export async function provisionPaidOrder(
     })
   }
 
-  // ── 4. TERAKHIR: tandai pesanan selesai ────────────────────────────────
+  // ── 4. Komisi afiliasi ─────────────────────────────────────────────────
+  //
+  // Ini SATU-SATUNYA tempat komisi dicatat sekarang. Sebelumnya
+  // affiliates.recordConversion() hanya dipanggil dari route approval bukti
+  // pembayaran — jalur yang tidak pernah dilewati satu pesanan pun (tabel
+  // payment_proofs nol baris sepanjang sejarah, dan tidak ada UI yang bisa
+  // mengirim bukti). Akibatnya program afiliasi menyimpan `referred_by` di
+  // setiap undangan tapi TIDAK PERNAH membayar komisi untuk pesanan mana pun.
+  //
+  // Dijalankan SEBELUM pesanan ditandai selesai supaya kegagalan di sini
+  // menyisakan pesanan berstatus pending yang masih bisa diproses ulang —
+  // bukan pesanan "approved" tanpa komisi yang tidak akan pernah diperbaiki.
+  //
+  // Dijaga idempoten lewat pengecekan referral yang sudah ada: recordConversion
+  // membuat baris Referral baru dan menaikkan saldo, jadi menjalankannya dua
+  // kali membayar komisi dua kali.
+  if (order.referred_by) {
+    const affiliate = await affiliates.findByCode(order.referred_by)
+    if (affiliate?.isActive) {
+      const already = await affiliates.hasConversionFor(invitation.id)
+      if (!already) {
+        // Nilai penjualan dari nominal pesanan yang BENAR-BENAR ditagih
+        // (sudah termasuk diskon flash sale/kupon), bukan harga daftar paket —
+        // komisi atas angka yang tidak pernah dibayar pelanggan itu fiktif.
+        const saleAmount = order.amount
+        const commission = Math.round(saleAmount * (affiliate.commissionRate / 100))
+        if (commission > 0) {
+          await affiliates.recordConversion(affiliate.id, {
+            invitationId: invitation.id,
+            buyerEmail: order.email,
+            packageTier: tier,
+            saleAmount,
+            commission,
+          })
+        }
+      }
+    }
+  }
+
+  // ── 5. TERAKHIR: tandai pesanan selesai ────────────────────────────────
   await orders.update(order.id, {
     status: 'approved',
     admin_notes: options.adminNotes ?? '',

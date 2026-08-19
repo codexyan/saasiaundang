@@ -60,7 +60,7 @@ interface DashboardTabProps {
   stats: Stats
   users: AdminUser[]
   invitations: AdminInvitation[]
-  pendingProofs: number
+  pendingOrders: number
   onGoToTab: (tab: string) => void
 }
 
@@ -101,7 +101,7 @@ export default function DashboardTab({
   stats,
   users,
   invitations,
-  pendingProofs,
+  pendingOrders,
   onGoToTab,
 }: DashboardTabProps) {
   // Derived data
@@ -178,11 +178,11 @@ export default function DashboardTab({
       </div>
 
       {/* Alert Banners */}
-      {(pendingProofs > 0 || expiringSoon.length > 0) && (
+      {(pendingOrders > 0 || expiringSoon.length > 0) && (
         <div className="space-y-3">
-          {pendingProofs > 0 && (
+          {pendingOrders > 0 && (
             <button
-              onClick={() => onGoToTab('payment')}
+              onClick={() => onGoToTab('transaksi')}
               className="w-full flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4 text-left hover:bg-amber-100 transition-colors"
             >
               <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-amber-100">
@@ -190,10 +190,10 @@ export default function DashboardTab({
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-amber-900">
-                  {pendingProofs} bukti transfer menunggu verifikasi
+                  {pendingOrders} pesanan menunggu verifikasi
                 </p>
                 <p className="text-xs text-amber-700 mt-0.5">
-                  Segera verifikasi agar undangan user bisa aktif.
+                  Verifikasi pembayarannya agar akun & undangan pembeli langsung aktif.
                 </p>
               </div>
               <ChevronRight className="w-4 h-4 text-amber-400 shrink-0" />

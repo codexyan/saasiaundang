@@ -79,6 +79,17 @@ export const affiliates = {
     try { await prisma.affiliate.update({ where: { id }, data: { totalClicks: { increment: 1 } } }) } catch {}
   },
 
+  /** Apakah undangan ini sudah pernah menghasilkan komisi?
+   *
+   *  recordConversion() TIDAK idempoten — ia membuat baris Referral baru dan
+   *  menaikkan saldo afiliator. Penyediaan pesanan bisa dijalankan ulang
+   *  (webhook Mayar mengirim ulang, admin mencoba lagi setelah gagal), jadi
+   *  penjagaannya harus di sini, bukan di kedisiplinan pemanggil. */
+  async hasConversionFor(invitationId: string): Promise<boolean> {
+    const found = await prisma.referral.findFirst({ where: { invitationId }, select: { id: true } })
+    return !!found
+  },
+
   async recordConversion(affiliateId: string, data: { invitationId: string; buyerEmail: string; packageTier: string; saleAmount: number; commission: number }): Promise<void> {
     await prisma.$transaction([
       prisma.referral.create({
