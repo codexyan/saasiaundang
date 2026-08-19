@@ -470,7 +470,9 @@ const NAV_GROUPS = [
     ],
   },
   {
-    label: 'Transaksi',
+    // Grupnya "Penjualan", bukan "Transaksi" — kalau sama dengan nama itemnya,
+    // judul grup berhenti memberi informasi apa pun.
+    label: 'Penjualan',
     items: [
       { id: 'transaksi'   as NavTab, label: 'Transaksi',          icon: CreditCard,      desc: 'Verifikasi pesanan & metode bayar' },
       { id: 'pricing'     as NavTab, label: 'Paket & Promo',      icon: Crown,           desc: 'Tier harga, flash sale & kupon' },
