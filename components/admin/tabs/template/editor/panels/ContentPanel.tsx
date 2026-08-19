@@ -2,7 +2,7 @@
 
 import {
   ChevronUp, ChevronDown, Palette, Layers, Sparkles, Plus, Trash2,
-  GripVertical, Play, Check, Lock, Unlock, ImageIcon,
+  GripVertical, Play, Check, Lock, Unlock, ImageIcon, Type,
 } from 'lucide-react'
 import ImageUploadField from '@/components/admin/ImageUploadField'
 import SectionBackgroundControl from '@/components/controls/SectionBackgroundControl'
@@ -11,6 +11,7 @@ import VariantThumb from '../parts/VariantThumb'
 import { SectionField, miniInput } from '../parts/fields'
 import {
   SECTION_TYPES, SECTION_VARIANTS, SECTION_LABELS, GIFT_LAB_BRANDS, makeGiftAccount,
+  HEADING_FONTS, BODY_FONTS,
 } from '../parts/constants'
 import { useEditor } from '../EditorContext'
 
@@ -278,12 +279,130 @@ export default function ContentPanel() {
                 )}
               </div>
 
+              {/* Tipografi & Tata Letak.
+                  Delapan field ini SUDAH dibaca SectionWrapper dan dipakai
+                  template bawaan, tapi sebelumnya tidak punya satu pun kontrol:
+                  admin bisa melihat efeknya di preview tanpa bisa mengubahnya. */}
+              <div className="px-3.5 py-3 border-b border-gray-100">
+                <div className="flex items-center gap-1.5 mb-2.5">
+                  <Type className="w-3 h-3 text-indigo-400" />
+                  <p className="text-[10px] font-bold text-gray-600">Tipografi & Tata Letak</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mb-2.5">
+                  <div>
+                    <p className="text-[9px] font-semibold text-gray-400 mb-1">Rata Teks</p>
+                    <div className="flex gap-1">
+                      {([
+                        { v: 'left',   label: 'Kiri' },
+                        { v: 'center', label: 'Tengah' },
+                        { v: 'right',  label: 'Kanan' },
+                      ] as const).map(o => {
+                        const on = (s.text_align ?? 'center') === o.v
+                        return (
+                          <button key={o.v}
+                            onClick={() => updateSection(s.id, { text_align: o.v })}
+                            className={`flex-1 py-1.5 rounded-lg text-[9px] font-semibold transition-colors ${
+                              on ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                            }`}>
+                            {o.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-semibold text-gray-400 mb-1">Tata Letak</p>
+                    <select
+                      value={s.content_layout ?? 'default'}
+                      onChange={e => updateSection(s.id, { content_layout: e.target.value })}
+                      className="w-full px-2 py-1.5 text-[10px] border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-gray-400"
+                    >
+                      <option value="default">Normal (terpusat)</option>
+                      <option value="full-bleed">Full-bleed (tanpa margin)</option>
+                      <option value="split-left">Split - konten kiri</option>
+                      <option value="split-right">Split - konten kanan</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mb-2.5">
+                  <div>
+                    <p className="text-[9px] font-semibold text-gray-400 mb-1">Font Judul</p>
+                    <select
+                      value={s.font_heading ?? ''}
+                      onChange={e => updateSection(s.id, { font_heading: e.target.value || undefined })}
+                      className="w-full px-2 py-1.5 text-[10px] border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-gray-400"
+                    >
+                      <option value="">Ikut template ({cfg.meta.font.heading})</option>
+                      {HEADING_FONTS.map(f => <option key={f} value={f}>{f}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-semibold text-gray-400 mb-1">Font Teks</p>
+                    <select
+                      value={s.font_body ?? ''}
+                      onChange={e => updateSection(s.id, { font_body: e.target.value || undefined })}
+                      className="w-full px-2 py-1.5 text-[10px] border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-gray-400"
+                    >
+                      <option value="">Ikut template ({cfg.meta.font.body})</option>
+                      {BODY_FONTS.map(f => <option key={f} value={f}>{f}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {([
+                  { key: 'heading_scale', label: 'Ukuran Judul', min: 0.7, max: 1.8, step: 0.05, def: 1 },
+                  { key: 'body_scale',    label: 'Ukuran Teks',  min: 0.7, max: 1.5, step: 0.05, def: 1 },
+                ] as const).map(r => (
+                  <div key={r.key} className="flex items-center gap-2 mb-1.5">
+                    <span className="text-[9px] font-semibold text-gray-400 w-20 shrink-0">{r.label}</span>
+                    <input type="range" min={r.min} max={r.max} step={r.step}
+                      value={s[r.key] ?? r.def}
+                      onChange={e => updateSection(s.id, { [r.key]: Number(e.target.value) })}
+                      className="flex-1 h-1.5 bg-gray-200 rounded-full accent-gray-900 cursor-pointer" />
+                    <span className="text-[9px] font-mono text-gray-500 w-8 text-right shrink-0">
+                      {(s[r.key] ?? r.def).toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+
+                <div className="grid grid-cols-2 gap-2 mt-2.5">
+                  {([
+                    { key: 'heading_weight', label: 'Tebal Judul', opts: [300, 400, 500, 600, 700, 800, 900], def: 700 },
+                    { key: 'body_weight',    label: 'Tebal Teks',  opts: [300, 400, 500, 600, 700],           def: 400 },
+                  ] as const).map(w => (
+                    <div key={w.key}>
+                      <p className="text-[9px] font-semibold text-gray-400 mb-1">{w.label}</p>
+                      <select
+                        value={s[w.key] ?? w.def}
+                        onChange={e => updateSection(s.id, { [w.key]: Number(e.target.value) })}
+                        className="w-full px-2 py-1.5 text-[10px] border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-gray-400"
+                      >
+                        {w.opts.map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               {/* ── Konten Section ── */}
               <div className="px-3.5 py-3">
-                <div className="flex items-center gap-1.5 mb-2.5">
+                <div className="flex items-center gap-1.5 mb-1.5">
                   <Layers className="w-3 h-3 text-indigo-400" />
                   <p className="text-[10px] font-bold text-gray-600">Konten & Foto</p>
                 </div>
+                {/* Peringatan yang selama ini tidak ada.
+                    Sebagian besar isian di bawah menulis ke `previewData` —
+                    data contoh untuk mockup — BUKAN ke konfigurasi template,
+                    dan tidak pernah ikut tersimpan. Tanpa keterangan ini
+                    labelnya ("Nama Lengkap Pria", "Tanggal", "Alamat") terbaca
+                    seolah sedang menyetel nilai bawaan template. */}
+                <p className="text-[9px] text-gray-400 leading-relaxed mb-2.5 bg-gray-50 border border-gray-100 rounded-lg px-2 py-1.5">
+                  Isian di bawah hanya <strong className="text-gray-500">data contoh untuk pratinjau</strong> —
+                  tidak ikut tersimpan ke template. Yang tersimpan adalah pengaturan
+                  gaya, latar, animasi, dan tipografi di atas.
+                </p>
 
                 {/* HERO */}
                 {s.type === 'hero' && (

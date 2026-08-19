@@ -21,7 +21,7 @@ import {
 
 // Isi tiap tab hidup di berkas sendiri; berkas ini tinggal kerangkanya —
 // state, persistensi, pratinjau, dan bingkai UI.
-import { EditorProvider, type EditorContextValue } from './EditorContext'
+import { EditorProvider, type EditorContextValue, type MusicLibraryEntry } from './EditorContext'
 import AppearancePanel from './panels/AppearancePanel'
 import OpeningPanel from './panels/OpeningPanel'
 import DecorPanel from './panels/DecorPanel'
@@ -108,7 +108,7 @@ export default function TemplateEditor({
   const [dragModeEnabled, setDragModeEnabled]       = useState(false)
   const [musicLibraryCat, setMusicLibraryCat]       = useState('Semua')
   const [musicPreviewId, setMusicPreviewId]         = useState<string | null>(null)
-  const [musicLibrary, setMusicLibrary]             = useState<{ id: string; title: string; artist: string; category: string; url: string }[]>([])
+  const [musicLibrary, setMusicLibrary]             = useState<MusicLibraryEntry[]>([])
   const [musicLibraryCats, setMusicLibraryCats]     = useState<string[]>([])
   const musicAudioRef = useRef<HTMLAudioElement | null>(null)
   const [previewPlaying, setPreviewPlaying]         = useState(false)

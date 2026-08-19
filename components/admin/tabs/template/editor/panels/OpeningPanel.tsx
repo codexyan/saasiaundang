@@ -17,8 +17,53 @@ export default function OpeningPanel() {
     previewGuestName, setPreviewGuestName, setPreviewKey, setDecorPreviewKey, updateOpening,
   } = useEditor()
 
+  // Renderer memakai `show_opening !== false` untuk memutuskan apakah tamu
+  // melihat halaman sampul. Sebelumnya field ini tidak punya kontrol sama
+  // sekali — template bisa lahir tanpa sampul, tapi admin tidak bisa
+  // mengaturnya dari mana pun.
+  const showOpening = cfg.opening.show_opening !== false
+
+  const openingToggle = (
+    <div className="flex items-center justify-between p-4 rounded-xl border border-gray-200 bg-white">
+      <div className="min-w-0 pr-3">
+        <p className="text-sm font-medium text-gray-700">Halaman Sampul</p>
+        <p className="text-xs text-gray-400 mt-0.5 leading-snug">
+          {showOpening
+            ? 'Tamu melihat sampul dulu, lalu menekan tombol untuk membuka undangan'
+            : 'Dimatikan — tamu langsung masuk ke isi undangan'}
+        </p>
+      </div>
+      <button
+        onClick={() => { updateOpening({ show_opening: !showOpening }); setPreviewMode(showOpening ? 'invitation' : 'opening'); setDecorPreviewKey(k => k + 1) }}
+        aria-label={showOpening ? 'Matikan halaman sampul' : 'Nyalakan halaman sampul'}
+        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${showOpening ? 'bg-indigo-600' : 'bg-gray-200'}`}
+      >
+        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${showOpening ? 'translate-x-6' : 'translate-x-1'}`} />
+      </button>
+    </div>
+  )
+
+  // Seluruh isi tab ini mengatur halaman sampul. Kalau sampulnya dimatikan,
+  // menampilkan 800 baris kontrol yang tidak berefek apa pun hanya menyesatkan.
+  if (!showOpening) {
+    return (
+      <div className="space-y-5">
+        {openingToggle}
+        <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-8 text-center">
+          <p className="text-sm font-semibold text-gray-500">Halaman sampul dimatikan</p>
+          <p className="text-[11px] text-gray-400 mt-1.5 leading-relaxed max-w-xs mx-auto">
+            Undangan langsung dibuka di seksi pertama. Nyalakan kembali untuk
+            mengatur gaya, teks, dan dekorasi sampul.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-5">
+
+      {openingToggle}
 
       {/*  Pilih Gaya Opening  */}
       <div>
@@ -33,8 +78,8 @@ export default function OpeningPanel() {
             const m = OPENING_META[ot]
             const active = cfg.opening.type === ot
             return (
-              <button key={ot} type="button"
-                onClick={() => { updateOpening({ type: ot as any }); setPreviewMode('opening'); setDecorPreviewKey(k => k + 1) }}
+              <button key={ot} type="button" title={m?.desc}
+                onClick={() => { updateOpening({ type: ot }); setPreviewMode('opening'); setDecorPreviewKey(k => k + 1) }}
                 className={`relative p-2.5 rounded-xl text-center transition-all ${
                   active
                     ? 'bg-indigo-50 border-2 border-indigo-500 ring-1 ring-indigo-500/20'
@@ -55,6 +100,30 @@ export default function OpeningPanel() {
           })}
         </div>
       </div>
+
+      {/* Atribut khusus Fade Reveal. Ditampilkan bersyarat — sama seperti
+          atribut Petal Fall di bawah — karena `duration_ms` HANYA dibaca oleh
+          FadeRevealOpening (bar progres di bawah tombol). Kontrol global untuk
+          field yang cuma berefek di 1 dari 17 gaya justru menyesatkan. */}
+      {cfg.opening.type === 'fade-reveal' && (
+        <div className="pt-4 border-t border-gray-100">
+          <p className="text-[10px] font-semibold text-gray-500 mb-1">Bar Progres</p>
+          <p className="text-[9px] text-gray-400 mb-2.5">
+            Garis tipis di bawah tombol yang terisi perlahan
+          </p>
+          <div className="flex items-center gap-2">
+            <input
+              type="range" min={1000} max={10000} step={500}
+              value={cfg.opening.duration_ms ?? 3000}
+              onChange={e => updateOpening({ duration_ms: Number(e.target.value) })}
+              className="flex-1 h-1.5 bg-gray-200 rounded-full accent-indigo-600 cursor-pointer"
+            />
+            <span className="text-[10px] font-mono text-gray-500 w-12 text-right shrink-0">
+              {((cfg.opening.duration_ms ?? 3000) / 1000).toFixed(1)}s
+            </span>
+          </div>
+        </div>
+      )}
 
       {/*  Opening Content  */}
       <div className="pt-4 border-t border-gray-100">

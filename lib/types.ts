@@ -189,7 +189,6 @@ export interface BackgroundConfig {
   overlay_opacity?: number  // 0 1, gelap overlay di atas foto/video
 }
 
-export type SectionPaddingY  = 'compact' | 'normal' | 'spacious'
 export type SectionTextAlign = 'center' | 'left' | 'right'
 export type SectionLayout    = 'default' | 'split-left' | 'split-right' | 'full-bleed'
 
@@ -199,13 +198,11 @@ export interface SectionConfig {
   order: number
   enabled: boolean
   background: BackgroundConfig
-  decoration_images: string[]
   decoration_assets?: DecorationAsset[]
   transition_in: TransitionType
   transition_out: TransitionType
   user_fields: string[]
   // Advanced layout controls
-  padding_y?: SectionPaddingY       // Kepadatan vertikal
   text_align?: SectionTextAlign     // Alignment teks
   content_layout?: SectionLayout    // Layout konten
   style_variant?: string            // Variant tampilan section
@@ -217,7 +214,6 @@ export interface SectionConfig {
   body_scale?: number               // Ukuran teks isi/body: 0.7   1.5 (default 1.0)
 
   //  Gift section controls 
-  gift_card_layout?: 'stack' | 'grid'  // Tata letak kartu: satu kolom atau dua kolom
   gift_show_logo?: boolean              // Tampilkan logo brand pada kartu (default true)
   gift_proof_enabled?: boolean          // Tampilkan tombol & form upload bukti transfer (default true)
   gift_thankyou_text?: string           // Pesan terima kasih kustom setelah kirim bukti
@@ -308,9 +304,6 @@ export interface OpeningConfig {
   type: OpeningType
   duration_ms: number
   background_image?: string
-  overlay_image?: string
-  animation?: string
-  music_autoplay?: boolean
   // Cover page (onboarding) settings
   subtitle?: string
   button_text?: string

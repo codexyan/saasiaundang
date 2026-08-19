@@ -1,7 +1,8 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import { Move, Layers, Plus } from 'lucide-react'
+import { Move, Layers, Plus, Loader2 } from 'lucide-react'
 import type { DecorationAsset } from '@/lib/types'
 import DecorationLayerList from '../parts/DecorationLayerList'
 import { SECTION_LABELS } from '../parts/constants'
@@ -18,41 +19,87 @@ export default function DecorPanel() {
     selectedAssetId, setSelectedAssetId, setDecorPreviewKey, updateOpening, updateSection,
   } = useEditor()
 
+  const [uploading, setUploading] = useState(false)
+
   const isOpening = decorScope === 'opening'
   const scopeSection = !isOpening ? cfg.sections.find(s => s.id === decorScope) : null
+
+  /**
+   * Scope yang menggantung dikembalikan ke Opening.
+   *
+   * `decorScope` menyimpan id seksi, tapi seksi bisa dihapus atau dinonaktifkan
+   * dari tab Konten tanpa ada yang memberi tahu tab ini. Akibatnya dulu:
+   * `scopeSection` jadi null, label berubah jadi spasi kosong, dan unggahan
+   * berikutnya HILANG DIAM-DIAM — berkasnya terkirim ke storage, asetnya
+   * dibuat, lalu updateScopeAssets tidak melakukan apa pun karena tidak ada
+   * cabang untuk scope null.
+   */
+  useEffect(() => {
+    if (isOpening) return
+    const stillThere = cfg.sections.some(s => s.id === decorScope && s.enabled)
+    if (!stillThere) {
+      setDecorScope('opening')
+      setSelectedAssetId(null)
+    }
+  }, [isOpening, decorScope, cfg.sections, setDecorScope, setSelectedAssetId])
+
   const scopeAssets: DecorationAsset[] = isOpening
     ? (cfg.opening.decoration_assets ?? [])
     : (scopeSection?.decoration_assets ?? [])
-  const scopeLabel = isOpening ? 'Opening' : (scopeSection ? (SECTION_LABELS[scopeSection.type] || scopeSection.type) : ' ')
+  const scopeLabel = isOpening ? 'Opening' : (SECTION_LABELS[scopeSection?.type ?? ''] || scopeSection?.type || 'Opening')
 
-  const updateScopeAssets = (newAssets: DecorationAsset[]) => {
-    if (isOpening) updateOpening({ decoration_assets: newAssets })
-    else if (scopeSection) updateSection(scopeSection.id, { decoration_assets: newAssets })
+  /** Mengembalikan false kalau tidak ada tujuan yang sah — pemanggil WAJIB
+   *  memeriksanya, jangan sampai ada perubahan yang menguap tanpa jejak. */
+  const updateScopeAssets = (newAssets: DecorationAsset[]): boolean => {
+    if (isOpening) { updateOpening({ decoration_assets: newAssets }); return true }
+    if (scopeSection) { updateSection(scopeSection.id, { decoration_assets: newAssets }); return true }
+    return false
   }
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) return
-    const fd = new FormData()
-    fd.append('file', file)
-    fd.append('folder', 'decorations')
-    const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
-    const data = await res.json().catch(() => null)
-    // Dulu `alert()` — memblokir seluruh tab dan tidak sewarna dengan
-    // notifikasi lain di panel admin.
-    if (!res.ok) { toast.error(data?.error || 'Dekorasinya gagal diunggah'); return }
-    const newAsset: DecorationAsset = {
-      id: 'deco-' + Date.now().toString(36),
-      url: data.url, label: file.name.replace(/\.[^.]+$/, ''),
-      position: 'top-left', width: 80, scale: 1, opacity: 100,
-      offset_x: 155, offset_y: 380,
-      animation: 'fade-in', animation_delay: 200,
-      exit_animation: 'none', exit_delay: 0,
-      idle_animation: 'none', z_layer: scopeAssets.length,
-    }
-    updateScopeAssets([...scopeAssets, newAsset])
-    setSelectedAssetId(newAsset.id)
     e.target.value = ''
+    if (!file) return
+
+    // Diperiksa SEBELUM mengunggah: percuma mengirim berkas ke storage kalau
+    // hasilnya tidak punya tempat untuk disimpan.
+    if (!isOpening && !scopeSection) {
+      toast.error('Seksi tujuan sudah tidak ada. Pilih tujuan dekorasi lagi ya.')
+      return
+    }
+
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('folder', 'decorations')
+      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
+      const data = await res.json().catch(() => null)
+      // Dulu `alert()` — memblokir seluruh tab dan tidak sewarna dengan
+      // notifikasi lain di panel admin.
+      if (!res.ok) { toast.error(data?.error || 'Dekorasinya gagal diunggah'); return }
+
+      // z_layer dari nilai TERTINGGI yang ada, bukan dari panjang array:
+      // setelah ada aset yang dihapus, panjang array bisa menabrak layer
+      // yang masih dipakai sehingga urutan tumpukannya jadi tidak tentu.
+      const topLayer = scopeAssets.reduce((m, a) => Math.max(m, a.z_layer ?? 0), -1)
+      const newAsset: DecorationAsset = {
+        id: 'deco-' + Date.now().toString(36),
+        url: data.url, label: file.name.replace(/\.[^.]+$/, ''),
+        position: 'top-left', width: 80, scale: 1, opacity: 100,
+        offset_x: 155, offset_y: 380,
+        animation: 'fade-in', animation_delay: 200,
+        exit_animation: 'none', exit_delay: 0,
+        idle_animation: 'none', z_layer: topLayer + 1,
+      }
+      if (!updateScopeAssets([...scopeAssets, newAsset])) {
+        toast.error('Dekorasinya tidak bisa dipasang — tujuannya sudah tidak ada.')
+        return
+      }
+      setSelectedAssetId(newAsset.id)
+    } finally {
+      setUploading(false)
+    }
   }
 
   return (
@@ -93,9 +140,10 @@ export default function DecorPanel() {
 
       {/* Upload + Moodboard controls */}
       <div className="flex items-center gap-2">
-        <label className="flex-1 flex items-center justify-center gap-1.5 text-[10px] font-bold text-indigo-700 bg-indigo-50 border-2 border-dashed border-indigo-300 cursor-pointer rounded-xl py-3 hover:bg-indigo-100 transition-colors">
-          <Plus className="w-3.5 h-3.5" /> Upload ke {scopeLabel}
-          <input type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+        <label className={`flex-1 flex items-center justify-center gap-1.5 text-[10px] font-bold text-indigo-700 bg-indigo-50 border-2 border-dashed border-indigo-300 rounded-xl py-3 transition-colors ${uploading ? 'opacity-60 cursor-wait' : 'cursor-pointer hover:bg-indigo-100'}`}>
+          {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+          {uploading ? 'Mengunggah...' : `Upload ke ${scopeLabel}`}
+          <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={uploading} onChange={handleUpload} />
         </label>
         {isOpening && (
           <button

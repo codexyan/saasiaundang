@@ -13,6 +13,11 @@ export interface MusicLibraryEntry {
   artist: string
   category: string
   url: string
+  /** Trek nonaktif tetap ditampilkan di editor — kalau disembunyikan, template
+   *  yang terlanjur memakainya akan kehilangan pilihannya tanpa penjelasan.
+   *  Yang dilakukan panel adalah MENANDAI, bukan menyaring. */
+  is_active: boolean
+  duration: number
 }
 
 export interface PaletteOption {

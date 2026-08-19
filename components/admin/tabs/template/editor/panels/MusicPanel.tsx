@@ -16,6 +16,10 @@ export default function MusicPanel() {
     musicPreviewId, setMusicPreviewId, musicAudioRef, toggleMusicPreview, updateMusic,
   } = useEditor()
 
+  const selectedTrack = musicCfg.url
+    ? musicLibrary.find(t => t.url === musicCfg.url)
+    : undefined
+
   return (
     <div className="space-y-5">
       <p className="text-xs text-gray-500">
@@ -76,8 +80,25 @@ export default function MusicPanel() {
             ) : (
               <div className="p-3 rounded-xl border border-dashed border-gray-300 bg-gray-50 text-center">
                 <div className="text-xl mb-1">🎼</div>
-                <p className="text-[10px] text-gray-500">Belum ada musik dipilih. Pilih dari library atau upload di bawah</p>
+                <p className="text-[10px] text-gray-500">Belum ada musik dipilih. Pilih satu dari perpustakaan di bawah.</p>
               </div>
+            )}
+
+            {/* Perpustakaan sengaja diambil dari endpoint admin yang memuat
+                trek nonaktif juga — kalau disaring, template yang terlanjur
+                memakai trek nonaktif akan kehilangan pilihannya tanpa
+                penjelasan. Yang dilakukan di sini: memberi tahu. */}
+            {musicCfg.url && selectedTrack && !selectedTrack.is_active && (
+              <p className="mt-2 text-[10px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-2 leading-relaxed">
+                Lagu ini <strong>dinonaktifkan</strong> di perpustakaan, jadi user tidak
+                bisa memilihnya sendiri. Undangan yang memakai template ini tetap memutarnya.
+              </p>
+            )}
+            {musicCfg.url && !selectedTrack && musicLibrary.length > 0 && (
+              <p className="mt-2 text-[10px] text-gray-500 bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-2 leading-relaxed">
+                Lagu ini tidak ada di perpustakaan (URL manual atau sudah dihapus).
+                Tetap diputar selama berkasnya masih bisa diakses.
+              </p>
             )}
 
             <Field label="Judul Lagu">
@@ -157,9 +178,15 @@ export default function MusicPanel() {
                             >
                               <p className={`text-[11px] font-semibold truncate ${selected ? 'text-purple-800' : 'text-gray-700'}`}>
                                 {song.title}
+                                {!song.is_active && (
+                                  <span className="ml-1.5 text-[8px] font-bold text-gray-400 bg-gray-100 px-1 py-0.5 rounded align-middle">
+                                    NONAKTIF
+                                  </span>
+                                )}
                               </p>
                               <p className={`text-[9px] truncate ${selected ? 'text-purple-500' : 'text-gray-400'}`}>
-                                {song.artist} · {song.category}
+                                {song.artist ? `${song.artist} · ` : ''}{song.category}
+                                {song.duration > 0 && ` · ${Math.floor(song.duration / 60)}:${String(Math.floor(song.duration % 60)).padStart(2, '0')}`}
                               </p>
                             </button>
                             {selected && (
