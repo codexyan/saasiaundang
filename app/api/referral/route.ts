@@ -1,41 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSession } from '@/lib/session-server'
-import { affiliates, users, userReferrals } from '@/lib/db'
+import { affiliates } from '@/lib/db'
 import { readJsonBody } from '@/lib/request-body'
 import { allowRequest } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
-function generateCode(email: string): string {
-  const base = email.split('@')[0].replace(/[^a-z0-9]/gi, '').slice(0, 8).toUpperCase()
-  const suffix = Math.random().toString(36).slice(2, 5).toUpperCase()
-  return `${base}-${suffix}`
-}
-
-export async function GET() {
-  const session = await getSession()
-  if (!session) return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
-
-  const user = await users.findById(session.userId)
-  if (!user) return NextResponse.json({ error: 'Akunnya tidak ditemukan.' }, { status: 404 })
-
-  let referralCode = user.referral_code
-  if (!referralCode) {
-    referralCode = generateCode(user.email)
-    await users.setReferralCode(user.id, referralCode)
-  }
-
-  const stats = await userReferrals.countByReferrer(user.id)
-  const referrals = await userReferrals.findByReferrerId(user.id)
-
-  return NextResponse.json({
-    referralCode,
-    referralLink: `https://iaundang.online/order?ref=${referralCode}`,
-    stats,
-    referrals,
-  })
-}
-
+/**
+ * Pencatat klik tautan AFILIASI yang dikirim ReferralCapture.
+ *
+ * Dulu route ini juga punya GET yang membuat kode referral PENGGUNA
+ * (users.referral_code) beserta tautan /order?ref=KODE untuk tab Referral di
+ * dashboard. Program itu tidak pernah bekerja: /order me-redirect ke
+ * /templates dan membuang ?ref, POST di bawah hanya mengenal kode afiliasi
+ * sehingga kode pengguna selalu 404, dan tidak ada kode yang mencatat referral
+ * atau memberi diskon Rp 15.000 yang dijanjikan panelnya. GET itu dihapus
+ * bersama tab dan panelnya. POST dibiarkan apa adanya karena cookie `ref` yang
+ * dipasangnya dibaca /api/orders untuk atribusi komisi afiliasi.
+ */
 export async function POST(req: NextRequest) {
   const { code } = await readJsonBody(req)
   if (!code) return NextResponse.json({ error: 'Kode referralnya belum diisi.' }, { status: 400 })

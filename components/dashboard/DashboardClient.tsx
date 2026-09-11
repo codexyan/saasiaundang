@@ -7,7 +7,7 @@ import dynamic from 'next/dynamic'
 import {
   LayoutDashboard, FileEdit, Users, LogOut,
   ExternalLink, Copy, Menu, X, ChevronRight, Eye, Send,
-  Settings, MessageSquare, BarChart3, Gift,
+  Settings, MessageSquare, BarChart3,
   Globe, ArrowUpRight, ShieldCheck, MoreHorizontal,
 } from 'lucide-react'
 import type { Invitation, NewInvitationData, PriceTier } from '@/lib/types'
@@ -24,7 +24,6 @@ import TemplateModule from './TemplateModule'
 import OnboardingWizard from './OnboardingWizard'
 import SupportTickets from './SupportTickets'
 import AnalyticsPanel from './AnalyticsPanel'
-import ReferralPanel from './ReferralPanel'
 
 const InvitationRenderer = dynamic(() => import('@/components/renderer/InvitationRenderer'), { ssr: false })
 
@@ -51,7 +50,7 @@ interface Props {
   priceTiers?: PriceTier[]
 }
 
-type Tab = 'overview' | 'undangan' | 'guest' | 'rsvp' | 'analytics' | 'referral' | 'subscription' | 'support' | 'settings'
+type Tab = 'overview' | 'undangan' | 'guest' | 'rsvp' | 'analytics' | 'subscription' | 'support' | 'settings'
 
 const NAV: { id: Tab; label: string; icon: React.ElementType; badge?: string }[] = [
   { id: 'overview',     label: 'Beranda',    icon: LayoutDashboard },
@@ -59,7 +58,11 @@ const NAV: { id: Tab; label: string; icon: React.ElementType; badge?: string }[]
   { id: 'guest',        label: 'Tamu',       icon: Send },
   { id: 'rsvp',         label: 'RSVP',       icon: Users },
   { id: 'analytics',    label: 'Analitik',   icon: BarChart3 },
-  { id: 'referral',     label: 'Referral',   icon: Gift },
+  // Tab "Referral" dibuang. Programnya tidak pernah bekerja: tautan referral
+  // kehilangan ?ref saat /order me-redirect ke /templates, kode pengguna
+  // ditolak /api/referral yang hanya mengenal kode afiliasi, dan tidak ada
+  // kode yang mencatat referral atau memberi hadiah. Panelnya menjanjikan
+  // diskon Rp 15.000 yang tidak mungkin terpenuhi.
   { id: 'subscription', label: 'Langganan',  icon: ShieldCheck },
   { id: 'support',      label: 'Bantuan',    icon: MessageSquare },
   { id: 'settings',     label: 'Pengaturan', icon: Settings },
@@ -412,7 +415,6 @@ export default function DashboardClient({ user, invitations, selectedTemplateId,
                   {tab === 'guest' && <GuestManager invitation={inv} priceTiers={priceTiers} />}
                   {tab === 'rsvp' && <RSVPList invitationId={inv.id} />}
                   {tab === 'analytics' && <AnalyticsPanel invitation={inv} />}
-                  {tab === 'referral' && <ReferralPanel />}
                   {tab === 'subscription' && <SubscriptionInfo invitation={inv} onOpenSupport={() => setTab('support')} />}
                   {tab === 'support' && <SupportTickets />}
                   {tab === 'settings' && <SettingsPanel invitation={inv} userEmail={user.email} onDeleted={() => { setInv(null); setTab('overview') }} />}

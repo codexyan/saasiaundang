@@ -118,77 +118,9 @@ export const users = {
   async updateRole(id: string, role: UserRole): Promise<void> {
     await prisma.user.update({ where: { id }, data: { role } })
   },
-  async findByReferralCode(code: string): Promise<DbUser | null> {
-    const u = await prisma.user.findUnique({ where: { referralCode: code } })
-    return u ? mapUser(u) : null
-  },
-  async setReferralCode(id: string, code: string): Promise<void> {
-    await prisma.user.update({ where: { id }, data: { referralCode: code } })
-  },
-}
-
-// ─── USER REFERRALS ──────────────────────────────────────────
-
-export interface UserReferralRecord {
-  id: string
-  referrer_id: string
-  referred_id: string
-  order_id: string | null
-  status: 'pending' | 'completed' | 'rewarded'
-  reward_type: string
-  reward_value: number
-  claimed_at: string | null
-  created_at: string
-}
-
-export const userReferrals = {
-  async create(data: { referrer_id: string; referred_id: string; order_id?: string }): Promise<UserReferralRecord> {
-    const r = await prisma.userReferral.create({
-      data: {
-        referrerId: data.referrer_id,
-        referredId: data.referred_id,
-        orderId: data.order_id || null,
-        rewardType: 'discount',
-        rewardValue: 15000,
-      },
-    })
-    return mapUserReferral(r)
-  },
-
-  async findByReferrerId(referrerId: string): Promise<UserReferralRecord[]> {
-    const all = await prisma.userReferral.findMany({
-      where: { referrerId },
-      orderBy: { createdAt: 'desc' },
-    })
-    return all.map(mapUserReferral)
-  },
-
-  async countByReferrer(referrerId: string): Promise<{ total: number; completed: number; totalReward: number }> {
-    const all = await prisma.userReferral.findMany({
-      where: { referrerId },
-      select: { status: true, rewardValue: true },
-    })
-    return {
-      total: all.length,
-      completed: all.filter(r => r.status === 'completed' || r.status === 'rewarded').length,
-      totalReward: all.filter(r => r.status === 'rewarded').reduce((s, r) => s + r.rewardValue, 0),
-    }
-  },
-
-  async markCompleted(referrerId: string, referredId: string): Promise<void> {
-    await prisma.userReferral.updateMany({
-      where: { referrerId, referredId, status: 'pending' },
-      data: { status: 'completed' },
-    })
-  },
-}
-
-function mapUserReferral(r: { id: string; referrerId: string; referredId: string; orderId: string | null; status: string; rewardType: string; rewardValue: number; claimedAt: Date | null; createdAt: Date }): UserReferralRecord {
-  return {
-    id: r.id, referrer_id: r.referrerId, referred_id: r.referredId,
-    order_id: r.orderId, status: r.status as UserReferralRecord['status'],
-    reward_type: r.rewardType, reward_value: r.rewardValue,
-    claimed_at: r.claimedAt?.toISOString() ?? null,
-    created_at: r.createdAt.toISOString(),
-  }
+  // findByReferralCode, setReferralCode, dan seluruh userReferrals dibuang
+  // bersama program referral pengguna, yang tidak pernah mencatat satu referral
+  // pun (lihat komentar di app/api/referral/route.ts). Kolom users.referral_code
+  // dan tabel user_referrals masih ada di database; menghapusnya butuh migrasi
+  // terpisah.
 }
