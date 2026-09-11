@@ -337,6 +337,11 @@ EMERGING (Year 2-3): Marketplace Commission (30% of template sales)
 
 ## Free Tier: 7-Day Trial
 
+> **Tidak berlaku lagi sejak 11 Sep 2026.** Trial berbasis akun sudah dihapus
+> dari produk (branch `tier-unification`). Calon pembeli mencoba editor lewat
+> pratinjau `/demo/renderer` tanpa akun, lalu membeli di `/order`. Rencana di
+> bawah dibiarkan sebagai catatan keputusan awal.
+
 - 7 hari dari saat invitation dibuat
 - 3 basic templates, watermark, limited sections
 - 50 tamu max, 5 foto max

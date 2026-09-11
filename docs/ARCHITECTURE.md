@@ -3,6 +3,13 @@
 **Last updated:** 29 Juni 2026
 **Stack:** Next.js 14.2 (App Router) · Prisma · PostgreSQL (Supabase) · Resend · TypeScript
 
+> **Catatan 11 Sep 2026:** bagian tentang trial, pendaftaran mandiri, pembuatan
+> undangan gratis, paket, dan referral pengguna sudah disesuaikan dengan branch
+> `tier-unification`. Bagian lain belum diaudit ulang sejak Juni 2026 dan
+> sebagian sudah usang, misalnya versi stack, `lib/db.ts` yang kini dipecah ke
+> `lib/db/*.ts`, hosting yang kini Cloudflare Workers, dan `/api/payment/*` yang
+> kini hanya berisi webhook Mayar.
+
 ---
 
 ## Daftar Isi
@@ -56,7 +63,7 @@ app/
 ├── (app)/            # Authenticated pages
 │   ├── dashboard/    # User dashboard
 │   └── admin/        # Admin panel
-├── (auth)/           # Login, register, forgot-password, reset-password
+├── (auth)/           # Login, forgot-password, reset-password (register dialihkan ke /templates)
 ├── invitation/[slug]/ # Public invitation view (JSON-LD Event)
 ├── api/              # All API routes (see API Routes section)
 ├── robots.ts         # Dynamic robots.txt
@@ -83,7 +90,7 @@ lib/
 ├── session.ts        # JWT session encode/decode/verify
 ├── session-server.ts # Server-side getSession()
 ├── subscription.ts   # Subscription domain service
-├── notifications.ts  # Notification service (12 types, Resend transport)
+├── notifications.ts  # Notification service (9 types, Resend transport)
 ├── packages.ts       # Package/tier definitions (starter, popular, eksklusif)
 ├── utils.ts          # Shared utilities
 ├── demo-data.ts      # Demo/preview data
@@ -107,7 +114,7 @@ docs/
 #### Core Product
 | Model | Purpose | Key Fields |
 |-------|---------|------------|
-| `User` | User accounts | email, passwordHash, role, referralCode |
+| `User` | User accounts | email, passwordHash, role, sessionEpoch |
 | `Invitation` | Wedding invitations | slug, templateId, data (JSON), packageTier, isPublished, isPaid, expiresAt |
 | `Gallery` | Invitation photos | invitationId, url, order |
 | `Guest` | Unified contacts + RSVP | invitationId, name, phone, group, note, source, attending, blastSentAt |
@@ -134,7 +141,6 @@ docs/
 |-------|---------|------------|
 | `Affiliate` | Partner affiliates | userId, referralCode, commissionRate, totalEarnings |
 | `Referral` | Affiliate referral tracking | affiliateId, buyerEmail, saleAmount, commission, status |
-| `UserReferral` | User-to-user referrals | referrerId, referredId, status, rewardValue (Rp 15k) |
 
 #### Intelligence
 | Model | Purpose | Key Fields |
@@ -158,8 +164,8 @@ docs/
 Central data access layer. All Prisma queries wrapped in typed functions.
 
 **Service objects:**
-- `users` — findByEmail, findById, create, findAll, delete, updatePassword, updateRole, findByReferralCode, setReferralCode
-- `invitations` — findBySlug, findManyByUserId, countByUserId, findById, findAll, create, update, delete, slugExists
+- `users` — findByEmail, findById, create, findAll, delete, updatePassword, revokeSessions, sessionEpoch, updateRole
+- `invitations` — findBySlug, findManyByUserId, findById, findAll, create, update, delete, slugExists
 - `galleries` — findByInvitationId, findById, create, update, delete, reorder
 - `guests` — findByInvitationId, create, update, delete, markBlastSent, countByInvitation
 - `wishes` — findByInvitationId, create, delete
@@ -171,34 +177,42 @@ Central data access layer. All Prisma queries wrapped in typed functions.
 - `articles` — findAll, findPublished, findById, findBySlug, create, update, delete
 - `affiliates` — findByUserId, findByCode, create, updateBank, incrementClicks
 - `referrals` — findByAffiliateId, create
-- `userReferrals` — create, findByReferrerId, countByReferrer, markCompleted
 - `invitationViews` — record, countByInvitation, countByDateRange, dailyCounts, topReferrers
 - `landingSections` — get, save
 
 ### `lib/subscription.ts` — Subscription Domain
 Lifecycle: `active` → `expiring_soon` → `expired` → `cancelled`
 
-- `subscriptions.create()` / `createTrial()` — new subscription or 7-day trial
+- `subscriptions.create()`: langganan baru, dibuat `provisionPaidOrder()` saat pesanan dibayar (webhook Mayar atau persetujuan admin)
 - `subscriptions.findByInvitation()` / `findByUser()`
 - `subscriptions.renew()` / `cancel()` / `markExpired()` / `syncExpiredStatuses()`
-- Helpers: `resolveStatus()`, `daysRemaining()`, `isActive()`, `isTrial()`, `isInGracePeriod()`
-- Trial: 7 days active + 14 days grace period (read-only)
+- Helpers: `resolveStatus()`, `daysRemaining()`, `isActive()`
+- Tidak ada lagi trial maupun masa tenggang (dibuang 11 Sep 2026)
 
 ### `lib/notifications.ts` — Notification Service
-12 notification types with Indonesian templates.
+9 notification types with Indonesian templates.
 
 Transport: Resend (with `RESEND_API_KEY`) or console fallback.
 
-Types: `welcome`, `trial_started`, `trial_expiring`, `trial_expired`, `order_created`, `order_approved`, `order_rejected`, `payment_received`, `subscription_active`, `subscription_expiring`, `subscription_expired`, `password_reset`
+Types: `welcome`, `order_created`, `order_approved`, `order_rejected`, `payment_received`, `subscription_active`, `subscription_expiring`, `subscription_expired`, `password_reset`
 
 ### `lib/packages.ts` — Tier Definitions
 
-| Tier | Price | Duration | Max Guests | Max Photos | Features |
-|------|-------|----------|------------|------------|----------|
-| Starter | Rp 79.000 | 1 bulan | 100 | 5 | Basic |
-| Popular | Rp 149.000 | 3 bulan | 500 | 20 | + Gift, Video |
-| Eksklusif | Rp 249.000 | 6 bulan | Unlimited | Unlimited | + Custom Domain, No Watermark |
-| Trial | Free | 7 hari | 50 | 5 | Basic with watermark |
+Sumber kebenaran paket adalah `settings.priceTiers` yang diatur admin, termasuk
+paket kustom di luar tiga paket bawaan. Server membacanya lewat `lib/tiers.ts`
+(`resolveTier`, `resolveTierFeatures`, `resolveExpiry`), dan harga dihitung
+`computePrice()` di `lib/pricing.ts` untuk memajang maupun menagih. `PACKAGES` di
+`lib/packages.ts` hanya nilai cadangan tiga paket bawaan:
+
+| Tier | Price | Duration | Max Guests | Max Photos |
+|------|-------|----------|------------|------------|
+| Starter | Rp 79.000 | 1 bulan | 200 | 10 |
+| Popular | Rp 149.000 | 3 bulan | 500 | 20 |
+| Eksklusif | Rp 249.000 | 6 bulan | Unlimited | Unlimited |
+
+Masa aktif yang dipakai saat penyediaan adalah `validity_days` paket di pengaturan
+admin (`resolveExpiry()` di `provisionPaidOrder()`), bukan kolom Duration di atas.
+Tidak ada paket trial maupun gratis.
 
 ---
 
@@ -208,7 +222,6 @@ Types: `welcome`, `trial_started`, `trial_expiring`, `trial_expired`, `order_cre
 | Method | Route | Purpose |
 |--------|-------|---------|
 | POST | `/api/auth/login` | Login |
-| POST | `/api/auth/register` | Register |
 | POST | `/api/auth/logout` | Logout |
 | POST | `/api/auth/forgot-password` | Request reset |
 | POST | `/api/auth/reset-password` | Execute reset |
@@ -231,9 +244,8 @@ Types: `welcome`, `trial_started`, `trial_expiring`, `trial_expired`, `order_cre
 | GET/POST/PATCH/DELETE | `/api/guests` | Guest CRUD |
 | POST | `/api/guests/blast-sent` | Mark guests as blast-sent |
 | GET | `/api/analytics?invitation_id=X` | Invitation analytics |
-| GET | `/api/referral` | User referral code + stats |
 | GET | `/api/user/subscription` | Subscription status |
-| POST/GET | `/api/invitations` | Invitation CRUD |
+| PATCH/DELETE | `/api/invitations/[id]` | Simpan isi undangan dari Studio, hapus undangan |
 | POST | `/api/payment/proof` | Upload payment proof |
 | POST | `/api/galleries/upload` | Upload gallery image |
 | POST/GET | `/api/tickets` | Support tickets |
@@ -257,7 +269,7 @@ Types: `welcome`, `trial_started`, `trial_expiring`, `trial_expired`, `order_cre
 
 ## Dashboard Modules
 
-User dashboard (`/dashboard`) — 9 tabs:
+User dashboard (`/dashboard`) — 8 tabs:
 
 | Tab | Component | Purpose |
 |-----|-----------|---------|
@@ -266,10 +278,9 @@ User dashboard (`/dashboard`) — 9 tabs:
 | Tamu | `GuestManager` | Contact management, WA blast (database-backed) |
 | RSVP | `RSVPList` | View RSVP responses |
 | Analitik | `AnalyticsPanel` | Views chart, RSVP breakdown, referrers |
-| Referral | `ReferralPanel` | Referral code, share, stats, history |
 | Langganan | `SubscriptionInfo` | Subscription status + upgrade |
 | Bantuan | `SupportTickets` | Support ticket system |
-| Settings | `SettingsPanel` | Account settings, delete invitation |
+| Pengaturan | `SettingsPanel` | Account settings, delete invitation |
 
 ---
 
@@ -359,30 +370,28 @@ pernah dinaikkan siapa pun sehingga selalu 0.
 ## Subscription Lifecycle
 
 ```
-Invitation Created
+User orders package di /order → Payment
     ↓
-Trial (7 days, basic features, watermark)
+Webhook Mayar atau persetujuan admin → provisionPaidOrder()
     ↓
-Trial Expiring (notification sent)
+Akun (kalau email belum terdaftar) + Invitation + Subscription dibuat sekaligus
     ↓
-Trial Expired → Grace Period (14 days, read-only)
-    ↓
-User Orders Package → Payment → Admin Approves
-    ↓
-Subscription Active (1/3/6 months based on tier)
+Subscription Active (masa aktif = validity_days paket)
     ↓
 Expiring Soon (7 days before, notification)
     ↓
 Expired → Invitation hidden from public
 ```
 
-Order → Invitation → Subscription traceability chain fully linked.
+Order → Invitation → Subscription traceability chain fully linked. Tidak ada trial
+maupun masa tenggang: calon pembeli mencoba lewat pratinjau `/demo/renderer` tanpa
+akun.
 
 ---
 
 ## Notification System
 
-12 notification types, all with Indonesian templates.
+9 notification types, all with Indonesian templates.
 
 **Transport priority:**
 1. Resend email (if `RESEND_API_KEY` configured)
@@ -391,7 +400,6 @@ Order → Invitation → Subscription traceability chain fully linked.
 **HTML template:** Responsive, branded email with iaundang footer.
 
 **Integration points:**
-- Invitation creation → `trial_started`
 - Order creation → `order_created`
 - Admin order review → `order_approved` / `order_rejected`
 - Cron sync → `subscription_expiring` / `subscription_expired`
@@ -410,17 +418,21 @@ Order → Invitation → Subscription traceability chain fully linked.
 
 ## Referral Program
 
-### User Referrals (all users)
-- Auto-generated referral code per user (format: `EMAIL-XXX`)
-- Reward: Rp 15.000 per successful referral
-- Status: pending → completed → rewarded
-- Dashboard tab with share via WA, stats, history
+Program referral pengguna (kode per akun dengan janji diskon Rp 15.000) dihapus
+11 Sep 2026 karena tidak pernah mencatat satu referral pun. Tabel
+`user_referrals` dan kolom `users.referral_code` dijatuhkan lewat migrasi
+`20260911000000_drop_user_referral_program`, yang diterapkan sesudah kode tanpa
+kolom itu ter-deploy. Yang tersisa hanya program afiliasi.
 
 ### Affiliate Program (partners only)
 - Role-based: requires `affiliate` role
 - Commission-based: configurable rate per affiliate
 - Click tracking, conversion tracking, withdrawal system
 - Admin management in Affiliates tab
+- Atribusi: tautan `?ref=KODE` ditangkap `ReferralCapture`, `POST /api/referral`
+  memvalidasi kode afiliasi lalu memasang cookie `ref` (httpOnly, 30 hari),
+  `/api/orders` mengisi `referred_by` dari cookie itu, dan komisi dicatat
+  `provisionPaidOrder()` saat pesanan dibayar.
 
 ---
 
