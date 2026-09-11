@@ -198,6 +198,13 @@ export default function DemoEditorClient({ template, demoData, demoWishes }: Pro
                 <label className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider mb-2 block">
                   Foto
                 </label>
+                {/* Foto di sini tidak ikut terbawa ke pemesanan: ini blob di
+                    browser yang mati begitu halaman berpindah, dan undangannya
+                    sendiri baru ada setelah pembayaran. Dikatakan terus terang
+                    di muka supaya tidak ada yang merasa kehilangan nanti. */}
+                <p className="text-[11px] text-stone-400 mb-2 leading-relaxed">
+                  Foto di sini untuk pratinjau saja. Nanti bisa diunggah beneran di editor setelah pemesanan.
+                </p>
                 <div className="grid grid-cols-3 gap-2.5">
                   {/* Cover / background photo */}
                   <button
@@ -262,9 +269,12 @@ export default function DemoEditorClient({ template, demoData, demoWishes }: Pro
               </div>
 
               {/* Info note */}
+              {/* Dulu: "Daftar gratis untuk menyimpan undanganmu." Pendaftaran
+                  mandiri sudah ditutup. Undangan hanya lahir dari pemesanan,
+                  dan isinya dilengkapi di editor setelah pembayaran. */}
               <p className="text-[10px] text-stone-400 text-center leading-relaxed">
                 Perubahan hanya berlaku sementara untuk preview ini.
-                <br />Daftar gratis untuk menyimpan undanganmu.
+                <br />Untuk menyimpannya, pesan undangan ini. Isinya dilengkapi di editor setelah pembayaran.
               </p>
             </div>
 
@@ -273,6 +283,36 @@ export default function DemoEditorClient({ template, demoData, demoWishes }: Pro
               <div className="px-5 pb-4">
                 <a
                   href={`/order?template=${template.id}`}
+                  onClick={() => {
+                    // Nama yang barusan diketik pengunjung dititipkan ke
+                    // OrderForm lewat sessionStorage. Dulu tombol ini cuma
+                    // membawa `template`, jadi orang mengetik nama mereka di
+                    // sini, melihat undangannya hidup, lalu diminta mengetik
+                    // nama yang sama lagi dari nol di halaman order.
+                    //
+                    // Sengaja HANYA nama. Data orang tua dan foto tetap di
+                    // demo: keduanya isi undangan, bukan syarat transaksi, dan
+                    // tempatnya di Studio editor setelah pemesanan. Foto juga
+                    // tidak mungkin dibawa — ini blob URL yang mati begitu
+                    // halaman berpindah, dan undangannya sendiri baru ada
+                    // setelah pembayaran terkonfirmasi.
+                    //
+                    // sessionStorage, bukan query param: nama orang tidak
+                    // perlu ikut tercatat di log server, analytics, dan header
+                    // referrer.
+                    try {
+                      sessionStorage.setItem('iaundang:prefill', JSON.stringify({
+                        groomName: groomFull,
+                        brideName: brideFull,
+                        groomNickname: groomNick,
+                        brideNickname: brideNick,
+                      }))
+                    } catch {
+                      // Kuota penuh atau storage diblokir. Bukan alasan untuk
+                      // menahan pengunjung — order tetap bisa jalan, cuma
+                      // namanya diketik ulang.
+                    }
+                  }}
                   className="block w-full text-center py-3 rounded-xl text-sm font-bold text-white bg-forest-500 hover:bg-forest-600 transition-colors shadow-sm"
                 >
                   Suka? Buat undangan sekarang →

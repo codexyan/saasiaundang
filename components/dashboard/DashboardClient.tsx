@@ -2,16 +2,15 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import toast from 'react-hot-toast'
 import dynamic from 'next/dynamic'
 import {
   LayoutDashboard, FileEdit, Users, LogOut,
   ExternalLink, Copy, Menu, X, ChevronRight, Eye, Send,
   Settings, MessageSquare, BarChart3, Gift,
-  Sparkles, Crown, Globe, ArrowUpRight, ShieldCheck, MoreHorizontal,
+  Globe, ArrowUpRight, ShieldCheck, MoreHorizontal,
 } from 'lucide-react'
-import type { Invitation, NewInvitationData } from '@/lib/types'
+import type { Invitation, NewInvitationData, PriceTier } from '@/lib/types'
 import { LEGACY_TEMPLATE_IDS } from '@/lib/types'
 import { getInvitationUrl, isExpired } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
@@ -46,6 +45,10 @@ interface Props {
   allTemplates: TemplateInfo[]
   isAdmin?: boolean
   paymentSuccess?: boolean
+  /** Dari server (settings.get() lewat lib/tiers.ts). Diteruskan ke
+   *  TemplateModule/InvitationStudio dan GuestManager supaya batas fitur
+   *  yang ditegakkan sinkron dengan pengaturan admin yang sebenarnya. */
+  priceTiers?: PriceTier[]
 }
 
 type Tab = 'overview' | 'undangan' | 'guest' | 'rsvp' | 'analytics' | 'referral' | 'subscription' | 'support' | 'settings'
@@ -75,7 +78,7 @@ function getDisplayNames(inv: Invitation): { groom: string; bride: string } {
   return { groom: d.groom_name || '', bride: d.bride_name || '' }
 }
 
-export default function DashboardClient({ user, invitations, selectedTemplateId, allTemplates, isAdmin, paymentSuccess }: Props) {
+export default function DashboardClient({ user, invitations, selectedTemplateId, allTemplates, isAdmin, paymentSuccess, priceTiers }: Props) {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>('overview')
 
@@ -97,8 +100,10 @@ export default function DashboardClient({ user, invitations, selectedTemplateId,
   /**
    * Pengganti setInv lama — sengaja bernama sama supaya ketiga pemanggil yang
    * ada (togglePublish, TemplateModule.onInvitationUpdate,
-   * SettingsPanel.onDeleted) tidak perlu diubah. Bersifat UPSERT, karena
-   * OnboardingWizard memakai callback yang sama untuk undangan yang BARU dibuat.
+   * SettingsPanel.onDeleted) tidak perlu diubah. Bersifat UPSERT. Dulu
+   * OnboardingWizard juga memanggilnya untuk undangan gratis yang baru dibuat.
+   * Sekarang wizard hanya mengantar ke /order, jadi undangan baru datang lewat
+   * pembelian dan muncul saat dashboard dimuat ulang.
    */
   function setInv(updated: Invitation | null) {
     if (!updated) {
@@ -200,7 +205,11 @@ export default function DashboardClient({ user, invitations, selectedTemplateId,
     ? { cls: 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20', label: 'Aktif', dot: 'bg-emerald-400' }
     : isPaid
     ? { cls: 'bg-sky-500/10 text-sky-400 ring-sky-500/20', label: 'Siap Publish', dot: 'bg-sky-400' }
-    : { cls: 'bg-amber-500/10 text-amber-400 ring-amber-500/20', label: 'Free Trial', dot: 'bg-amber-400' }
+    // Dulu berlabel "Free Trial". Trial sudah tidak ada: undangan hanya lahir
+    // dari pembelian, jadi is_paid false sekarang berarti status lunasnya
+    // dicabut admin lewat panel, atau data lama dari jalur gratis yang sudah
+    // ditutup. Label ini menyebut keadaannya apa adanya.
+    : { cls: 'bg-amber-500/10 text-amber-400 ring-amber-500/20', label: 'Belum Aktif', dot: 'bg-amber-400' }
 
   return (
     <div className="flex h-screen bg-[#f8f7f4] overflow-hidden">
@@ -380,33 +389,31 @@ export default function DashboardClient({ user, invitations, selectedTemplateId,
               allTemplates={allTemplates}
               onInvitationUpdate={(updated) => setInv(updated)}
               isAdmin={isAdmin}
+              priceTiers={priceTiers}
             />
           ) : (
             <div className="max-w-4xl mx-auto p-4 md:p-6 lg:p-8">
               {(!inv || creating) && (
                 <OnboardingWizard
-                  invitation={null}
-                  onInvitationCreated={setInv}
                   allTemplates={allTemplates}
+                  userEmail={user.email}
                 />
               )}
 
               {inv && !creating && (
                 <>
                   {!isPaid && !isAdmin && tab === 'overview' && (
-                    <UpgradeBanner
-                      invitation={inv}
-                    />
+                    <UnpaidBanner onOpenSupport={() => setTab('support')} />
                   )}
 
                   {tab === 'overview' && (
                     <DashboardOverview invitation={inv} onNavigate={(t) => setTab(t as Tab)} onTogglePublish={togglePublish} />
                   )}
-                  {tab === 'guest' && <GuestManager invitation={inv} />}
+                  {tab === 'guest' && <GuestManager invitation={inv} priceTiers={priceTiers} />}
                   {tab === 'rsvp' && <RSVPList invitationId={inv.id} />}
                   {tab === 'analytics' && <AnalyticsPanel invitation={inv} />}
                   {tab === 'referral' && <ReferralPanel />}
-                  {tab === 'subscription' && <SubscriptionInfo invitation={inv} />}
+                  {tab === 'subscription' && <SubscriptionInfo invitation={inv} onOpenSupport={() => setTab('support')} />}
                   {tab === 'support' && <SupportTickets />}
                   {tab === 'settings' && <SettingsPanel invitation={inv} userEmail={user.email} onDeleted={() => { setInv(null); setTab('overview') }} />}
                 </>
@@ -543,11 +550,15 @@ export default function DashboardClient({ user, invitations, selectedTemplateId,
   )
 }
 
-//  Upgrade Banner
-
-function UpgradeBanner({}: {
-  invitation: Invitation
-}) {
+//  Unpaid Banner
+//
+// Dulu bernama UpgradeBanner dan bertuliskan "Mode Free Trial", memajang harga
+// tetap "Mulai Rp 79.000" yang tidak dibaca dari pengaturan paket, dan
+// tombolnya membuka /templates. Trial sudah tidak ada, dan /order tidak bisa
+// membayar undangan yang sudah ada karena subdomainnya ditolak sebagai sudah
+// terpakai, jadi tombol itu buntu. Banner ini menjelaskan keadaannya apa adanya
+// dan mengarahkan ke tab Bantuan.
+function UnpaidBanner({ onOpenSupport }: { onOpenSupport: () => void }) {
   return (
     <div className="mb-6 relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#1a1a1a] to-[#2d2d2d] p-6 text-white">
       <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-amber-500/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/4" />
@@ -556,32 +567,22 @@ function UpgradeBanner({}: {
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
-              <Crown size={16} className="text-amber-400" />
+              <ShieldCheck size={16} className="text-amber-400" />
             </div>
-            <p className="text-sm font-bold text-white/90">Mode Free Trial</p>
+            <p className="text-sm font-bold text-white/90">Pembayaran belum aktif</p>
           </div>
           <p className="text-white/50 text-xs leading-relaxed max-w-md">
-            Anda sedang dalam mode percobaan gratis. Upgrade untuk menghapus watermark, membuka semua fitur, dan mempublikasikan undangan Anda.
+            Undangan ini belum tercatat lunas. Kalau kalian sudah membayar atau merasa ini keliru, kabari kami lewat Bantuan supaya bisa kami cek.
           </p>
-          <div className="flex items-center gap-4 mt-3">
-            <span className="text-[11px] text-white/40 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-400" /> Mulai Rp 79.000
-            </span>
-            <span className="text-[11px] text-white/40 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-400" /> Transfer bank / QRIS
-            </span>
-            <span className="text-[11px] text-white/40 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> Aktif dalam 1x24 jam
-            </span>
-          </div>
         </div>
-        <Link
-          href="/templates"
-          className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-5 py-3 rounded-xl hover:shadow-lg hover:shadow-amber-500/25 transition-all shrink-0 no-underline"
+        <button
+          type="button"
+          onClick={onOpenSupport}
+          className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-5 py-3 rounded-xl hover:shadow-lg hover:shadow-amber-500/25 transition-all shrink-0"
         >
-          <Sparkles size={14} />
-          Pilih Template & Upgrade
-        </Link>
+          <MessageSquare size={14} />
+          Hubungi Bantuan
+        </button>
       </div>
     </div>
   )

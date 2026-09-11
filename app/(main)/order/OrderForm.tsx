@@ -7,7 +7,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   ChevronRight, ChevronLeft, Check, Crown, Rocket, Gem,
   Copy, CreditCard, Send, Loader2, CheckCircle2,
-  User, Users, Globe, ShoppingBag, Clock, X, Landmark,
+  Users, ShoppingBag, Clock, X, Landmark,
 } from 'lucide-react'
 import BankCard, { QrisCard } from '@/components/ui/BankCard'
 import { InputField } from '@/components/marketing/Field'
@@ -65,12 +65,15 @@ interface Props {
   paymentConfig: PaymentConfig
 }
 
-type Step = 0 | 1 | 2 | 3
+type Step = 0 | 1 | 2
 
+// Paket sengaja jadi langkah pertama. Dulu paket baru muncul di langkah ketiga,
+// setelah pembeli mengisi 13 field, jadi harga baru terlihat setelah mereka
+// terlanjur mengetik banyak. Isi undangan juga tidak lagi ditanyakan di sini:
+// halaman ini checkout murni, isi undangan dilengkapi di Studio setelah bayar.
 const STEP_LABELS = [
-  { icon: User, label: 'Data Mempelai' },
-  { icon: Globe, label: 'Alamat & Kontak' },
   { icon: ShoppingBag, label: 'Pilih Paket' },
+  { icon: Users, label: 'Data & Kontak' },
   { icon: CreditCard, label: 'Pembayaran' },
 ]
 
@@ -108,29 +111,25 @@ function buildTierFeatureList(tierId: string, f: TierFeatures): FeatureItem[] {
 export default function OrderForm({ templateId, templateName, templatePrice, templateCategory, flashSales, tiers, paymentConfig }: Props) {
   const [step, setStep] = useState<Step>(0)
 
-  // Step 0: Couple data
+  // Langkah 0: Paket
+  const [packageTier, setPackageTier] = useState('')
+
+  // Langkah 1: Data & kontak
   const [groomName, setGroomName] = useState('')
   const [brideName, setBrideName] = useState('')
+  // Nama panggilan tidak punya input lagi, tapi state-nya sengaja dipertahankan:
+  // diisi dari pratinjau demo lewat sessionStorage dan dipakai effect saran
+  // subdomain di bawah. Untuk pembeli yang langsung ke /order keduanya kosong,
+  // jadi setiap tempat yang menyapa pasangan wajib jatuh ke nama lengkap.
   const [groomNickname, setGroomNickname] = useState('')
   const [brideNickname, setBrideNickname] = useState('')
-  const [groomFather, setGroomFather] = useState('')
-  const [groomMother, setGroomMother] = useState('')
-  const [brideFather, setBrideFather] = useState('')
-  const [brideMother, setBrideMother] = useState('')
-  const [groomProfession, setGroomProfession] = useState('')
-  const [brideProfession, setBrideProfession] = useState('')
-
-  // Step 1: Contact & subdomain
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [subdomain, setSubdomain] = useState('')
   const [subdomainAvailable, setSubdomainAvailable] = useState<boolean | null>(null)
   const [checkingSubdomain, setCheckingSubdomain] = useState(false)
 
-  // Step 2: Package
-  const [packageTier, setPackageTier] = useState('')
-
-  // Step 3: Payment result
+  // Langkah 2: hasil pesanan untuk layar pembayaran
   const [order, setOrder] = useState<{ order_number: string; total_amount: number; unique_code: number; amount: number } | null>(null)
 
   //  Kupon
@@ -161,6 +160,34 @@ export default function OrderForm({ templateId, templateName, templatePrice, tem
     }, 500)
   }, [])
 
+  // Nama yang sudah diketik di pratinjau demo (DemoEditorClient) atau di
+  // OnboardingWizard dashboard dipakai sebagai isian awal, supaya tidak
+  // diketik dua kali. Sengaja tidak dihapus setelah dibaca: kalau halaman ini
+  // di-refresh, isiannya tetap ada. Setiap klik CTA di demo maupun tombol
+  // akhir wizard menimpa nilainya.
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem('iaundang:prefill')
+      if (!raw) return
+      const p = JSON.parse(raw) as Partial<Record<'groomName' | 'brideName' | 'groomNickname' | 'brideNickname' | 'email', string>>
+      if (p.groomName) setGroomName(p.groomName)
+      if (p.brideName) setBrideName(p.brideName)
+      if (p.groomNickname) setGroomNickname(p.groomNickname)
+      if (p.brideNickname) setBrideNickname(p.brideNickname)
+      // Hanya dikirim OnboardingWizard, milik pembeli yang sudah login.
+      // provision-order mencari akun lewat email pesanan, jadi alamat lain
+      // berarti akun baru yang terpisah dan undangannya tidak muncul di
+      // dashboard mereka.
+      if (p.email) setEmail(p.email)
+    } catch {
+      // JSON rusak atau storage diblokir — form tetap jalan, cuma kosong.
+    }
+  }, [])
+
+  // Hanya berjalan kalau nama panggilan terisi dari pratinjau demo. Sengaja
+  // tidak menebak dari nama lengkap untuk pembeli yang langsung ke /order:
+  // kata pertama dari "Muhammad Rizky" atau "M. Rizky" menghasilkan alamat
+  // undangan yang buruk, padahal alamat itu dipakai permanen.
   useEffect(() => {
     if (!groomNickname || !brideNickname) return
     const auto = `${groomNickname}-${brideNickname}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-')
@@ -169,9 +196,10 @@ export default function OrderForm({ templateId, templateName, templatePrice, tem
 
   function canNext(): boolean {
     switch (step) {
-      case 0: return !!(groomName && brideName && groomNickname && brideNickname)
-      case 1: return !!(email && subdomain && subdomainAvailable)
-      case 2: return !!packageTier
+      case 0: return !!packageTier
+      // Nama panggilan tidak lagi jadi syarat. Inputnya sudah tidak ada, jadi
+      // syarat lama akan mengunci tombol selamanya bagi pembeli langsung.
+      case 1: return !!(groomName && brideName && email && subdomain && subdomainAvailable)
       default: return false
     }
   }
@@ -183,13 +211,14 @@ export default function OrderForm({ templateId, templateName, templatePrice, tem
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        // Nama orang tua dan profesi tidak dikirim lagi. Skema /api/orders
+        // menandainya opsional dan kolom Order ber-default string kosong, jadi
+        // API tidak perlu diubah. Nama panggilan tetap dikirim apa adanya,
+        // kosong kalau pembeli tidak datang dari demo.
         body: JSON.stringify({
           email, phone,
           groom_name: groomName, bride_name: brideName,
           groom_nickname: groomNickname, bride_nickname: brideNickname,
-          groom_father: groomFather, groom_mother: groomMother,
-          bride_father: brideFather, bride_mother: brideMother,
-          groom_profession: groomProfession, bride_profession: brideProfession,
           subdomain, template_id: templateId,
           package_tier: packageTier,
           coupon_code: couponCode,
@@ -209,7 +238,7 @@ export default function OrderForm({ templateId, templateName, templatePrice, tem
       }
 
       setOrder(newOrder)
-      setStep(3)
+      setStep(2)
       toast.success('Pesanan kalian sudah masuk!')
     } catch { toast.error('Ada kendala sebentar. Coba lagi ya.') }
     finally { setSubmitting(false) }
@@ -230,7 +259,9 @@ export default function OrderForm({ templateId, templateName, templatePrice, tem
       ``,
       `Saya ingin konfirmasi pembayaran:`,
       `📋 No. Pesanan: ${order.order_number}`,
-      `👤 ${groomNickname} & ${brideNickname}`,
+      // Fallback ke nama lengkap: pembeli yang langsung ke /order tidak punya
+      // nama panggilan, dan tanpa fallback baris ini terkirim sebagai "👤  & ".
+      `👤 ${groomNickname || groomName} & ${brideNickname || brideName}`,
       `📧 Email: ${email}`,
       `📦 Paket: ${tier?.label ?? packageTier}`,
       `💰 Total: Rp ${order.total_amount.toLocaleString('id-ID')}`,
@@ -248,16 +279,21 @@ export default function OrderForm({ templateId, templateName, templatePrice, tem
    * /api/orders. Ringkasan lama menampilkan `selectedTier.price` mentah, jadi
    * harga khusus template dan diskon flash sale tidak terlihat sama sekali:
    * pembeli melihat satu angka di layar ini lalu angka lain di layar transfer.
+   *
+   * Kartu paket sekarang ikut memakai priceFor(). Dulu kartu tetap memajang
+   * tier.price mentah, jadi masalah di atas masih tersisa di layar pertama
+   * checkout: kalau template punya harga khusus atau sedang ada flash sale,
+   * angka di kartu bukan angka yang ditagih. Satu helper untuk kartu dan
+   * ringkasan menjamin keduanya tidak bisa berbeda untuk paket yang sama.
    */
-  const priceBreakdown = selectedTier
-    ? computePrice({
-        basePrice: templatePrice > 0 ? templatePrice : selectedTier.price,
-        tierId: selectedTier.id,
-        category: templateCategory,
-        flashSales,
-        coupons: [],
-      })
-    : null
+  const priceFor = (tier: TierInfo) => computePrice({
+    basePrice: templatePrice > 0 ? templatePrice : tier.price,
+    tierId: tier.id,
+    category: templateCategory,
+    flashSales,
+    coupons: [],
+  })
+  const priceBreakdown = selectedTier ? priceFor(selectedTier) : null
 
   async function applyCoupon() {
     const code = couponInput.trim()
@@ -293,6 +329,23 @@ export default function OrderForm({ templateId, templateName, templatePrice, tem
     setCouponMsg(null)
   }
 
+  // Kupon divalidasi untuk SATU paket: check-coupon menerima package_tier dan
+  // menghitung potongan dari harga paket itu. Dulu kupon tetap terpasang saat
+  // pembeli pindah paket, jadi layar memajang potongan milik paket lama
+  // sementara server menghitung ulang untuk paket baru. Total di layar bisa
+  // beda dengan tagihan, atau pesanan baru gagal di klik terakhir kalau kupon
+  // tidak berlaku untuk paket baru. Pesan gagal milik paket lama juga dibuang
+  // karena belum tentu berlaku untuk paket baru. Kode yang sudah diketik
+  // dibiarkan di input supaya pembeli cukup menekan "Pakai" lagi.
+  function selectTier(id: string) {
+    if (id !== packageTier) {
+      setCouponCode(null)
+      setCouponAmount(null)
+      setCouponMsg(couponCode ? 'Paket diganti. Tekan "Pakai" untuk mengecek ulang kupon di paket ini.' : null)
+    }
+    setPackageTier(id)
+  }
+
   // Diskon kupon dihitung ulang di sini hanya untuk DITAMPILKAN. Angka yang
   // menentukan tagihan tetap dihitung server saat pesanan dibuat.
   const couponSaved = couponCode && couponAmount != null ? couponAmount : 0
@@ -317,7 +370,7 @@ export default function OrderForm({ templateId, templateName, templatePrice, tem
           {STEP_LABELS.map((s, i) => {
             const isActive = step === i
             const isDone = i < step
-            const canGoBack = isDone && step !== 3
+            const canGoBack = isDone && step !== 2
             return (
               <div key={i} className="flex items-center">
                 {i > 0 && <div className={`w-6 sm:w-10 h-px mx-1 rounded-full ${isDone ? 'bg-forest-300' : 'bg-hairline'}`} />}
@@ -346,94 +399,8 @@ export default function OrderForm({ templateId, templateName, templatePrice, tem
         {/* Form card */}
         <div className="bg-chalk rounded-card border border-hairline shadow-card overflow-hidden">
 
-          {/* Step 0: Data Mempelai */}
+          {/* Langkah 0: Paket */}
           {step === 0 && (
-            <div className="p-6 sm:p-8">
-              <div className="flex items-center gap-2.5 mb-6">
-                <div className="w-8 h-8 rounded-lg bg-forest-50 flex items-center justify-center">
-                  <Users size={15} className="text-forest" />
-                </div>
-                <h2 className="font-display text-h2 text-graphite">Data Mempelai</h2>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {/* Groom */}
-                <div className="space-y-3">
-                  <p className="text-eyebrow text-concrete mb-2">Mempelai Pria</p>
-                  <InputField label="Nama Lengkap *" value={groomName} onChange={e => setGroomName(e.target.value)} placeholder="Muhammad Rizky Pratama, S.Kom" />
-                  <InputField label="Nama Panggilan *" value={groomNickname} onChange={e => setGroomNickname(e.target.value)} placeholder="Rizky" />
-                  <InputField label="Profesi" value={groomProfession} onChange={e => setGroomProfession(e.target.value)} placeholder="Software Engineer" />
-                  <InputField label="Nama Ayah" value={groomFather} onChange={e => setGroomFather(e.target.value)} placeholder="Bapak H. Ahmad Pratama" />
-                  <InputField label="Nama Ibu" value={groomMother} onChange={e => setGroomMother(e.target.value)} placeholder="Ibu Hj. Siti Aminah" />
-                </div>
-
-                {/* Bride */}
-                <div className="space-y-3">
-                  <p className="text-eyebrow text-concrete mb-2">Mempelai Wanita</p>
-                  <InputField label="Nama Lengkap *" value={brideName} onChange={e => setBrideName(e.target.value)} placeholder="Aulia Putri Ramadhani, S.Pd" />
-                  <InputField label="Nama Panggilan *" value={brideNickname} onChange={e => setBrideNickname(e.target.value)} placeholder="Aulia" />
-                  <InputField label="Profesi" value={brideProfession} onChange={e => setBrideProfession(e.target.value)} placeholder="Guru" />
-                  <InputField label="Nama Ayah" value={brideFather} onChange={e => setBrideFather(e.target.value)} placeholder="Bapak Ir. Dedi Ramadhani" />
-                  <InputField label="Nama Ibu" value={brideMother} onChange={e => setBrideMother(e.target.value)} placeholder="Ibu Nurhasanah" />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 1: Subdomain & Contact */}
-          {step === 1 && (
-            <div className="p-6 sm:p-8">
-              <div className="flex items-center gap-2.5 mb-6">
-                <div className="w-8 h-8 rounded-lg bg-forest-50 flex items-center justify-center">
-                  <Globe size={15} className="text-forest" />
-                </div>
-                <h2 className="font-display text-h2 text-graphite">Subdomain &amp; Kontak</h2>
-              </div>
-
-              <div className="space-y-5">
-                <div>
-                  <label className="block text-label-base text-carbon mb-1.5">Subdomain Undangan *</label>
-                  <div className="flex items-center gap-0">
-                    <input
-                      value={subdomain}
-                      onChange={e => checkSubdomain(e.target.value)}
-                      placeholder="rizky-aulia"
-                      className="flex-1 min-w-0 px-4 py-3 text-body-base text-graphite placeholder:text-ash bg-chalk border border-hairline rounded-l-input focus:outline-none focus:border-forest-light focus:ring-2 focus:ring-forest/15 transition-colors"
-                    />
-                    <span className="px-4 py-3 text-body-sm bg-mist border border-l-0 border-hairline rounded-r-input text-concrete font-mono whitespace-nowrap">
-                      .iaundang.online
-                    </span>
-                  </div>
-                  {subdomain.length >= 3 && (
-                    <div className="mt-1.5 flex items-center gap-1.5">
-                      {checkingSubdomain ? (
-                        <><Loader2 size={12} className="animate-spin text-concrete" /><span className="text-body-xs text-concrete">Memeriksa...</span></>
-                      ) : subdomainAvailable ? (
-                        <><CheckCircle2 size={12} className="text-green-600" /><span className="text-body-xs text-green-700 font-medium">Tersedia!</span></>
-                      ) : subdomainAvailable === false ? (
-                        <><span className="text-body-xs text-red-600">Subdomain sudah digunakan, coba yang lain</span></>
-                      ) : null}
-                    </div>
-                  )}
-                  <p className="text-body-xs text-concrete mt-1">Ini akan menjadi alamat undangan kalian. Contoh: rizky-aulia.iaundang.online</p>
-                </div>
-
-                <InputField
-                  label="Email *"
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="email@contoh.com"
-                  hint="Kami akan kirim akses login ke email ini begitu pembayaran kalian terkonfirmasi"
-                />
-
-                <InputField label="WhatsApp" value={phone} onChange={e => setPhone(e.target.value)} placeholder="08123456789" />
-              </div>
-            </div>
-          )}
-
-          {/* Step 2: Package */}
-          {step === 2 && (
             <div className="p-6 sm:p-8">
               <div className="flex items-center gap-2.5 mb-6">
                 <div className="w-8 h-8 rounded-lg bg-forest-50 flex items-center justify-center">
@@ -448,10 +415,11 @@ export default function OrderForm({ templateId, templateName, templatePrice, tem
                   const TierIcon = TIER_ICONS[tier.icon] ?? Rocket
                   const selected = packageTier === tier.id
                   const f = tier.features
+                  const cardPrice = priceFor(tier)
                   return (
                     <button
                       key={tier.id}
-                      onClick={() => setPackageTier(tier.id)}
+                      onClick={() => selectTier(tier.id)}
                       aria-pressed={selected}
                       className={`relative text-left rounded-card border-2 transition-all flex flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 focus-visible:ring-offset-2 ${
                         selected
@@ -473,8 +441,16 @@ export default function OrderForm({ templateId, templateName, templatePrice, tem
                           </div>
                           <span className="text-body-sm font-semibold text-graphite">{tier.label}</span>
                         </div>
+                        {/* Harga coret hanya muncul kalau flash sale memang
+                            memotong harga paket ini, supaya potongan yang
+                            ditagih server terlihat sejak kartu pertama. */}
+                        {cardPrice.final < cardPrice.base && (
+                          <p className="text-body-xs text-concrete line-through">
+                            Rp {cardPrice.base.toLocaleString('id-ID')}
+                          </p>
+                        )}
                         <p className="font-display text-h2 text-graphite">
-                          Rp {tier.price.toLocaleString('id-ID')}
+                          Rp {cardPrice.final.toLocaleString('id-ID')}
                         </p>
                         <p className="text-body-xs text-concrete mt-0.5">
                           sekali bayar {f ? `· aktif ${f.validity_days} hari` : ''}
@@ -553,8 +529,8 @@ export default function OrderForm({ templateId, templateName, templatePrice, tem
                 <div className="mt-6 rounded-card bg-ivory border border-hairline p-5">
                   <p className="text-eyebrow text-concrete mb-3">Ringkasan Pesanan</p>
                   <div className="space-y-2">
-                    <div className="flex justify-between text-body-sm"><span className="text-concrete">Mempelai</span><span className="font-medium text-graphite">{groomNickname} & {brideNickname}</span></div>
-                    <div className="flex justify-between text-body-sm"><span className="text-concrete">Subdomain</span><span className="font-mono text-graphite">{subdomain}.iaundang.online</span></div>
+                    {/* Tanpa baris Mempelai dan Subdomain: ringkasan ini sekarang
+                        tampil di langkah pertama, sebelum data itu diisi. */}
                     <div className="flex justify-between text-body-sm"><span className="text-concrete">Template</span><span className="font-medium text-graphite">{templateName}</span></div>
                     <div className="flex justify-between text-body-sm"><span className="text-concrete">Paket</span><span className="font-medium text-graphite">{selectedTier.label}</span></div>
                     <div className="border-t border-hairline my-2" />
@@ -628,8 +604,83 @@ export default function OrderForm({ templateId, templateName, templatePrice, tem
             </div>
           )}
 
-          {/* Step 3: Payment Confirmation */}
-          {step === 3 && order && (() => {
+          {/* Langkah 1: Data & kontak */}
+          {step === 1 && (
+            <div className="p-6 sm:p-8">
+              <div className="flex items-center gap-2.5 mb-6">
+                <div className="w-8 h-8 rounded-lg bg-forest-50 flex items-center justify-center">
+                  <Users size={15} className="text-forest" />
+                </div>
+                <h2 className="font-display text-h2 text-graphite">Data &amp; Kontak</h2>
+              </div>
+
+              {/* Lima field, hanya yang dibutuhkan untuk membuat pesanan dan akun.
+                  Dulu ada 13 field di dua langkah: nama panggilan, nama orang tua,
+                  dan profesi ikut ditanyakan sebelum bayar. Semua itu isi undangan,
+                  bukan syarat transaksi, dan tidak satu pun sampai ke undangan:
+                  profesi tidak pernah disalin saat pesanan disetujui, sedangkan
+                  nama panggilan dan orang tua disalin ke field yang tidak dibaca
+                  renderer. Isi undangan dilengkapi di Studio setelah bayar. */}
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <InputField label="Nama Lengkap Mempelai Pria *" value={groomName} onChange={e => setGroomName(e.target.value)} placeholder="Muhammad Rizky Pratama, S.Kom" />
+                  <InputField label="Nama Lengkap Mempelai Wanita *" value={brideName} onChange={e => setBrideName(e.target.value)} placeholder="Aulia Putri Ramadhani, S.Pd" />
+                </div>
+
+                <InputField
+                  label="Email *"
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="email@contoh.com"
+                  hint="Kami akan kirim akses login ke email ini begitu pembayaran kalian terkonfirmasi"
+                />
+
+                <div>
+                  <label className="block text-label-base text-carbon mb-1.5">Subdomain Undangan *</label>
+                  <div className="flex items-center gap-0">
+                    <input
+                      value={subdomain}
+                      onChange={e => checkSubdomain(e.target.value)}
+                      placeholder="rizky-aulia"
+                      className="flex-1 min-w-0 px-4 py-3 text-body-base text-graphite placeholder:text-ash bg-chalk border border-hairline rounded-l-input focus:outline-none focus:border-forest-light focus:ring-2 focus:ring-forest/15 transition-colors"
+                    />
+                    <span className="px-4 py-3 text-body-sm bg-mist border border-l-0 border-hairline rounded-r-input text-concrete font-mono whitespace-nowrap">
+                      .iaundang.online
+                    </span>
+                  </div>
+                  {subdomain.length >= 3 && (
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      {checkingSubdomain ? (
+                        <><Loader2 size={12} className="animate-spin text-concrete" /><span className="text-body-xs text-concrete">Memeriksa...</span></>
+                      ) : subdomainAvailable ? (
+                        <><CheckCircle2 size={12} className="text-green-600" /><span className="text-body-xs text-green-700 font-medium">Tersedia!</span></>
+                      ) : subdomainAvailable === false ? (
+                        <><span className="text-body-xs text-red-600">Subdomain sudah digunakan, coba yang lain</span></>
+                      ) : null}
+                    </div>
+                  )}
+                  <p className="text-body-xs text-concrete mt-1">Ini akan menjadi alamat undangan kalian. Contoh: rizky-aulia.iaundang.online</p>
+                </div>
+
+                <InputField label="WhatsApp (opsional)" value={phone} onChange={e => setPhone(e.target.value)} placeholder="08123456789" />
+              </div>
+
+              {/* Rekap total di layar yang sama dengan tombol "Buat Pesanan".
+                  Rincian lengkapnya ada di langkah Paket, tapi tombol itu
+                  langsung membuat pesanan dan bisa mengantar ke halaman bayar
+                  Mayar, jadi angka yang akan ditagih harus terlihat di sini. */}
+              {selectedTier && (
+                <div className="mt-6 flex items-baseline justify-between gap-3 rounded-card bg-ivory border border-hairline p-5">
+                  <span className="text-body-sm text-concrete">Total paket {selectedTier.label}</span>
+                  <span className="font-display text-h2 text-forest-deep">Rp {finalPrice.toLocaleString('id-ID')}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Langkah 2: Pembayaran */}
+          {step === 2 && order && (() => {
             const hasBank = paymentConfig.bankAccounts.length > 0
             const hasQris = !!paymentConfig.qrisImageUrl
             const selectedBank = paymentConfig.bankAccounts.find(b => b.id === selectedPayment)
@@ -795,7 +846,7 @@ export default function OrderForm({ templateId, templateName, templatePrice, tem
           })()}
 
           {/* Navigation */}
-          {step < 3 && (
+          {step < 2 && (
             <div className="flex items-center justify-between px-6 sm:px-8 py-4 border-t border-hairline bg-ivory/70">
               {step > 0 ? (
                 <button onClick={() => setStep((step - 1) as Step)} className="flex items-center gap-1 min-h-[44px] px-3 py-2.5 -ml-2 rounded-button text-button-base text-concrete hover:text-graphite hover:bg-mist transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40">
@@ -803,7 +854,7 @@ export default function OrderForm({ templateId, templateName, templatePrice, tem
                 </button>
               ) : <div />}
 
-              {step === 2 ? (
+              {step === 1 ? (
                 <button
                   onClick={handleSubmitOrder}
                   disabled={!canNext() || submitting}

@@ -42,7 +42,11 @@ export interface Invitation {
   slug: string
   template_id: string
   data: InvitationData
-  package_tier?: import('@/lib/packages').PackageTier
+  /** Id paket. Dulu diketat ke union PackageTier (starter|popular|eksklusif),
+   *  tapi admin sekarang bisa membuat tier sendiri lewat panel Paket & Promo,
+   *  jadi id-nya tidak lagi terbatas tiga itu. Resolusi label dan fiturnya
+   *  lewat lib/tiers.ts (server) atau resolveTierDisplay (client). */
+  package_tier?: string
   is_published: boolean
   is_paid: boolean
   expires_at: string | null

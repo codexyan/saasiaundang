@@ -77,36 +77,6 @@ export function welcomeTemplate(d: EmailData): string {
   `)
 }
 
-export function trialStartedTemplate(d: EmailData): string {
-  return baseTemplate(`
-    <h2 style="margin:0 0 16px;color:#1a4a1a;">Masa Coba Gratis 7 Hari Dimulai</h2>
-    <p>Halo ${str(d.name, 'Kak')},</p>
-    <p>Undangan kalian sudah jadi dan bisa dilihat di <strong>${str(d.slug)}.${APP_DOMAIN}</strong>.</p>
-    <p>Selama 7 hari ke depan kalian bebas mencoba semua fiturnya. Kalau sudah cocok, tinggal aktifkan paketnya kapan saja.</p>
-    ${button(invitationUrl(d.slug), 'Lihat Undangan Kalian')}
-  `)
-}
-
-export function trialExpiringTemplate(d: EmailData): string {
-  return baseTemplate(`
-    <h2 style="margin:0 0 16px;color:#c9a961;">Masa Coba Gratis Segera Berakhir</h2>
-    <p>Halo ${str(d.name, 'Kak')},</p>
-    <p>Masa coba undangan kalian tinggal <strong>${str(d.daysLeft)} hari</strong> lagi.</p>
-    <p>Aktifkan paketnya sekarang supaya undangan tetap bisa dibuka tamu.</p>
-    ${button(`https://${APP_DOMAIN}/templates`, 'Aktifkan Paket')}
-  `)
-}
-
-export function trialExpiredTemplate(d: EmailData): string {
-  return baseTemplate(`
-    <h2 style="margin:0 0 16px;color:#1a4a1a;">Masa Coba Gratis Sudah Berakhir</h2>
-    <p>Halo ${str(d.name, 'Kak')},</p>
-    <p>Masa coba undangan kalian sudah habis. Tenang, semua isinya masih kami simpan selama 14 hari.</p>
-    <p>Aktifkan paketnya untuk menghidupkan undangan kalian lagi.</p>
-    ${button(`https://${APP_DOMAIN}/templates`, 'Aktifkan Undangan')}
-  `)
-}
-
 export function orderCreatedTemplate(d: EmailData): string {
   return baseTemplate(`
     <h2 style="margin:0 0 16px;color:#1a4a1a;">Pesanan Kalian Sudah Kami Terima</h2>

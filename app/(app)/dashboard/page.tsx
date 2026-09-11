@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/session-server'
 import { isAdmin } from '@/lib/auth'
-import { invitations, templateRecords } from '@/lib/db'
+import { invitations, templateRecords, settings } from '@/lib/db'
 import DashboardClient from '@/components/dashboard/DashboardClient'
 
 export const dynamic = 'force-dynamic'
@@ -16,14 +16,21 @@ export default async function DashboardPage(props: Props) {
   const session = await getSession()
   if (!session) redirect('/login')
 
-  const invitationList = await invitations.findManyByUserId(session.userId) as Invitation[]
+  const [invitationList, activeTemplates, appSettings] = await Promise.all([
+    invitations.findManyByUserId(session.userId) as Promise<Invitation[]>,
+    templateRecords.findActive(),
+    settings.get(),
+  ])
 
-  const allTemplates = (await templateRecords.findActive()).map(t => ({
+  const allTemplates = activeTemplates.map(t => ({
     id: t.id,
     name: t.name,
     category: t.category,
     thumbnailUrl: t.thumbnail_url,
-    demoUrl: `/demo/renderer`,
+    // Halaman demo memilih tema lewat ?id=. Dulu parameternya tidak dikirim,
+    // jadi setiap tombol Preview yang memakai demoUrl selalu membuka tema
+    // bawaan (Javanese Gold), apa pun template yang dipilih.
+    demoUrl: `/demo/renderer?id=${encodeURIComponent(t.id)}`,
     isNew: true,
   }))
 
@@ -38,6 +45,7 @@ export default async function DashboardPage(props: Props) {
       allTemplates={allTemplates}
       isAdmin={isAdmin(session)}
       paymentSuccess={paymentSuccess}
+      priceTiers={appSettings.priceTiers}
     />
   )
 }

@@ -1,8 +1,7 @@
 import bcrypt from 'bcryptjs'
 import { orders, users, invitations, affiliates } from './db'
 import { subscriptions } from './subscription'
-import { PACKAGES, type PackageTier } from './packages'
-import { resolveExpiry } from './tiers'
+import { resolveExpiry, resolveTier } from './tiers'
 import { randomString } from './random'
 import type { InvitationData } from './types'
 
@@ -58,10 +57,13 @@ export async function provisionPaidOrder(
     return { status: 'already-provisioned', invitationId: order.invitation_id }
   }
 
-  const tier = order.package_tier as PackageTier
-  const pkg = PACKAGES[tier]
-  // Sengaja TIDAK jatuh ke PACKAGES.popular: menebak paket berarti memberi
+  const tier = order.package_tier
+  const pkg = await resolveTier(tier)
+  // Sengaja TIDAK jatuh ke tier 'popular': menebak paket berarti memberi
   // durasi dan fitur yang tidak dibayar pelanggan. Lebih baik gagal terang.
+  // resolveTier() sendiri hanya jatuh ke 'popular' kalau tier-nya kosong;
+  // tier yang terisi tapi tidak dikenal di settings.priceTiers maupun
+  // BUILT_IN_PRICE_TIERS tetap null di sini.
   if (!pkg) return { status: 'invalid-tier', tier: String(order.package_tier) }
 
   // ── 1. Akun ────────────────────────────────────────────────────────────
@@ -183,7 +185,7 @@ export async function provisionPaidOrder(
     subscriptionId: subscription.id,
     userId: user.id,
     slug: order.subdomain,
-    tierName: pkg.name,
+    tierName: pkg.label,
     expiresAt,
     plainPassword,
   }

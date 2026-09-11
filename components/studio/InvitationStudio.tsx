@@ -10,7 +10,7 @@ import {
   Maximize2, ExternalLink, Lock, Video, Radio, Instagram, QrCode, ShoppingBag,
   GripVertical, ArrowUpDown, Palette,
 } from 'lucide-react'
-import type { Invitation, NewInvitationData, TemplateRecord, OpeningType, TierFeatures } from '@/lib/types'
+import type { Invitation, NewInvitationData, TemplateRecord, OpeningType, TierFeatures, PriceTier } from '@/lib/types'
 import type { PackageTier } from '@/lib/packages'
 import { calculateCompleteness } from '@/lib/studio-progress'
 import { EASE } from '@/lib/motion'
@@ -45,6 +45,10 @@ interface Props {
   template: TemplateRecord
   onSaved: (inv: Invitation) => void
   isAdmin?: boolean
+  /** Dari server component (lihat lib/tiers.ts, SERVER-ONLY). Opsional
+   *  supaya pemanggil yang belum sempat dikirimi prop ini tidak crash,
+   *  usePackageGating dan GalleryManager sama sama punya fallback sendiri. */
+  priceTiers?: PriceTier[]
 }
 
 function initData(inv: Invitation): NewInvitationData {
@@ -257,7 +261,7 @@ const SECTION_TYPE_FEATURE: Record<string, keyof TierFeatures> = {
   livestream: 'livestream', 'ig-story': 'ig_story', qrcode: 'qrcode', closing: 'closing',
 }
 
-export default function InvitationStudio({ invitation, template, onSaved, isAdmin }: Props) {
+export default function InvitationStudio({ invitation, template, onSaved, isAdmin, priceTiers }: Props) {
   const [data, setData] = useState<NewInvitationData>(() => initData(invitation))
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [showPreview, setShowPreview] = useState(false)
@@ -277,7 +281,7 @@ export default function InvitationStudio({ invitation, template, onSaved, isAdmi
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const completeness = calculateCompleteness(data)
-  const gating = usePackageGating(isAdmin ? 'eksklusif' : (invitation as unknown as Record<string, unknown>).package_tier as PackageTier | undefined)
+  const gating = usePackageGating(isAdmin ? 'eksklusif' : (invitation as unknown as Record<string, unknown>).package_tier as PackageTier | undefined, priceTiers)
 
   const { groups: NAV_GROUPS, sections: SECTIONS } = useMemo(() => buildNavGroups(gating, template.config.sections), [gating, template.config.sections])
 
@@ -447,7 +451,7 @@ export default function InvitationStudio({ invitation, template, onSaved, isAdmi
           onChaptersChange={(chapters) => updateData({ story_chapters: chapters })}
         />
       )
-      case 'galeri': return <GalleryManager invitation={invitation} />
+      case 'galeri': return <GalleryManager invitation={invitation} priceTiers={priceTiers} />
       case 'hadiah': return (
         <GiftForm accounts={data.gift_accounts ?? []} onAccountsChange={(accounts) => updateData({ gift_accounts: accounts })} />
       )

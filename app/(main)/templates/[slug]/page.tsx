@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import type { Metadata } from 'next'
-import { templateRecords } from '@/lib/db'
+import { templateRecords, settings } from '@/lib/db'
+import { startingPrice } from '@/lib/pricing'
 import { ArrowLeft, Music, Image as ImageIcon, Users, MessageCircle, Gift, Video, Globe } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -47,10 +48,26 @@ export default async function TemplateDetailPage(props: Props) {
     { icon: Globe, label: 'Custom Domain', available: false },
   ]
 
-  const allTemplates = await templateRecords.findActive()
+  const [allTemplates, appSettings] = await Promise.all([
+    templateRecords.findActive(),
+    settings.get(),
+  ])
   const related = allTemplates
     .filter(t => t.id !== template.id && t.category === template.category)
     .slice(0, 3)
+
+  // Harga "Mulai dari" dan harga di data terstruktur SEO dihitung dengan aturan
+  // yang sama dengan /api/orders. Dulu halaman ini tidak memuat pengaturan
+  // paket sama sekali: template berharga 0 tampil "Mulai dari Gratis" dan data
+  // SEO-nya mengumumkan price 0, padahal tombol di sebelahnya membuka /order
+  // yang menagih harga paket.
+  const start = startingPrice({
+    templatePrice: template.price,
+    requiredPackage: template.required_package,
+    category: template.category,
+    tiers: appSettings.priceTiers,
+    flashSales: appSettings.flashSales,
+  })
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -64,7 +81,7 @@ export default async function TemplateDetailPage(props: Props) {
     offers: {
       '@type': 'Offer',
       priceCurrency: 'IDR',
-      price: template.price,
+      price: start?.price.final ?? template.price,
       availability: 'https://schema.org/InStock',
     },
   }
@@ -136,18 +153,19 @@ export default async function TemplateDetailPage(props: Props) {
               </p>
             </div>
 
-            {/* Price */}
+            {/* Price. Dulu "Mulai dari Gratis" untuk template berharga 0, lihat
+                komentar di atas pemanggilan startingPrice. */}
             <div className="bg-white rounded-2xl border border-stone-100 p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-xs text-stone-400">Mulai dari</p>
-                  <p className="text-2xl font-bold text-stone-900">
-                    {template.price > 0
-                      ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(template.price)
-                      : 'Gratis'}
-                  </p>
+              {start && (
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <p className="text-xs text-stone-400">Mulai dari</p>
+                    <p className="text-2xl font-bold text-stone-900">
+                      {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(start.price.final)}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
               <div className="space-y-2">
                 <Link href={demoUrl}
                   className="block w-full text-center py-3 rounded-xl text-sm font-semibold text-white transition-colors"

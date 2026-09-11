@@ -1,7 +1,7 @@
 // Sengaja dari './built-in-data', BUKAN './db' — lib/packages.ts diimpor oleh
 // 5 komponen client, dan lewat './db' seluruh Prisma + pg ikut masuk bundle browser.
 import { BUILT_IN_PRICE_TIERS } from './built-in-data'
-import type { TierFeatures, SectionConfig } from './types'
+import type { TierFeatures, SectionConfig, PriceTier } from './types'
 
 export type PackageTier = 'starter' | 'popular' | 'eksklusif'
 
@@ -118,4 +118,50 @@ export function isSectionActiveForTier(section: SectionConfig, tier: PackageTier
 
 export function countActiveSections(sections: SectionConfig[], tier: PackageTier): number {
   return sections.filter(s => isSectionActiveForTier(s, tier)).length
+}
+
+/**
+ * Resolusi tier dinamis untuk komponen CLIENT.
+ *
+ * lib/tiers.ts (resolveTier/resolveTierFeatures) adalah sumber kebenaran
+ * sungguhan, tapi itu SERVER-ONLY karena menyentuh Prisma lewat
+ * settings.get(). Komponen client (dashboard, Studio editor) menerima
+ * `priceTiers` sebagai prop dari server component (lihat lib/tiers.ts),
+ * lalu pakai fungsi ini untuk mencari tier yang relevan dari array itu.
+ *
+ * Fallback ke data lama (getPackage/getTierFeatures, hardcoded) kalau
+ * pemanggil belum sempat dikirimi prop `priceTiers`, atau id-nya somehow
+ * tidak ketemu — supaya tidak ada komponen yang tiba-tiba crash selama
+ * migrasi bertahap.
+ */
+export function resolveTierDisplay(
+  priceTiers: PriceTier[] | undefined,
+  tierId: string | null | undefined
+): { label: string; features: TierFeatures } {
+  const found = priceTiers?.find(t => t.id === tierId)
+  if (found?.features) return { label: found.label, features: found.features }
+  const fallbackId = (tierId ?? 'popular') as PackageTier
+  return { label: found?.label ?? getPackage(fallbackId).name, features: getTierFeatures(fallbackId) }
+}
+
+/** Tier mana saja yang PALING MURAH sudah menyertakan sebuah fitur, dari
+ *  daftar priceTiers dinamis (diurutkan naik dari harga). Dipakai untuk
+ *  pesan "upgrade ke paket X" di Studio editor. Fallback ke tiga tier tetap
+ *  kalau priceTiers tidak dikirim. */
+export function findCheapestTierWithFeature(
+  priceTiers: PriceTier[] | undefined,
+  featureKey: keyof TierFeatures
+): string | undefined {
+  const list = priceTiers?.length ? [...priceTiers].sort((a, b) => a.price - b.price) : null
+  if (list) {
+    for (const t of list) {
+      if (t.features?.[featureKey]) return t.label
+    }
+    return list[list.length - 1]?.label
+  }
+  const fallbackOrder: PackageTier[] = ['starter', 'popular', 'eksklusif']
+  for (const t of fallbackOrder) {
+    if (getTierFeatures(t)[featureKey]) return getPackage(t).name
+  }
+  return getPackage('eksklusif').name
 }

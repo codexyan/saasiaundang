@@ -117,29 +117,41 @@ function PricingCard({
 
 const TIER_VARIANTS: Record<string, CardVariant> = { starter: 'light', popular: 'dark', eksklusif: 'gold' }
 const TIER_CTA: Record<string, { label: string; hint: string }> = {
-  starter: { label: 'Mulai Gratis', hint: 'Coba dulu, bayar kalau cocok' },
+  // Dulu "Mulai Gratis / Coba dulu, bayar kalau cocok", padahal Starter
+  // berbayar dan tombolnya hanya membuka galeri. Yang gratis adalah demo di
+  // galeri itu, bukan paketnya, jadi hint menyebut demo secara terus terang.
+  starter: { label: 'Pilih Starter', hint: 'Coba demonya gratis dulu' },
   popular: { label: 'Pilih Popular', hint: 'Fitur lengkap untuk acara kalian' },
   eksklusif: { label: 'Pilih Eksklusif', hint: 'Untuk acara besar & eksklusif' },
 }
 
-function buildFeatureList(tier: PriceTier): string[] {
+/**
+ * `cheaperTier` = tier tepat di bawahnya berdasarkan harga, dipakai untuk
+ * baris ringkas "Semua fitur X". Dulu ini hardcode: popular selalu bilang
+ * "Semua fitur Starter", eksklusif selalu "Semua fitur Popular", dan tier
+ * kustom tidak dapat baris itu sama sekali. Sekarang diturunkan dari urutan
+ * harga, jadi tier keempat pun ikut benar.
+ */
+function buildFeatureList(tier: PriceTier, cheaperTier: PriceTier | undefined): string[] {
   const f = tier.features
   if (!f) return []
   const list: string[] = []
-  if (tier.id === 'popular') list.push('Semua fitur Starter')
-  else if (tier.id === 'eksklusif') list.push('Semua fitur Popular')
-  else {
+  if (cheaperTier) {
+    list.push(`Semua fitur ${cheaperTier.label}`)
+  } else {
     if (f.music) list.push('Musik pengiring')
     if (f.rsvp) list.push('RSVP online')
     if (f.gallery) list.push('Galeri foto')
     if (f.countdown) list.push('Countdown hari H')
     if (f.wishes) list.push('Ucapan & doa dari tamu')
   }
+  // Dulu dibatasi `tier.id !== 'starter'` / `=== 'eksklusif'`. Fitur ini
+  // sekarang ditampilkan kalau paketnya memang punya, apa pun id-nya.
   if (f.gift) list.push('Amplop digital & rekening')
   if (f.gift_registry) list.push('Wishlist hadiah')
-  if (f.story && tier.id !== 'starter') list.push('Kisah cinta pasangan')
-  if (f.video && tier.id !== 'starter') list.push('Video prewedding')
-  if (f.qrcode && tier.id === 'eksklusif') list.push('Scan barcode kehadiran tamu')
+  if (f.story) list.push('Kisah cinta pasangan')
+  if (f.video) list.push('Video prewedding')
+  if (f.qrcode) list.push('Scan barcode kehadiran tamu')
   if (f.remove_watermark) list.push('Tanpa watermark')
   if (f.custom_domain) list.push('Custom domain sendiri')
   if (f.priority_support) list.push('Priority support via WhatsApp')
@@ -153,8 +165,17 @@ interface PricingProps {
 }
 
 export default function Pricing({ priceTiers, flashSales }: PricingProps) {
-  const tiers = priceTiers?.length ? priceTiers : null
+  const tiers = priceTiers?.length ? [...priceTiers].sort((a, b) => a.price - b.price) : null
   const sales = flashSales ?? []
+
+  // Grid dulu dikunci `sm:grid-cols-3` karena tier memang selalu tepat tiga.
+  // Dengan tier kustom jumlahnya bisa berapa saja, jadi kolom mengikuti
+  // jumlah tier (dibatasi 4 supaya kartunya tidak jadi terlalu sempit).
+  const cols = tiers ? Math.min(tiers.length, 4) : 3
+  const gridCols = cols >= 4 ? 'sm:grid-cols-2 lg:grid-cols-4'
+    : cols === 3 ? 'sm:grid-cols-3'
+    : cols === 2 ? 'sm:grid-cols-2'
+    : 'sm:grid-cols-1'
 
   return (
     <SectionContainer
@@ -164,11 +185,9 @@ export default function Pricing({ priceTiers, flashSales }: PricingProps) {
       title="Sekali bayar. Tanpa langganan."
       lead="Sekali bayar, langsung aktif. Tidak ada biaya bulanan atau biaya tersembunyi."
     >
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 max-w-4xl mx-auto items-stretch">
+      <div className={`grid grid-cols-1 ${gridCols} gap-4 sm:gap-5 max-w-4xl mx-auto items-stretch`}>
         {tiers ? (
           tiers
-            .filter(t => ['starter', 'popular', 'eksklusif'].includes(t.id))
-            .sort((a, b) => a.price - b.price)
             .map((tier, i) => {
               // computePrice() — FUNGSI YANG SAMA dengan /api/orders. Halaman
               // ini dulu punya perhitungan diskonnya sendiri, jadi angka yang
@@ -182,15 +201,18 @@ export default function Pricing({ priceTiers, flashSales }: PricingProps) {
               const discounted = breakdown.flashSale ? breakdown.final : null
               const variant = TIER_VARIANTS[tier.id] ?? 'light'
               const cta = TIER_CTA[tier.id] ?? { label: `Pilih ${tier.label}`, hint: '' }
-              const features = buildFeatureList(tier)
-              const highlighted = tier.id === 'popular' ? 'Amplop digital & rekening'
-                : tier.id === 'eksklusif' ? 'Scan barcode kehadiran tamu' : undefined
+              const features = buildFeatureList(tier, tiers[i - 1])
+              // Dulu: hardcode per id. Sekarang fitur unggulan = fitur pertama
+              // yang tier ini punya tapi tier di bawahnya belum.
+              const highlighted = i > 0
+                ? features.find(x => !buildFeatureList(tiers[i - 1], tiers[i - 2]).includes(x) && !x.startsWith('Semua fitur') && !x.startsWith('Aktif '))
+                : undefined
 
               return (
                 <PricingCard
                   key={tier.id}
                   name={`Paket ${tier.label}`}
-                  badge={tier.id === 'popular' ? 'PALING DIPILIH' : tier.label.toUpperCase()}
+                  badge={tier.highlight ? 'PALING DIPILIH' : tier.label.toUpperCase()}
                   price={formatRp(discounted ?? tier.price)}
                   originalPrice={discounted ? formatRp(tier.price) : undefined}
                   discountLabel={breakdown.flashSale ? `−${formatRp(breakdown.flashSale.saved)}` : undefined}
@@ -207,11 +229,12 @@ export default function Pricing({ priceTiers, flashSales }: PricingProps) {
             })
         ) : (
           <>
+            {/* Teks tombol sama dengan TIER_CTA.starter, lihat alasannya di sana. */}
             <PricingCard
               name="Paket Starter" badge={PRICING_CONFIG.starter.badge}
               price={PRICING_CONFIG.starter.priceFormatted} duration={PRICING_CONFIG.starter.durationLabel}
               features={PRICING_CONFIG.starter.features}
-              ctaLabel="Mulai Gratis" ctaHint="Coba dulu, bayar kalau cocok" variant="light" delay={0}
+              ctaLabel="Pilih Starter" ctaHint="Coba demonya gratis dulu" variant="light" delay={0}
             />
             <PricingCard
               name="Paket Popular" badge={PRICING_CONFIG.popular.badge}

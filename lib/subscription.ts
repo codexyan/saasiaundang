@@ -1,13 +1,14 @@
 import { prisma } from './prisma'
-import type { PackageTier } from './packages'
 import { resolveExpiry } from './tiers'
 
 // ─── Domain Types ────────────────────────────────────────────
 
 export type SubscriptionStatus = 'active' | 'expiring_soon' | 'expired' | 'cancelled'
 
-export const TRIAL_TIER = 'trial' as const
-export type SubscriptionTier = PackageTier | typeof TRIAL_TIER
+/** Tier langganan. `string` karena admin bisa membuat paket sendiri lewat
+ *  panel Paket & Promo — id-nya tidak lagi terbatas starter/popular/eksklusif.
+ */
+export type SubscriptionTier = string
 
 export interface SubscriptionRecord {
   id: string
@@ -27,24 +28,18 @@ export interface CreateSubscriptionInput {
   invitationId: string
   userId: string
   orderId?: string
-  tier: PackageTier
+  tier: string
 }
 
 // ─── Lifecycle Constants ─────────────────────────────────────
 
+// Mesin trial (TRIAL_TIER, TRIAL_DAYS, TRIAL_GRACE_DAYS, TRIAL_LIMITS,
+// createTrial, isTrial, isInGracePeriod) dibuang. Satu-satunya pembuat
+// langganan trial adalah POST /api/invitations, jalur undangan gratis yang
+// sudah ditutup, jadi langganan sekarang hanya lahir dari pembelian lewat
+// provisionPaidOrder. TRIAL_LIMITS pun tidak pernah dibaca kode penegak batas
+// mana pun, cuma ikut dikirim /api/user/subscription tanpa ada yang membacanya.
 const EXPIRING_SOON_DAYS = 7
-const TRIAL_DAYS = 7
-const TRIAL_GRACE_DAYS = 14
-
-// ─── Trial Limits ────────────────────────────────────────────
-
-export const TRIAL_LIMITS = {
-  maxPhotos: 5,
-  maxGuests: 50,
-  durationDays: TRIAL_DAYS,
-  graceDays: TRIAL_GRACE_DAYS,
-  showWatermark: true,
-} as const
 
 // ─── Status Resolution ───────────────────────────────────────
 
@@ -68,18 +63,6 @@ export function isActive(sub: SubscriptionRecord): boolean {
 
 // ─── Service Layer ───────────────────────────────────────────
 
-export function isTrial(sub: SubscriptionRecord): boolean {
-  return sub.tier === TRIAL_TIER
-}
-
-export function isInGracePeriod(sub: SubscriptionRecord): boolean {
-  if (sub.tier !== TRIAL_TIER || sub.status !== 'expired') return false
-  const expiredAt = new Date(sub.expiresAt)
-  const graceEnd = new Date(expiredAt)
-  graceEnd.setDate(graceEnd.getDate() + TRIAL_GRACE_DAYS)
-  return new Date() < graceEnd
-}
-
 function toRecord(row: {
   id: string; invitationId: string; userId: string; orderId: string | null
   tier: string; status: string; startsAt: Date; expiresAt: Date
@@ -102,24 +85,6 @@ function toRecord(row: {
 }
 
 export const subscriptions = {
-  async createTrial(invitationId: string, userId: string): Promise<SubscriptionRecord> {
-    const startsAt = new Date()
-    const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + TRIAL_DAYS)
-
-    const row = await prisma.subscription.create({
-      data: {
-        invitationId,
-        userId,
-        tier: TRIAL_TIER,
-        status: 'active',
-        startsAt,
-        expiresAt,
-      },
-    })
-    return toRecord(row)
-  },
-
   async create(input: CreateSubscriptionInput): Promise<SubscriptionRecord> {
     const startsAt = new Date()
     // validity_days dari pengaturan admin — satu satuan untuk seluruh sistem.
@@ -182,12 +147,12 @@ export const subscriptions = {
     return rows.map(toRecord)
   },
 
-  async renew(subscriptionId: string, tier?: PackageTier): Promise<SubscriptionRecord> {
+  async renew(subscriptionId: string, tier?: string): Promise<SubscriptionRecord> {
     const old = await prisma.subscription.findUniqueOrThrow({
       where: { id: subscriptionId },
     })
 
-    const renewTier = (tier ?? old.tier) as PackageTier
+    const renewTier = tier ?? old.tier
     const startsAt = new Date(Math.max(old.expiresAt.getTime(), Date.now()))
     const expiresAt = await resolveExpiry(renewTier, startsAt)
 

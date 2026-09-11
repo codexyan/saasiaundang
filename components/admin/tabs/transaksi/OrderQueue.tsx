@@ -115,7 +115,10 @@ export default function OrderQueue({ orders, view, onOrdersChange, appDomain }: 
     if (!credentials) return
     const o = credentials.order
     const text = [
-      `Halo kak ${o.groom_nickname} & ${o.bride_nickname}! 🎉`,
+      // Nama panggilan tidak lagi ditanyakan di /order. Nilainya hanya ada kalau
+      // pembeli datang dari pratinjau demo, jadi tanpa fallback ke nama lengkap
+      // sapaan untuk pembeli yang langsung memesan berbunyi "Halo kak  & !".
+      `Halo kak ${o.groom_nickname || o.groom_name} & ${o.bride_nickname || o.bride_name}! 🎉`,
       '',
       'Undangan digital kalian sudah aktif!',
       '',

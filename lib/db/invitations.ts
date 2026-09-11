@@ -48,9 +48,6 @@ export const invitations = {
     })
     return all.map(mapInvitation)
   },
-  async countByUserId(userId: string): Promise<number> {
-    return prisma.invitation.count({ where: { userId } })
-  },
   async findById(id: string): Promise<Invitation | null> {
     const i = await prisma.invitation.findUnique({ where: { id } })
     return i ? mapInvitation(i) : null

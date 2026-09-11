@@ -104,7 +104,10 @@ export default function HowItWorks({ steps: propSteps }: { steps?: { title: stri
           Mulai buat undangan
           <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
         </Button>
-        <p className="text-body-xs text-concrete">Coba gratis, bayar saat siap publish.</p>
+        {/* Dulu "Coba gratis, bayar saat siap publish." Sekarang pembayaran
+            terjadi saat memesan, sebelum editor terbuka, dan yang gratis
+            adalah demo di galeri. */}
+        <p className="text-body-xs text-concrete">Coba gratis di demo, bayar saat memesan.</p>
       </motion.div>
     </SectionContainer>
   )

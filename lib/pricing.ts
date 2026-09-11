@@ -159,3 +159,49 @@ export function computePrice(input: {
   out.final = price
   return out
 }
+
+/**
+ * Harga TERENDAH yang benar-benar bisa dibayar untuk sebuah template, untuk
+ * label "Mulai dari" di galeri /templates dan halaman detail template.
+ *
+ * Dulu keduanya memajang "Gratis" untuk template berharga 0, padahal 0 berarti
+ * "ikut harga paket" dan /api/orders menagih harga paket yang dipilih. Galeri
+ * juga tidak mengenal paket untuk required_package 'all', jadi template
+ * berharga 0 dengan syarat itu selalu tampil gratis walau tidak ada yang bisa
+ * memesannya tanpa bayar.
+ *
+ * Aturan kelayakan paket disalin dari /api/orders supaya angka yang dipajang
+ * tidak pernah lebih murah dari tagihan yang mungkin: paket diurutkan menurut
+ * harga lalu diberi peringkat, paket di bawah peringkat required_package
+ * ditolak, dan harga khusus template (price > 0) menggantikan harga paket.
+ * Flash sale ikut dihitung lewat computePrice(). Kupon tidak, karena kupon baru
+ * diketahui saat pembeli memasukkannya.
+ */
+export function startingPrice(input: {
+  templatePrice: number
+  requiredPackage: string
+  category?: string
+  tiers: PriceTier[]
+  flashSales: FlashSale[]
+  now?: Date
+}): { tier: PriceTier; price: PriceBreakdown } | null {
+  const sorted = [...input.tiers].sort((a, b) => a.price - b.price)
+  // Peringkat 0 untuk id yang tidak dikenal, sama seperti `?? 0` di /api/orders.
+  const rank = (id: string) => sorted.findIndex(t => t.id === id) + 1
+  const needed = input.requiredPackage === 'all' ? 0 : rank(input.requiredPackage)
+
+  let best: { tier: PriceTier; price: PriceBreakdown } | null = null
+  for (const tier of sorted) {
+    if (rank(tier.id) < needed) continue
+    const price = computePrice({
+      basePrice: input.templatePrice > 0 ? input.templatePrice : tier.price,
+      tierId: tier.id,
+      category: input.category,
+      flashSales: input.flashSales,
+      coupons: [],
+      now: input.now,
+    })
+    if (!best || price.final < best.price.final) best = { tier, price }
+  }
+  return best
+}

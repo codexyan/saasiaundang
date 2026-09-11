@@ -2,8 +2,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import type { Metadata } from 'next'
 import { templateRecords, settings } from '@/lib/db'
-import type { TemplateRecord, PriceTier, FlashSale } from '@/lib/types'
-import { computePrice } from '@/lib/pricing'
+import type { TemplateRecord, PriceTier } from '@/lib/types'
+import { startingPrice } from '@/lib/pricing'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,29 +16,24 @@ function formatRp(n: number) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 }
 
-function TemplateCard({ rec, tier, flashSales }: {
+function TemplateCard({ rec, tier, start }: {
   rec: TemplateRecord
+  /** Paket syarat template, hanya untuk label badge dan ringkasan fitur. */
   tier?: PriceTier
-  flashSales: FlashSale[]
+  /** Hasil startingPrice() untuk template ini, dihitung di halaman. */
+  start: ReturnType<typeof startingPrice>
 }) {
   const cs = rec.config.meta.color_scheme
   const opening = rec.config?.opening
   const coverPhoto = opening?.cover_photo_url || opening?.background_image
   const demoUrl = `/demo/renderer?id=${rec.id}`
-  // rec.price > 0 = harga khusus template ini; 0 = ikut harga paketnya.
-  const basePrice = rec.price > 0 ? rec.price : (tier?.price ?? 0)
-  // FUNGSI YANG SAMA dengan /api/orders. Dulu halaman ini punya perhitungan
-  // diskonnya sendiri sementara endpoint pesanan tidak menyebut promo sama
-  // sekali — pembeli melihat harga diskon lalu ditagih harga penuh.
-  const breakdown = computePrice({
-    basePrice,
-    tierId: rec.required_package,
-    category: rec.category,
-    flashSales,
-    coupons: [],
-  })
-  const price = basePrice
-  const discountedPrice = breakdown.flashSale ? breakdown.final : null
+  // Harga dari startingPrice(), yang memakai computePrice() dan aturan paket
+  // yang sama dengan /api/orders. Dulu basePrice di sini jatuh ke 0 untuk
+  // template berharga 0 dengan required_package 'all' (findTier mengembalikan
+  // undefined), lalu kartu memajang "Gratis" padahal /order menagih harga paket.
+  const price = start?.price.base ?? 0
+  const finalPrice = start?.price.final ?? 0
+  const discountedPrice = start?.price.flashSale ? finalPrice : null
 
   return (
     <div className="bg-chalk rounded-card overflow-hidden border border-hairline shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 flex flex-col group">
@@ -88,13 +83,15 @@ function TemplateCard({ rec, tier, flashSales }: {
             </div>
           </div>
 
-          {/* Badge harga */}
-          {price > 0 && (
+          {/* Badge harga. Muncul untuk template yang sama seperti dulu (harga
+              khusus atau punya paket syarat), ditambah saat ada flash sale.
+              Angkanya sekarang dari startingPrice(). */}
+          {start && (rec.price > 0 || tier || discountedPrice != null) && (
             <div className="absolute top-3 right-3 z-20">
               {discountedPrice != null ? (
                 <div className="flex flex-col items-end gap-1">
                   <span className="text-label-sm px-2 py-0.5 rounded-md bg-red-600 text-white">
-                    &minus;{formatRp(breakdown.flashSale!.saved)}
+                    &minus;{formatRp(start.price.flashSale!.saved)}
                   </span>
                   <span className="text-label-base px-2.5 py-1 rounded-lg bg-chalk/90 text-graphite backdrop-blur-sm shadow-sm">
                     {formatRp(discountedPrice)}
@@ -102,7 +99,7 @@ function TemplateCard({ rec, tier, flashSales }: {
                 </div>
               ) : (
                 <span className="text-label-base px-2.5 py-1 rounded-lg bg-chalk/90 text-graphite backdrop-blur-sm shadow-sm">
-                  {tier?.label ?? formatRp(price)}
+                  {tier?.label ?? formatRp(finalPrice)}
                 </span>
               )}
             </div>
@@ -133,21 +130,23 @@ function TemplateCard({ rec, tier, flashSales }: {
           <p className="mt-1 text-body-xs text-concrete line-clamp-2">{rec.description}</p>
         )}
 
-        {/* Harga */}
-        <div className="flex items-center gap-2 mt-1.5">
-          {price > 0 ? (
-            discountedPrice != null ? (
+        {/* Harga. Diawali "Mulai" karena angkanya harga paket termurah yang
+            boleh dipilih untuk template ini, bukan satu-satunya harga. Label
+            "Gratis" yang dulu ada di sini dibuang: tidak ada template yang bisa
+            dipesan tanpa bayar. */}
+        {start && (
+          <div className="flex items-center gap-2 mt-1.5">
+            <span className="text-body-xs text-concrete">Mulai</span>
+            {discountedPrice != null ? (
               <>
                 <span className="text-body-sm font-bold text-forest">{formatRp(discountedPrice)}</span>
                 <span className="text-body-xs text-concrete line-through">{formatRp(price)}</span>
               </>
             ) : (
-              <span className="text-body-sm font-bold text-graphite">{formatRp(price)}</span>
-            )
-          ) : (
-            <span className="text-body-sm font-semibold text-forest">Gratis</span>
-          )}
-        </div>
+              <span className="text-body-sm font-bold text-graphite">{formatRp(finalPrice)}</span>
+            )}
+          </div>
+        )}
 
         {/* Ringkasan fitur */}
         {tier?.features && (
@@ -289,8 +288,15 @@ export default async function TemplatesPage(props: { searchParams: Promise<{ kat
               .sort((a, b) => a.sort_order - b.sort_order)
               .map(rec => {
                 const tier = findTier(rec)
+                const start = startingPrice({
+                  templatePrice: rec.price,
+                  requiredPackage: rec.required_package,
+                  category: rec.category,
+                  tiers,
+                  flashSales,
+                })
                 return (
-                  <TemplateCard key={rec.id} rec={rec} tier={tier} flashSales={flashSales} />
+                  <TemplateCard key={rec.id} rec={rec} tier={tier} start={start} />
                 )
               })}
           </div>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import {
   Crown, Rocket, Gem, CheckCircle2, Clock, AlertTriangle,
-  ArrowUpRight, Shield, Zap, Star, ExternalLink,
+  Shield, Zap, ExternalLink, MessageSquare,
   Loader2, Receipt,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -11,6 +11,8 @@ import type { Invitation } from '@/lib/types'
 
 interface Props {
   invitation: Invitation
+  /** Membuka tab Bantuan di dashboard. Dipakai blok "belum dibayar" di bawah. */
+  onOpenSupport: () => void
 }
 
 /**
@@ -82,7 +84,7 @@ interface SubRecord {
   daysRemaining: number
 }
 
-export default function SubscriptionInfo({ invitation }: Props) {
+export default function SubscriptionInfo({ invitation, onOpenSupport }: Props) {
   const [orders, setOrders] = useState<UserOrder[]>([])
   const [sub, setSub] = useState<SubRecord | null>(null)
   const [loading, setLoading] = useState(true)
@@ -229,25 +231,28 @@ export default function SubscriptionInfo({ invitation }: Props) {
         </div>
       )}
 
-      {/* NOT PAID - show prompt */}
+      {/* Belum dibayar. Dulu bertuliskan "mode Free Trial" dan tombolnya
+          membuka /templates. Trial sudah tidak ada, dan /order menolak
+          subdomain undangan yang sudah ada, jadi tombol itu buntu. Sekarang
+          keadaannya dijelaskan apa adanya dan tombolnya membuka tab Bantuan. */}
       {!isPaid && !hasPending && (
         <div className="rounded-3xl border border-stone-100 bg-white shadow-sm overflow-hidden">
           <div className="p-8 text-center">
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center">
-              <Star size={28} className="text-amber-500" />
+              <Shield size={28} className="text-amber-500" />
             </div>
-            <h3 className="text-lg font-bold text-stone-900 mb-1">Belum ada langganan aktif</h3>
+            <h3 className="text-lg font-bold text-stone-900 mb-1">Pembayaran belum aktif</h3>
             <p className="text-sm text-stone-500 mb-6 max-w-sm mx-auto">
-              Anda sedang dalam mode Free Trial. Upgrade ke paket berbayar untuk menghapus watermark, membuka semua fitur, dan mempublikasikan undangan.
+              Undangan ini belum tercatat lunas. Kalau kalian sudah membayar atau merasa ini keliru, kabari kami lewat Bantuan supaya bisa kami cek.
             </p>
-            <Link
-              href="/templates"
+            <button
+              type="button"
+              onClick={onOpenSupport}
               className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-bold rounded-xl hover:shadow-lg hover:shadow-amber-500/25 transition-all"
             >
-              <Zap size={16} />
-              Pilih Paket & Upgrade
-              <ArrowUpRight size={14} />
-            </Link>
+              <MessageSquare size={16} />
+              Hubungi Bantuan
+            </button>
           </div>
         </div>
       )}

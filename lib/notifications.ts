@@ -7,9 +7,6 @@
 import { sendEmail } from './email'
 import {
   welcomeTemplate,
-  trialStartedTemplate,
-  trialExpiringTemplate,
-  trialExpiredTemplate,
   orderCreatedTemplate,
   orderApprovedTemplate,
   orderRejectedTemplate,
@@ -23,11 +20,13 @@ import {
 
 // ─── Types ───────────────────────────────────────────────────
 
+// trial_started, trial_expiring, dan trial_expired dibuang bersama mesin
+// trial. trial_started hanya dikirim POST /api/invitations (jalur gratis yang
+// sudah ditutup), trial_expiring hanya dipilih cron untuk langganan tier
+// 'trial' yang tidak lagi dibuat, dan trial_expired memang tidak pernah
+// dikirim dari mana pun.
 export type NotificationType =
   | 'welcome'
-  | 'trial_started'
-  | 'trial_expiring'
-  | 'trial_expired'
   | 'order_created'
   | 'order_approved'
   | 'order_rejected'
@@ -65,18 +64,6 @@ const TEMPLATES: Record<NotificationType, (data: Record<string, string | number 
   welcome: (d) => ({
     subject: 'Selamat datang di iaundang!',
     body: `Halo ${d.name || 'Kak'}! Akun kalian sudah siap. Yuk mulai bikin undangan pertama kalian.`,
-  }),
-  trial_started: (d) => ({
-    subject: 'Masa coba gratis 7 hari sudah dimulai',
-    body: `Undangan kalian sudah jadi dan bisa dilihat di ${d.slug}.iaundang.online. Selama 7 hari ke depan kalian bebas mencoba semua fiturnya. Kalau sudah cocok, tinggal aktifkan paketnya kapan saja.`,
-  }),
-  trial_expiring: (d) => ({
-    subject: `Masa coba gratis tinggal ${d.daysLeft} hari lagi`,
-    body: `Masa coba undangan kalian di ${d.slug}.iaundang.online tinggal ${d.daysLeft} hari lagi. Aktifkan paketnya sekarang supaya undangan tetap bisa dibuka tamu.`,
-  }),
-  trial_expired: (d) => ({
-    subject: 'Masa coba gratis sudah berakhir',
-    body: `Masa coba undangan kalian sudah habis, tapi tenang, semua isinya masih kami simpan selama 14 hari. Aktifkan paketnya untuk menghidupkan undangan kalian lagi.`,
   }),
   order_created: (d) => ({
     subject: `Pesanan ${d.orderNumber} sudah kami terima`,
@@ -117,9 +104,6 @@ const TEMPLATES: Record<NotificationType, (data: Record<string, string | number 
 
 const HTML_TEMPLATES: Record<NotificationType, (d: EmailData) => string> = {
   welcome: welcomeTemplate,
-  trial_started: trialStartedTemplate,
-  trial_expiring: trialExpiringTemplate,
-  trial_expired: trialExpiredTemplate,
   order_created: orderCreatedTemplate,
   order_approved: orderApprovedTemplate,
   order_rejected: orderRejectedTemplate,

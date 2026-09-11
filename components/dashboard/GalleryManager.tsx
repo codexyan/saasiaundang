@@ -5,24 +5,26 @@ import { useDropzone } from 'react-dropzone'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { Trash2, Upload, Lock, Crown, X, ZoomIn, ChevronLeft, ChevronRight, ImagePlus } from 'lucide-react'
-import type { Invitation, Gallery } from '@/lib/types'
-import { getPackage, type PackageTier } from '@/lib/packages'
+import type { Invitation, Gallery, PriceTier } from '@/lib/types'
+import { resolveTierDisplay } from '@/lib/packages'
 import { resizeGalleryPhoto } from '@/lib/image-resize'
 
 interface Props {
   invitation: Invitation
+  /** Dari server component (lib/tiers.ts, SERVER-ONLY). Opsional, fallback
+   *  ke data lama kalau belum dikirim. */
+  priceTiers?: PriceTier[]
 }
 
-export default function GalleryManager({ invitation }: Props) {
+export default function GalleryManager({ invitation, priceTiers }: Props) {
   const [galleries, setGalleries] = useState<Gallery[]>([])
   const [uploading, setUploading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [lightbox, setLightbox] = useState<number | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
 
-  const tier = (invitation.package_tier ?? 'popular') as PackageTier
-  const pkg = getPackage(tier)
-  const maxPhotos = pkg.maxPhotos // -1 = unlimited
+  const { label: tierLabel, features } = resolveTierDisplay(priceTiers, invitation.package_tier ?? 'popular')
+  const maxPhotos = features.max_photos // -1 = unlimited
   const isAtLimit = maxPhotos !== -1 && galleries.length >= maxPhotos
   const isNearLimit = maxPhotos !== -1 && galleries.length >= maxPhotos - 3 && !isAtLimit
 
@@ -129,7 +131,7 @@ export default function GalleryManager({ invitation }: Props) {
             <span className={`text-sm font-bold ${isAtLimit ? 'text-red-500' : isNearLimit ? 'text-amber-500' : 'text-concrete'}`}>
               {maxPhotos === -1 ? `${galleries.length} foto` : `${galleries.length}/${maxPhotos}`}
             </span>
-            <p className="text-xs text-ash">{maxPhotos === -1 ? 'unlimited' : 'paket ' + pkg.name}</p>
+            <p className="text-xs text-ash">{maxPhotos === -1 ? 'unlimited' : 'paket ' + tierLabel}</p>
           </div>
         </div>
 
@@ -201,7 +203,7 @@ export default function GalleryManager({ invitation }: Props) {
             </div>
             <h4 className="font-bold text-amber-900 mb-1">Batas {maxPhotos} foto tercapai</h4>
             <p className="text-sm text-amber-700 mb-4">
-              Paket {pkg.name} kamu mendukung hingga {maxPhotos} foto.
+              Paket {tierLabel} kamu mendukung hingga {maxPhotos} foto.
               Upgrade untuk menambah lebih banyak foto.
             </p>
             <div className="space-y-2">

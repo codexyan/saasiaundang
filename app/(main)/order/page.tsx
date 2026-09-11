@@ -26,8 +26,12 @@ export default async function OrderPage({ searchParams }: { searchParams: Promis
     redirect('/templates')
   }
 
+  // Dulu di sini ada .filter(t => ['starter','popular','eksklusif'].includes(t.id)),
+  // jadi tier kustom buatan admin lewat panel Paket & Promo tidak pernah sampai
+  // ke form — tidak bisa dipilih, jadi tidak bisa dibeli. API /api/orders sendiri
+  // sudah memvalidasi ke settings.priceTiers, jadi menyaring di sini justru
+  // memutus jalur pembelian untuk tier yang sebenarnya sah.
   const tiers = appSettings.priceTiers
-    .filter(t => ['starter', 'popular', 'eksklusif'].includes(t.id))
     .sort((a, b) => a.price - b.price)
     .map(t => ({
       id: t.id,

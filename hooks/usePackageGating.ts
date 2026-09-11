@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import type { PackageTier } from '@/lib/packages'
-import { getTierFeatures } from '@/lib/packages'
-import type { TierFeatures } from '@/lib/types'
+import { resolveTierDisplay, findCheapestTierWithFeature } from '@/lib/packages'
+import type { TierFeatures, PriceTier } from '@/lib/types'
 
 const SECTION_FEATURE_MAP: Record<string, keyof TierFeatures> = {
   hero: 'hero',
@@ -22,19 +22,19 @@ const SECTION_FEATURE_MAP: Record<string, keyof TierFeatures> = {
   penutup: 'closing',
 }
 
-const TIER_LABELS: Record<string, string> = {
-  starter: 'Starter',
-  popular: 'Popular',
-  eksklusif: 'Eksklusif',
-}
-
-export function usePackageGating(tier: PackageTier | null | undefined) {
+/**
+ * `priceTiers` opsional dan berasal dari server component (lihat komentar
+ * SERVER-ONLY di lib/tiers.ts) — hook ini sendiri tidak boleh menyentuh
+ * Prisma. Kalau tidak dikirim, resolveTierDisplay/findCheapestTierWithFeature
+ * jatuh ke data lama supaya pemanggil yang belum sempat di-migrasi tetap jalan.
+ */
+export function usePackageGating(tier: PackageTier | string | null | undefined, priceTiers?: PriceTier[]) {
   return useMemo(() => {
-    const effectiveTier = tier ?? 'starter' as PackageTier
-    const features = getTierFeatures(effectiveTier)
+    const effectiveTier = tier ?? 'starter'
+    const { label, features } = resolveTierDisplay(priceTiers, effectiveTier)
     return {
       tier: effectiveTier,
-      tierName: TIER_LABELS[effectiveTier] ?? 'Starter',
+      tierName: label,
       features,
       canEditDecorations: features.decoration_editing,
       canUseCustomAnimations: features.custom_animations,
@@ -49,13 +49,8 @@ export function usePackageGating(tier: PackageTier | null | undefined) {
         const featureKey = SECTION_FEATURE_MAP[studioSectionId]
         if (!featureKey) return undefined
         if (features[featureKey]) return undefined
-        const allTiers: PackageTier[] = ['starter', 'popular', 'eksklusif']
-        for (const t of allTiers) {
-          const f = getTierFeatures(t)
-          if (f[featureKey]) return TIER_LABELS[t]
-        }
-        return 'Eksklusif'
+        return findCheapestTierWithFeature(priceTiers, featureKey)
       },
     }
-  }, [tier])
+  }, [tier, priceTiers])
 }

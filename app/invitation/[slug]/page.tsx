@@ -5,7 +5,7 @@ import { invitations, galleries, wishes, guests, templateRecords } from '@/lib/d
 import { isExpired } from '@/lib/utils'
 import type { PackageTier } from '@/lib/packages'
 import { resolveTierFeatures } from '@/lib/tiers'
-import { subscriptions, isActive as isSubActive, isTrial, isInGracePeriod } from '@/lib/subscription'
+import { subscriptions, isActive as isSubActive } from '@/lib/subscription'
 
 export const dynamic = 'force-dynamic'
 import { LEGACY_TEMPLATE_IDS } from '@/lib/types'
@@ -61,10 +61,11 @@ export default async function InvitationPage(props0: Props) {
     ? !isSubActive(sub)
     : invitation.is_paid && isExpired(invitation.expires_at)
 
+  // Dulu langganan trial yang kedaluwarsa tapi masih dalam masa tenggang 14
+  // hari mendapat TrialGracePage ("Masa Coba Gratis Sudah Berakhir" dengan
+  // tautan ke /templates). Trial sudah dibuang, jadi semua undangan yang
+  // kedaluwarsa memakai ExpiredPage yang sama.
   if (expired) {
-    if (sub && isTrial(sub) && isInGracePeriod(sub)) {
-      return <TrialGracePage slug={invitation.slug} />
-    }
     return <ExpiredPage />
   }
 
@@ -194,26 +195,6 @@ function UnpublishedPage({ message }: { message?: string }) {
         <p className="text-gray-500 mt-3 max-w-sm">
           {message ?? 'Undangan ini belum dipublikasikan oleh pemiliknya.'}
         </p>
-      </div>
-    </div>
-  )
-}
-
-function TrialGracePage({ slug }: { slug: string }) {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="text-center px-4 max-w-md">
-        <div className="text-5xl mb-4">🔒</div>
-        <h1 className="text-2xl font-sans font-bold text-gray-800">Masa Coba Gratis Sudah Berakhir</h1>
-        <p className="text-gray-500 mt-3">
-          Masa coba untuk undangan <strong>{slug}</strong> sudah habis. Tenang, semua isinya masih tersimpan. Pilih paket untuk menghidupkan undangan ini lagi.
-        </p>
-        <Link
-          href="/templates"
-          className="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-stone-900 text-white text-sm font-semibold rounded-xl hover:bg-stone-800 transition-colors"
-        >
-          Pilih Paket & Aktifkan
-        </Link>
       </div>
     </div>
   )

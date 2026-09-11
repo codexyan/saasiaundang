@@ -41,8 +41,10 @@ export async function GET(req: NextRequest) {
     const email = emailByUserId.get(sub.userId)
     if (!email) continue
 
-    const type = sub.tier === 'trial' ? 'trial_expiring' as const : 'subscription_expiring' as const
-    await notifyUser(type, email, {
+    // Dulu langganan tier 'trial' mendapat email trial_expiring. Mesin trial
+    // sudah dibuang dan tidak ada lagi yang membuat langganan trial, jadi
+    // semua langganan memakai pengingat perpanjangan yang sama.
+    await notifyUser('subscription_expiring', email, {
       slug: slugByInvitationId.get(sub.invitationId) ?? '',
       daysLeft: Math.ceil((new Date(sub.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
       tierName: sub.tier,
