@@ -37,7 +37,11 @@ model User {
   email        String   @unique
   passwordHash String   @map("password_hash")
   role         String   @default("user")
-  referralCode String?  @unique @map("referral_code")
+  // referralCode dan relasi ke UserReferral dibuang 11 Sep 2026 bersama program
+  // referral pengguna, yang tidak pernah mencatat satu referral pun. Kolom dan
+  // tabelnya dijatuhkan migrasi 20260911000000_drop_user_referral_program, yang
+  // baru boleh diterapkan SETELAH kode ini ter-deploy: kode lama memilih kolom
+  // referral_code di hampir setiap query user, termasuk login.
   createdAt    DateTime @default(now()) @map("created_at")
 
   /// Penanda generasi sesi. Dinaikkan setiap kali password diganti/direset.
@@ -51,8 +55,6 @@ model User {
   affiliate      Affiliate?
   writerProfile  WriterProfile?
   supportTickets SupportTicket[]
-  referralsMade  UserReferral[] @relation("referrer")
-  referralsFrom  UserReferral[] @relation("referred")
 
   @@map("users")
 }
@@ -434,27 +436,6 @@ model Subscription {
   @@index([status])
   @@index([expiresAt])
   @@map("subscriptions")
-}
-
-// ─── USER REFERRALS ──────────────────────────────────────────
-model UserReferral {
-  id          String    @id @default(cuid())
-  referrerId  String    @map("referrer_id")
-  referredId  String    @map("referred_id")
-  orderId     String?   @map("order_id")
-  status      String    @default("pending")
-  rewardType  String    @default("discount") @map("reward_type")
-  rewardValue Int       @default(0) @map("reward_value")
-  claimedAt   DateTime? @map("claimed_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
-
-  referrer User @relation("referrer", fields: [referrerId], references: [id], onDelete: Cascade)
-  referred User @relation("referred", fields: [referredId], references: [id], onDelete: Cascade)
-
-  @@unique([referrerId, referredId])
-  @@index([referrerId])
-  @@index([referredId])
-  @@map("user_referrals")
 }
 
 // ─── INVITATION VIEWS (analytics) ────────────────────────────

@@ -4,17 +4,21 @@ import { prisma } from '../prisma'
 
 export type UserRole = 'admin' | 'content_writer' | 'affiliate' | 'user'
 
+// Tanpa referral_code. Kolom itu dijatuhkan migrasi
+// 20260911000000_drop_user_referral_program bersama program referral pengguna
+// yang sudah dibuang. Jangan memilihnya lagi di query mana pun, termasuk
+// $queryRaw findByEmail di bawah: begitu migrasi diterapkan, query yang masih
+// memilihnya langsung gagal dan login ikut mati.
 export interface DbUser {
   id: string
   email: string
   password_hash: string
   role?: UserRole
-  referral_code?: string | null
   created_at: string
 }
 
-function mapUser(u: { id: string; email: string; passwordHash: string; role: string; referralCode: string | null; createdAt: Date }): DbUser {
-  return { id: u.id, email: u.email, password_hash: u.passwordHash, role: u.role as UserRole, referral_code: u.referralCode, created_at: u.createdAt.toISOString() }
+function mapUser(u: { id: string; email: string; passwordHash: string; role: string; createdAt: Date }): DbUser {
+  return { id: u.id, email: u.email, password_hash: u.passwordHash, role: u.role as UserRole, created_at: u.createdAt.toISOString() }
 }
 
 //  USERS
@@ -41,17 +45,15 @@ export const users = {
    */
   async findByEmail(email: string): Promise<DbUser | null> {
     const rows = await prisma.$queryRaw<{
-      id: string; email: string; password_hash: string; role: string
-      referral_code: string | null; created_at: Date
+      id: string; email: string; password_hash: string; role: string; created_at: Date
     }[]>`
-      SELECT id, email, password_hash, role, referral_code, created_at, NOW() AS uncached_marker
+      SELECT id, email, password_hash, role, created_at, NOW() AS uncached_marker
       FROM users WHERE email = ${email.toLowerCase()} LIMIT 1
     `
     if (rows.length === 0) return null
     const u = rows[0]
     return mapUser({
       id: u.id, email: u.email, passwordHash: u.password_hash, role: u.role,
-      referralCode: u.referral_code,
       createdAt: u.created_at instanceof Date ? u.created_at : new Date(u.created_at),
     })
   },
@@ -120,7 +122,5 @@ export const users = {
   },
   // findByReferralCode, setReferralCode, dan seluruh userReferrals dibuang
   // bersama program referral pengguna, yang tidak pernah mencatat satu referral
-  // pun (lihat komentar di app/api/referral/route.ts). Kolom users.referral_code
-  // dan tabel user_referrals masih ada di database; menghapusnya butuh migrasi
-  // terpisah.
+  // pun (lihat komentar di app/api/referral/route.ts).
 }
