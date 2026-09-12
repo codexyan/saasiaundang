@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { invitations, orders } from '@/lib/db'
+import { normalizeSubdomain } from '@/lib/subdomain'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
-  const slug = req.nextUrl.searchParams.get('slug')?.toLowerCase().replace(/[^a-z0-9-]/g, '')
-  if (!slug || slug.length < 3) {
-    return NextResponse.json({ available: false, reason: 'Minimal 3 karakter' })
+  // Aturan yang sama dengan POST /api/orders, lewat lib/subdomain.ts. Dulu cek
+  // ini hanya membuang karakter dan mensyaratkan minimal 3 huruf, jadi form
+  // pesanan menyatakan `www` atau `iaundang` "Tersedia!" padahal alamat itu
+  // milik situs utama, dan pesanannya pun diterima.
+  const check = normalizeSubdomain(req.nextUrl.searchParams.get('slug') ?? '')
+  if (!check.ok) {
+    return NextResponse.json({ available: false, reason: check.message })
   }
+  const slug = check.slug
 
   const slugTaken = await invitations.slugExists(slug)
   const orderTaken = await orders.subdomainExists(slug)

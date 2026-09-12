@@ -7,6 +7,7 @@ import { randomString } from '@/lib/random'
 import { createMayarPayment } from '@/lib/mayar'
 import { computePrice, checkCoupon } from '@/lib/tiers'
 import { readJsonBody } from '@/lib/request-body'
+import { normalizeSubdomain } from '@/lib/subdomain'
 
 export const dynamic = 'force-dynamic'
 
@@ -91,10 +92,17 @@ export async function POST(req: NextRequest) {
       referred_by, coupon_code,
     } = parsed.data
 
-    const slug = subdomain.toLowerCase().replace(/[^a-z0-9-]/g, '')
-    if (slug.length < 3) {
-      return NextResponse.json({ error: 'Alamat undangan minimal 3 huruf ya.' }, { status: 400 })
+    // Aturan alamat dipindah ke lib/subdomain.ts supaya sama persis dengan
+    // /api/orders/check-subdomain dan middleware. Dulu di sini hanya ada
+    // pembersihan karakter dan minimal 3 huruf, sehingga `www` dan `iaundang`
+    // bisa dipesan padahal tidak pernah terbuka lewat subdomain, dan alamat
+    // bertanda hubung di awal atau akhir ikut tersimpan walau bukan label DNS
+    // yang sah.
+    const subdomainCheck = normalizeSubdomain(subdomain)
+    if (!subdomainCheck.ok) {
+      return NextResponse.json({ error: subdomainCheck.message }, { status: 400 })
     }
+    const slug = subdomainCheck.slug
 
     const slugTaken = await invitations.slugExists(slug)
     const orderTaken = await orders.subdomainExists(slug)
