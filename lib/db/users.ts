@@ -2,7 +2,14 @@ import { prisma } from '../prisma'
 
 //  TYPE EXPORTS
 
-export type UserRole = 'admin' | 'content_writer' | 'affiliate' | 'user'
+// Satu-satunya daftar role yang sah. Kolom users.role di skema berupa String
+// biasa, bukan enum, jadi database menerima nilai apa pun dan penjaganya hanya
+// kode. Dulu daftar ini cuma ditulis di PATCH /api/admin/users/[id], sementara
+// POST /api/admin/users menyimpan role apa pun yang dikirim, termasuk salah
+// ketik yang tidak cocok dengan satu pun pemeriksaan di lib/auth.ts.
+export const USER_ROLES = ['admin', 'content_writer', 'affiliate', 'user'] as const
+
+export type UserRole = (typeof USER_ROLES)[number]
 
 // Tanpa referral_code. Kolom itu dijatuhkan migrasi
 // 20260911000000_drop_user_referral_program bersama program referral pengguna
@@ -117,8 +124,30 @@ export const users = {
     `
     return rows.length > 0 ? Number(rows[0].session_epoch) : null
   },
+  /**
+   * Ganti role DAN cabut seluruh sesi lama dalam satu update.
+   *
+   * Role tidak dibaca ulang dari database pada setiap request: isAdmin,
+   * isWriter, dan isAffiliate (lib/auth.ts) membaca role yang tertanam di token
+   * JWT berumur 30 hari. Dulu fungsi ini hanya mengganti kolom role, jadi admin
+   * yang diturunkan menjadi user tetap lolos withAdminAuth (lib/route-guards.ts)
+   * dengan token lamanya sampai token itu kedaluwarsa. Sama halnya dengan
+   * content_writer dan affiliate yang dicabut.
+   *
+   * Menaikkan sessionEpoch membuat getSession() menolak token lama. User harus
+   * masuk lagi, dan login menanam role serta epoch terbaru ke token baru. Pada
+   * promosi (misalnya user menjadi content_writer) efeknya juga benar: user
+   * keluar sekali lalu langsung mendapat akses barunya, bukan tertahan di role
+   * lama sampai ia logout sendiri.
+   *
+   * Satu update, sama seperti updatePassword, supaya role tidak mungkin berganti
+   * tanpa sesinya ikut dicabut.
+   */
   async updateRole(id: string, role: UserRole): Promise<void> {
-    await prisma.user.update({ where: { id }, data: { role } })
+    await prisma.user.update({
+      where: { id },
+      data: { role, sessionEpoch: { increment: 1 } },
+    })
   },
   // findByReferralCode, setReferralCode, dan seluruh userReferrals dibuang
   // bersama program referral pengguna, yang tidak pernah mencatat satu referral
