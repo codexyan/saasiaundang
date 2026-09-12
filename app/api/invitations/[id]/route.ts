@@ -54,8 +54,26 @@ export async function PATCH(req: NextRequest, props: Params) {
     // (lib/provision-order.ts) setelah pembayaran terverifikasi.
     // Tipe dibiarkan longgar seperti sebelumnya supaya penanganan body.data.*
     // di bawah tidak berubah; yang penting isinya sudah disaring.
+    //
+    // `slug` dan `template_id` sengaja DIKELUARKAN dari allowlist. Tidak ada
+    // layar yang mengirim keduanya (Studio dan InvitationWizard mengirim `data`,
+    // dashboard mengirim `is_published`), jadi keduanya hanya membuka celah API:
+    // - `template_id` tidak melewati aturan checkout. Pembeli paket termurah bisa
+    //   pindah ke template yang mensyaratkan paket lebih tinggi atau yang harga
+    //   khususnya lebih mahal. Studio juga hanya bisa memuat sebagian template,
+    //   dan template legacy memakai bentuk `data` yang berbeda dari template baru.
+    // - `slug` hanya dicek terhadap undangan lain, tidak terhadap subdomain yang
+    //   dipegang pesanan, dan formatnya tidak disaring. Pemilik bisa mengambil
+    //   subdomain pesanan orang lain yang masih menunggu pembayaran, sehingga
+    //   saat pesanan itu dibayar provisionPaidOrder gagal dan pesanan lunas
+    //   tertahan pending. Kalau subdomain itu milik pesanan pemilik sendiri,
+    //   provisioning justru memakai ulang undangan lama dan undangan kedua yang
+    //   dibayar tidak pernah dibuat. Mengganti alamat juga memutus link yang
+    //   sudah dikirim ke tamu.
+    // Ganti template atau alamat, kalau nanti dibutuhkan, dibangun sebagai fitur
+    // sendiri yang memakai aturan checkout, bukan lewat endpoint autosave ini.
     const body: Record<string, any> = {}
-    for (const field of ['slug', 'template_id', 'data', 'is_published'] as const) {
+    for (const field of ['data', 'is_published'] as const) {
       if (rawBody[field] !== undefined) body[field] = rawBody[field]
     }
 
@@ -85,10 +103,6 @@ export async function PATCH(req: NextRequest, props: Params) {
         )
       }
       body.data = parsedData.data
-    }
-
-    if (body.slug && body.slug !== inv.slug && (await invitations.slugExists(body.slug, params.id))) {
-      return NextResponse.json({ error: 'Alamat undangan ini sudah dipakai. Coba nama lain ya.' }, { status: 409 })
     }
 
     // Blok penghitung pemakaian musik dihapus dari sini. Isinya membaca
