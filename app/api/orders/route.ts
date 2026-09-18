@@ -25,11 +25,6 @@ function generateOrderNumber(): string {
   return `ORD-${y}${m}${d}-${randomString(8, ORDER_ALPHABET)}`
 }
 
-/** Kode unik pembeda nominal transfer (1-999). */
-function generateUniqueCode(): number {
-  return (crypto.getRandomValues(new Uint32Array(1))[0] % 999) + 1
-}
-
 /**
  * Dulu hanya ada pengecekan "terisi atau tidak" (`!email || !groom_name || ...`).
  * Dua lubang yang ditutup skema ini:
@@ -207,8 +202,13 @@ export async function POST(req: NextRequest) {
 
     const amount = price.final
 
-    const uniqueCode = generateUniqueCode()
-    const totalAmount = amount + uniqueCode
+    // Kode unik dulu ditambahkan ke nominal supaya admin bisa mencocokkan
+    // transfer masuk dengan pesanan. Jalur transfer manual sudah dibuang dan
+    // Mayar mencocokkan sendiri lewat mayarTransactionId, jadi yang tersisa
+    // hanyalah pembeli membayar angka ganjil tanpa alasan. Kolomnya tetap ada
+    // di tabel supaya pesanan lama tidak kehilangan riwayatnya.
+    const uniqueCode = 0
+    const totalAmount = amount
 
     // Atribusi afiliasi dibaca dari cookie `ref` yang dipasang /api/referral
     // setelah kodenya divalidasi aktif. Dulu endpoint ini hanya menerima

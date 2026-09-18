@@ -177,9 +177,11 @@ export default function OrderQueue({ orders, view, onOrdersChange, appDomain }: 
                   <p className="font-display text-lg font-bold text-gray-900 tabular-nums">
                     {formatRp(o.total_amount)}
                   </p>
-                  <p className="text-[10px] text-gray-400 tabular-nums">
-                    {formatRp(o.amount)} + {o.unique_code}
-                  </p>
+                  {o.unique_code > 0 && (
+                    <p className="text-[10px] text-gray-400 tabular-nums">
+                      {formatRp(o.amount)} + {o.unique_code} (kode unik, pesanan lama)
+                    </p>
+                  )}
                   <button
                     onClick={() => copy(String(o.total_amount), 'Nominal')}
                     className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-gray-500 hover:text-gray-900 transition-colors"
