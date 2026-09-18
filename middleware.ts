@@ -42,7 +42,11 @@ export async function middleware(req: NextRequest) {
 
   if (!session) {
     const loginUrl = new URL('/login', req.url)
-    loginUrl.searchParams.set('redirect', req.nextUrl.pathname)
+    // Query ikut dibawa. Dulu hanya pathname, sehingga pembeli yang kembali
+    // dari halaman bayar Mayar ke /dashboard?payment=success tanpa sesi
+    // mendarat di halaman login tanpa jejak bahwa ia baru saja membayar, dan
+    // halaman login tidak bisa memberi tahu bahwa data masuknya sedang dikirim.
+    loginUrl.searchParams.set('redirect', req.nextUrl.pathname + req.nextUrl.search)
     return NextResponse.redirect(loginUrl)
   }
 
