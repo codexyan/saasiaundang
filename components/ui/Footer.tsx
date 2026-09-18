@@ -86,7 +86,7 @@ export default function Footer({ whatsapp }: { whatsapp?: string }) {
               />
             </Link>
             <p className="text-body-sm text-concrete leading-relaxed mb-5 max-w-[280px]">
-              Platform undangan digital premium. Personal untuk setiap tamu, elegan di setiap layar.
+              Undangan digital yang menyapa setiap tamu dengan namanya sendiri.
             </p>
             <div className="flex items-center gap-2">
               {[

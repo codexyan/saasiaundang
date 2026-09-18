@@ -30,8 +30,8 @@ export default async function BlogPage() {
               Tips &amp; Inspirasi Pernikahan
             </h1>
             <p className="mt-4 text-body-lg text-concrete leading-relaxed">
-              Panduan persiapan pernikahan, inspirasi undangan digital,
-              dan cerita dari pasangan yang menggunakan iaundang.
+              Catatan tentang persiapan pernikahan dan undangan digital,
+              ditulis sendiri oleh orang yang membangun iaundang.
             </p>
           </div>
 
@@ -60,12 +60,13 @@ export default async function BlogPage() {
               <PenLine className="w-6 h-6 text-forest" />
             </div>
             <h2 className="font-display text-h1 text-forest-deep text-balance">
-              Cerita pertama sedang ditulis
+              Belum ada tulisan di sini
             </h2>
             <div aria-hidden className="w-10 h-px bg-gold/70 mx-auto my-5" />
             <p className="text-body-base text-concrete leading-relaxed max-w-md mx-auto">
-              Kami sedang menyiapkan panduan persiapan pernikahan dan inspirasi
-              undangan digital. Sambil menunggu, lihat dulu koleksi template kami.
+              Halaman ini akan diisi kalau memang ada yang layak ditulis, bukan
+              diisi demi terlihat ramai. Sementara itu, tema undangannya sudah
+              bisa kalian coba sekarang.
             </p>
             <Link
               href="/templates"

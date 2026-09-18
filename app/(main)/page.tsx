@@ -58,7 +58,7 @@ export default async function LandingPage() {
     '@type': 'WebApplication',
     name: 'iaundang',
     url: 'https://iaundang.online',
-    description: 'Platform undangan digital premium self-service. Pilih template, kustomisasi, dan kirim link personal ke tamu.',
+    description: 'Undangan digital yang menyapa setiap tamu dengan namanya sendiri. Pilih tema, isi sendiri dari dashboard, bagikan tautannya lewat WhatsApp.',
     applicationCategory: 'DesignApplication',
     operatingSystem: 'Web',
     // Harga dibaca dari paket yang benar-benar dijual. Dulu 79000 dan 249000

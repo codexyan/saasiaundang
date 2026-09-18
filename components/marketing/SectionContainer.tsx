@@ -52,7 +52,10 @@ export function SectionContainer({
         {hasHeader && (
           <motion.div
             {...enter}
-            className={cn('mb-12 sm:mb-16', align === 'center' && 'text-center mx-auto max-w-2xl')}
+            // 40 piksel di layar lebar, bukan 64. Judul dan isinya perlu
+            // terbaca sebagai satu kesatuan; jaraknya yang dulu membuat
+            // keduanya tampak seperti dua blok yang tidak berhubungan.
+            className={cn('mb-10 sm:mb-10', align === 'center' && 'text-center mx-auto max-w-2xl')}
           >
             {eyebrow && (
               <p className={cn('text-eyebrow mb-4', isDark ? 'text-gold/70' : 'text-concrete')}>
