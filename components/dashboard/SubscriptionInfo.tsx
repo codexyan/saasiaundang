@@ -132,7 +132,7 @@ export default function SubscriptionInfo({ invitation, onOpenSupport }: Props) {
           <Clock size={20} className="text-amber-600 mt-0.5 shrink-0" />
           <div>
             <p className="text-sm font-semibold text-amber-800">Pembayaran sedang diverifikasi</p>
-            <p className="text-xs text-amber-600 mt-0.5">Tim kami akan mengecek bukti transfer Anda. Biasanya membutuhkan waktu 1x24 jam.</p>
+            <p className="text-xs text-amber-600 mt-0.5">Pembayaran kalian sedang kami periksa. Kalian akan menerima email begitu selesai.</p>
           </div>
         </div>
       )}

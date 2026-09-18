@@ -8,18 +8,18 @@ import { Button } from '@/components/marketing/Button'
 import { EASE, VIEWPORT_ONCE } from '@/lib/motion'
 
 const defaultFaqs = [
-  { q: 'Bisa lihat hasilnya sebelum bayar?', a: 'Bisa. Pilih template, masukkan nama kalian, dan langsung lihat preview-nya. Bayar hanya saat kalian sudah cocok dan siap publish.' },
+  { q: 'Bisa lihat hasilnya sebelum bayar?', a: 'Bisa. Di halaman demo kalian memasukkan nama sendiri dan langsung melihat hasilnya, gratis dan tanpa daftar. Untuk mengisi undangan sungguhan dan membagikannya ke tamu, pesanannya dibayar lebih dulu.' },
   { q: 'Apa tamu perlu install aplikasi?', a: 'Tidak. Tamu cukup tap link yang kalian kirim via WhatsApp, undangan langsung terbuka di browser HP mereka.' },
-  { q: 'Berapa lama undangan tetap aktif?', a: 'Tergantung paket yang dipilih. Mulai dari 30 hari hingga 180 hari. Cukup untuk persiapan, hari H, dan beberapa bulan setelahnya sebagai kenangan.' },
+  { q: 'Berapa lama undangan tetap aktif?', a: 'Sesuai paket yang kalian pilih. Masa aktifnya tertera di halaman harga, dan kalian bisa memperpanjangnya.' },
   { q: 'Bisa edit setelah dipublish?', a: 'Bisa, kapan saja. Ganti foto, ubah detail acara, ganti musik. Semua tanpa biaya tambahan.' },
   { q: 'Bagaimana cara kirim undangan ke tamu?', a: 'Setelah publish, kalian dapat link unik (contoh: rizky-aulia.iaundang.online). Salin dan kirim ke tamu lewat WhatsApp atau media lainnya.' },
-  { q: 'iaundang baru diluncurkan, apakah bisa dipercaya?', a: 'Kami membangun iaundang dengan standar kualitas tinggi. Teknologi modern, desain premium, dan tim yang responsif via WhatsApp. Kalian bisa coba gratis dulu dan lihat sendiri kualitasnya sebelum memutuskan.' },
-  { q: 'Bagaimana kalau butuh bantuan?', a: 'Hubungi kami via WhatsApp. Tim kami siap membantu dan membalas dalam 1 hari kerja.' },
+  { q: 'iaundang baru diluncurkan, apakah bisa dipercaya?', a: 'iaundang memang baru dan kami tidak akan mengarang testimoni untuk menutupinya. Yang bisa kalian periksa sendiri sebelum memesan: buka demo, masukkan nama kalian, dan nilai hasilnya.' },
+  { q: 'Bagaimana kalau butuh bantuan?', a: 'Hubungi kami lewat WhatsApp dan pesan kalian dijawab langsung oleh orang yang membangun iaundang.' },
 ]
 
 export default function FAQ({ items, whatsapp }: { items?: { q: string; a: string }[]; whatsapp?: string }) {
   const faqs = items ?? defaultFaqs
-  const waNumber = whatsapp || '628123456789'
+  const waNumber = whatsapp || ''
   const [open, setOpen] = useState<number | null>(null)
 
   return (
@@ -101,10 +101,20 @@ export default function FAQ({ items, whatsapp }: { items?: { q: string; a: strin
             <MessageCircle size={18} className="text-forest" />
           </div>
           <p className="text-body-base font-semibold text-forest-deep mb-1">Masih ada pertanyaan?</p>
-          <p className="text-body-sm text-concrete mb-5">Kami senang membantu, balas cepat di hari kerja.</p>
-          <Button href={`https://wa.me/${waNumber}`} external size="sm">
-            Chat via WhatsApp
-          </Button>
+          <p className="text-body-sm text-concrete mb-5">
+            {waNumber
+              ? 'Pesan kalian dijawab langsung oleh orang yang membangun iaundang.'
+              : 'Kirim pertanyaan kalian lewat email dan kami balas dari sana.'}
+          </p>
+          {waNumber ? (
+            <Button href={`https://wa.me/${waNumber}`} external size="sm">
+              Chat via WhatsApp
+            </Button>
+          ) : (
+            <Button href="mailto:halo@iaundang.online" external size="sm">
+              Kirim Email
+            </Button>
+          )}
         </motion.div>
       </div>
     </SectionContainer>

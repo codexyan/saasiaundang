@@ -45,7 +45,10 @@ export default async function LandingPage() {
   const priceTiers = appSettings.priceTiers
   const flashSales = appSettings.flashSales
   const activeTemplates = allTemplates.filter(t => t.status === 'active')
-  const whatsapp = appSettings.confirmationWhatsapp || '628123456789'
+  // Tanpa nilai cadangan. Nomor contoh yang dulu dipakai di sini menuju ruang
+  // kosong, dan kontak palsu lebih merusak kepercayaan daripada kontak yang
+  // tidak ditampilkan (D-9).
+  const whatsapp = appSettings.confirmationWhatsapp || ''
 
   const visibleSections = sections
     .filter(s => s.visible)

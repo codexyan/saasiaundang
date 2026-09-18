@@ -83,28 +83,28 @@ const DEFAULT_LANDING: LandingPageSettings = {
       { value: 'Tanpa Aplikasi', label: 'Langsung terbuka di HP' },
     ],
   },
+  // Kosong, dan harus tetap kosong sampai ada pembeli sungguhan yang bersedia
+  // dikutip. Dulu di sini ada empat testimoni lengkap dengan nama pasangan,
+  // bulan, dan kutipan, yang semuanya karangan (R-18). Nol pembeli berarti nol
+  // testimoni, dan section testimoni di halaman depan memang tidak menampilkan
+  // data ini.
   testimonials: {
-    items: [
-      { names: 'Rizky & Aulia', date: 'Maret 2026', template: 'Modern', quote: 'Tamunya banyak yang nanya "link undangannya keren banget, pakai apa?". Langsung kami rekomendasiin iaundang. Bikinnya cepat banget, kurang dari 30 menit sudah jadi.', initial: 'RA', color: '#2c4a34' },
-      { names: 'Dimas & Nadia', date: 'Februari 2026', template: 'Casual', quote: 'Kami berdua kerja penuh waktu dan tidak ada waktu ngurusin undangan fisik. iaundang jadi jalan keluarnya: gampang, cantik, dan tamu bisa konfirmasi kehadiran langsung dari HP mereka.', initial: 'DN', color: '#9a7d3f' },
-      { names: 'Fajar & Syifa', date: 'April 2026', template: 'Traditional', quote: 'Yang paling suka fitur nama tamu personalnya. Tamu merasa diperhatikan karena nama mereka muncul langsung di undangan. Banyak yang WA bilang terkesan.', initial: 'FS', color: '#4a6355' },
-      { names: 'Hendra & Mita', date: 'Januari 2026', template: 'Modern', quote: 'Harga segini sudah dapat semua fitur lengkap, tidak ada tambahan biaya. Undangan kami masih bisa dibuka 6 bulan setelah nikah untuk kenangan.', initial: 'HM', color: '#5d7a6a' },
-    ],
+    items: [],
   },
   faq: {
     items: [
-      { q: 'Bisa dilihat dulu hasilnya sebelum bayar?', a: 'Bisa. Pilih gaya yang kalian suka, masukkan nama kalian berdua, dan lihat sendiri hasilnya. Bayar hanya kalau sudah benar-benar cocok dan siap dibagikan ke tamu.' },
+      { q: 'Bisa dilihat dulu hasilnya sebelum bayar?', a: 'Bisa. Di halaman demo kalian memasukkan nama sendiri dan langsung melihat hasilnya, gratis dan tanpa daftar. Untuk mengisi undangan sungguhan dan membagikannya ke tamu, pesanannya dibayar lebih dulu.' },
       { q: 'Tamu perlu download atau install sesuatu?', a: 'Tidak perlu sama sekali. Tamu cukup menyentuh tautan yang kalian kirim lewat WhatsApp, dan undangan langsung terbuka di HP mereka.' },
-      { q: 'Berapa lama undangan bisa diakses setelah bayar?', a: '6 bulan penuh sejak tanggal pembelian. Lebih dari cukup untuk sebelum hari H, saat hari H, dan beberapa bulan setelahnya.' },
+      { q: 'Berapa lama undangan bisa diakses setelah bayar?', a: 'Sesuai paket yang kalian pilih. Masa aktifnya tertera di halaman harga.' },
       { q: 'Bisa ganti foto atau detail acara setelah dibagikan?', a: 'Bisa, kapan saja dan sebanyak yang kalian mau. Ubah info acara, ganti foto, ganti musik, bahkan ganti gaya tampilan tanpa biaya tambahan.' },
       { q: 'Bagaimana cara tamu menerima undangan?', a: 'Setelah undangan kalian aktif, kalian dapat alamat sendiri seperti ikhwal-fani.iaundang.online. Tinggal salin dan kirim ke tamu lewat WhatsApp atau media apa pun.' },
-      { q: 'Kalau ada yang membingungkan, ada yang bisa dihubungi?', a: 'Tentu. Hubungi kami lewat WhatsApp dan kami akan bantu dengan senang hati. Kami balas dalam 1 hari kerja.' },
+      { q: 'Kalau ada yang membingungkan, ada yang bisa dihubungi?', a: 'Tentu. Hubungi kami lewat WhatsApp dan pesan kalian dijawab langsung oleh orang yang membangun iaundang.' },
     ],
   },
   howItWorks: {
     steps: [
-      { title: 'Coba dulu, gratis', description: 'Tanpa daftar, tanpa bayar. Pilih template, masukkan nama, dan lihat hasilnya langsung.' },
-      { title: 'Bayar sekali', description: 'Rp 149.000 untuk 6 bulan penuh. Tidak ada biaya tambahan atau langganan.' },
+      { title: 'Lihat dulu dengan nama kalian', description: 'Tanpa daftar, tanpa bayar. Pilih tema, masukkan nama, dan lihat hasilnya langsung.' },
+      { title: 'Pesan dan bayar sekali', description: 'Harga dan masa aktif tiap paket ada di halaman harga. Sekali bayar, tanpa biaya bulanan.' },
       { title: 'Isi detail & bagikan', description: 'Lengkapi detail acara, masukkan foto, pilih musik. Siap dalam kurang dari 30 menit.' },
     ],
   },

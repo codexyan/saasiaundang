@@ -266,9 +266,9 @@ export default function Pricing({ priceTiers, flashSales }: PricingProps) {
           </div>
           <div>
             <p className="text-body-sm font-semibold text-forest-deep leading-snug">
-              Lihat hasilnya dulu, bayar kalau suka
+              Lihat hasilnya dulu sebelum memesan
             </p>
-            <p className="text-body-xs text-concrete mt-0.5">Tanpa risiko, tanpa komitmen</p>
+            <p className="text-body-xs text-concrete mt-0.5">Demo gratis, tanpa daftar</p>
           </div>
         </div>
         <div className="flex items-center gap-3.5 bg-chalk rounded-card px-5 py-4 border border-hairline shadow-card">
@@ -277,9 +277,9 @@ export default function Pricing({ priceTiers, flashSales }: PricingProps) {
           </div>
           <div>
             <p className="text-body-sm font-semibold text-forest-deep leading-snug">
-              Tim kami siap membantu via WhatsApp
+              Dijawab langsung lewat WhatsApp
             </p>
-            <p className="text-body-xs text-concrete mt-0.5">Balas dalam 1 hari kerja</p>
+            <p className="text-body-xs text-concrete mt-0.5">Bukan bot, bukan tiket antre</p>
           </div>
         </div>
       </motion.div>

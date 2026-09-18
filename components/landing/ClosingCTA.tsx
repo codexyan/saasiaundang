@@ -6,7 +6,7 @@ import { Button } from '@/components/marketing/Button'
 import { EASE } from '@/lib/motion'
 
 export default function ClosingCTA({ whatsapp }: { whatsapp?: string }) {
-  const waNumber = whatsapp || '628123456789'
+  const waNumber = whatsapp || ''
 
   return (
     <section className="py-24 sm:py-32 lg:py-40 relative overflow-hidden bg-forest-deep">
@@ -51,7 +51,7 @@ export default function ClosingCTA({ whatsapp }: { whatsapp?: string }) {
           transition={{ duration: 0.6, delay: 0.18, ease: EASE }}
           className="mt-6 text-body-lg leading-relaxed max-w-md mx-auto text-chalk/70"
         >
-          Coba gratis sekarang. Lihat hasilnya dengan nama kalian sendiri. Bayar hanya saat sudah cocok.
+          Buka demo, masukkan nama kalian berdua, dan lihat hasilnya sekarang juga. Gratis, tanpa daftar.
         </motion.p>
 
         <motion.div
@@ -65,18 +65,20 @@ export default function ClosingCTA({ whatsapp }: { whatsapp?: string }) {
             Mulai Buat Undangan
             <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
           </Button>
-          <a
-            href={`https://wa.me/${waNumber}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-button-base text-chalk/70 hover:text-chalk transition-colors pb-0.5 border-b border-chalk/20 hover:border-gold/60"
-          >
-            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden>
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
-              <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
-            </svg>
-            Tanya via WhatsApp
-          </a>
+          {waNumber && (
+            <a
+              href={`https://wa.me/${waNumber}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-button-base text-chalk/70 hover:text-chalk transition-colors pb-0.5 border-b border-chalk/20 hover:border-gold/60"
+            >
+              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden>
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
+              </svg>
+              Tanya via WhatsApp
+            </a>
+          )}
         </motion.div>
 
         <motion.div
@@ -86,7 +88,7 @@ export default function ClosingCTA({ whatsapp }: { whatsapp?: string }) {
           transition={{ delay: 0.4, duration: 0.5 }}
           className="mt-8 flex flex-wrap items-center justify-center gap-y-2 gap-x-5 text-body-xs text-chalk/60"
         >
-          {['Tanpa kartu kredit', 'Coba gratis', 'Bayar saat siap'].map((t, i) => (
+          {['Demo gratis tanpa daftar', 'Sekali bayar', 'Tanpa biaya bulanan'].map((t, i) => (
             <span key={t} className="flex items-center gap-5">
               {i > 0 && <span className="w-1 h-1 rounded-full bg-gold/40 -ml-5" />}
               {t}

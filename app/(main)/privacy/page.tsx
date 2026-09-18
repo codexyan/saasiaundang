@@ -19,7 +19,10 @@ function UL({ children }: { children: React.ReactNode }) {
 
 export default async function PrivacyPage() {
   const appSettings = await settings.get()
-  const wa = appSettings.confirmationWhatsapp || '628123456789'
+  // Tanpa nilai cadangan. Nomor contoh yang dulu dipakai di sini menuju ruang
+  // kosong, dan kontak palsu lebih merusak kepercayaan daripada kontak yang
+  // tidak ditampilkan (D-9).
+  const wa = appSettings.confirmationWhatsapp || ''
 
   return (
     <div className="min-h-screen bg-ivory pt-28 pb-24">
@@ -95,11 +98,9 @@ export default async function PrivacyPage() {
 
           <H2>Retensi Data</H2>
           <P>
-            Selama undangan Anda aktif, datanya tetap tersimpan. Setelah masa aktif berakhir, kami
-            memberi tenggang (grace period) agar Anda sempat memperpanjang atau mengunduh kenangan.
-            Jika tidak diperpanjang, data undangan disimpan hingga 12 bulan setelah masa aktif
-            berakhir, lalu dihapus secara permanen. Anda juga dapat meminta penghapusan lebih awal
-            kapan saja.
+            Selama undangan Anda aktif, datanya tetap tersimpan. Setelah masa aktif berakhir, data
+            undangan tetap kami simpan sampai Anda meminta penghapusannya, dan permintaan itu bisa
+            Anda ajukan kapan saja lewat kontak di halaman ini.
           </P>
 
           <H2>Perubahan Kebijakan</H2>
@@ -112,7 +113,7 @@ export default async function PrivacyPage() {
           <P>Jika ada pertanyaan tentang privasi atau data Anda, hubungi kami:</P>
           <UL>
             <li>Email: <a href="mailto:halo@iaundang.online" className="text-graphite font-medium underline underline-offset-2">halo@iaundang.online</a></li>
-            <li>WhatsApp: <a href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer" className="text-graphite font-medium underline underline-offset-2">+{wa}</a></li>
+            {wa && <li>WhatsApp: <a href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer" className="text-graphite font-medium underline underline-offset-2">+{wa}</a></li>}
           </UL>
 
           <H2>Dasar Hukum</H2>

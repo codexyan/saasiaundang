@@ -835,8 +835,8 @@ export default function OrderForm({ templateId, templateName, templatePrice, tem
                         <li>Transfer sesuai nominal unik</li>
                         <li>Screenshot bukti transfer</li>
                         <li>Kirim bukti ke WhatsApp admin (klik tombol di atas)</li>
-                        <li>Admin verifikasi pembayaran (maks 1x24 jam kerja)</li>
-                        <li>Terima akun login via WhatsApp / email</li>
+                        <li>Admin memeriksa pembayaran kalian</li>
+                        <li>Terima email berisi tautan untuk membuat password</li>
                       </ol>
                     </div>
                   </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Sparkles, Shield, Eye, Palette, Headphones, Globe } from 'lucide-react'
+import { UserRound, Shield, Eye, Palette, MessageCircle, Globe } from 'lucide-react'
 import { SectionContainer } from '@/components/marketing/SectionContainer'
 import { EASE, VIEWPORT_ONCE } from '@/lib/motion'
 
@@ -17,18 +17,18 @@ interface Review {
 const VALUE_PROPS = [
   {
     icon: Eye,
-    title: 'Coba Dulu, Bayar Kalau Suka',
-    desc: 'Preview undangan dengan nama pasangan kalian sendiri, gratis, tanpa registrasi. Bayar hanya saat sudah puas.',
+    title: 'Lihat Dulu dengan Nama Kalian',
+    desc: 'Buka demo, masukkan nama kalian berdua, dan lihat hasilnya langsung. Gratis, tanpa daftar. Pemesanan baru dimulai kalau kalian memang mau melanjutkan.',
   },
   {
     icon: Palette,
-    title: 'Desain Premium, Harga Terjangkau',
-    desc: 'Template dirancang oleh desainer profesional. Animasi halus, tipografi elegan, dan detail yang membuat tamu terkesan.',
+    title: 'Tiga Tema, Digarap Satu per Satu',
+    desc: 'Bukan katalog ratusan tema. Animasi pembuka, tipografi, dan jarak antar elemennya dikerjakan per tema, bukan hasil ganti warna.',
   },
   {
-    icon: Sparkles,
-    title: 'Personal untuk Setiap Tamu',
-    desc: 'Nama tamu muncul otomatis di halaman pembuka. Bukan broadcast massal, tapi undangan yang terasa spesial.',
+    icon: UserRound,
+    title: 'Setiap Tamu Melihat Namanya',
+    desc: 'Nama tamu muncul di halaman pembuka undangan, diambil dari tautan yang kalian kirim. Bukan sebaran massal yang sama untuk semua orang.',
   },
   {
     icon: Shield,
@@ -36,9 +36,9 @@ const VALUE_PROPS = [
     desc: 'Tidak ada biaya bulanan, tidak ada upsell tersembunyi. Satu harga transparan untuk seluruh masa aktif.',
   },
   {
-    icon: Headphones,
-    title: 'Support Cepat via WhatsApp',
-    desc: 'Tim kami siap membantu jika ada kendala. Balas di hari kerja, langsung ke orang, bukan chatbot.',
+    icon: MessageCircle,
+    title: 'Dibalas Orang, Bukan Bot',
+    desc: 'Pertanyaan kalian masuk ke WhatsApp dan dijawab langsung oleh orang yang membangun iaundang.',
   },
   {
     icon: Globe,

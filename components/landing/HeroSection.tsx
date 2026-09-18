@@ -28,7 +28,7 @@ export default function HeroSection({
   mockup?: { groomName?: string; brideName?: string; date?: string; venue?: string }
 }) {
   const hero = {
-    ctaPrimary: content?.ctaPrimary ?? 'Mulai Gratis',
+    ctaPrimary: content?.ctaPrimary ?? 'Coba dengan Nama Kalian',
     ctaSecondary: content?.ctaSecondary ?? 'Lihat Demo',
     subheadline:
       content?.subheadline ??

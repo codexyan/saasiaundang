@@ -16,8 +16,8 @@ const defaultSteps = [
     description: 'Pilih template yang kalian suka, masukkan nama pasangan, dan lihat hasilnya langsung. Tanpa registrasi, tanpa bayar.',
   },
   {
-    title: 'Bayar sekali, langsung aktif',
-    description: 'Sudah cocok? Pilih paket mulai Rp 79.000, sekali bayar, tanpa langganan. Transfer bank atau QRIS, aktif dalam 1x24 jam.',
+    title: 'Pesan dan bayar sekali',
+    description: 'Isi data pernikahan kalian, pilih paket, lalu bayar. Sekali bayar, tanpa biaya bulanan. Akun kalian dibuat otomatis begitu pembayarannya masuk.',
   },
   {
     title: 'Lengkapi & bagikan ke tamu',
@@ -25,7 +25,7 @@ const defaultSteps = [
   },
 ]
 
-const HIGHLIGHTS = ['Gratis, tanpa registrasi', 'Tanpa biaya bulanan', 'Setiap tamu dapat link unik']
+const HIGHLIGHTS = ['Demo gratis, tanpa daftar', 'Tanpa biaya bulanan', 'Setiap tamu dapat link unik']
 
 export default function HowItWorks({ steps: propSteps }: { steps?: { title: string; description: string }[] }) {
   const steps = (propSteps ?? defaultSteps).map((s, i) => ({

@@ -19,7 +19,10 @@ function UL({ children }: { children: React.ReactNode }) {
 
 export default async function TermsPage() {
   const appSettings = await settings.get()
-  const wa = appSettings.confirmationWhatsapp || '628123456789'
+  // Tanpa nilai cadangan. Nomor contoh yang dulu dipakai di sini menuju ruang
+  // kosong, dan kontak palsu lebih merusak kepercayaan daripada kontak yang
+  // tidak ditampilkan (D-9).
+  const wa = appSettings.confirmationWhatsapp || ''
 
   return (
     <div className="min-h-screen bg-ivory pt-28 pb-24">
@@ -71,10 +74,9 @@ export default async function TermsPage() {
 
           <H2>Masa Aktif dan Perpanjangan</H2>
           <P>
-            Masa aktif undangan mengikuti paket yang dipilih, yaitu 30 hari, 90 hari, atau 180 hari.
-            Menjelang dan setelah masa aktif berakhir, kami memberi tenggang (grace period) agar Anda
-            sempat memperpanjang. Setelah tenggang berakhir tanpa perpanjangan, undangan tidak lagi
-            dapat diakses oleh tamu sampai Anda memperpanjangnya kembali.
+            Masa aktif undangan mengikuti paket yang dipilih dan tertera di halaman harga. Setelah
+            masa aktif berakhir, undangan tidak lagi dapat diakses oleh tamu sampai Anda
+            memperpanjangnya kembali.
           </P>
 
           <H2>Konten Pengguna</H2>
@@ -121,7 +123,7 @@ export default async function TermsPage() {
           <P>Untuk pertanyaan seputar ketentuan ini, hubungi kami:</P>
           <UL>
             <li>Email: <a href="mailto:halo@iaundang.online" className="text-graphite font-medium underline underline-offset-2">halo@iaundang.online</a></li>
-            <li>WhatsApp: <a href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer" className="text-graphite font-medium underline underline-offset-2">+{wa}</a></li>
+            {wa && <li>WhatsApp: <a href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer" className="text-graphite font-medium underline underline-offset-2">+{wa}</a></li>}
           </UL>
 
         </div>

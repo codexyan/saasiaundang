@@ -422,7 +422,7 @@ export default function FeatureShowcase({ personalisasi }: { personalisasi?: Per
           points={[
             'Format: nama.iaundang.online',
             'Bagikan langsung via WhatsApp',
-            'Aktif hingga 6 bulan',
+            'Masa aktif sesuai paket',
           ]}
           visual={<MiniDomain />}
           delay={0.1}
@@ -435,7 +435,7 @@ export default function FeatureShowcase({ personalisasi }: { personalisasi?: Per
           title="Ceritakan kisah lewat galeri foto"
           points={[
             'Grid rapi & lightbox fullscreen',
-            'Upload hingga 20 foto',
+            'Jumlah foto sesuai paket',
             'Optimasi otomatis',
           ]}
           visual={<MiniGallery />}

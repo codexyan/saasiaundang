@@ -19,9 +19,12 @@ const companyLinks = [
   { href: '/blog', label: 'Blog' },
 ]
 
+// Nomor WhatsApp datang dari pengaturan admin lewat props, bukan ditulis mati.
+// Dulu `628123456789` dipajang di sini dan di blok kontak di bawah: nomor contoh
+// yang tidak dimiliki siapa pun, jadi setiap pengunjung yang menekannya mendarat
+// di ruang kosong.
 const socials = [
   { href: 'https://instagram.com/ia.undang', icon: Instagram, label: 'Instagram' },
-  { href: 'https://wa.me/628123456789', icon: MessageCircle, label: 'WhatsApp' },
 ]
 
 function FooterLinkGroup({ title, links }: { title: string; links: { href: string; label: string }[] }) {
@@ -44,7 +47,8 @@ function FooterLinkGroup({ title, links }: { title: string; links: { href: strin
   )
 }
 
-export default function Footer() {
+export default function Footer({ whatsapp }: { whatsapp?: string }) {
+  const waLink = whatsapp ? `https://wa.me/${whatsapp}` : null
   const currentYear = new Date().getFullYear()
   const [user, setUser] = useState<{ email: string; role?: string } | null>(null)
 
@@ -91,7 +95,10 @@ export default function Footer() {
               Platform undangan digital premium. Personal untuk setiap tamu, elegan di setiap layar.
             </p>
             <div className="flex items-center gap-2">
-              {socials.map(({ href, icon: Icon, label }) => (
+              {[
+                ...socials,
+                ...(waLink ? [{ href: waLink, icon: MessageCircle, label: 'WhatsApp' }] : []),
+              ].map(({ href, icon: Icon, label }) => (
                 <a
                   key={href}
                   href={href}
@@ -124,15 +131,17 @@ export default function Footer() {
                   halo@iaundang.online
                 </a>
               </li>
-              <li>
-                <a
-                  href="https://wa.me/628123456789"
-                  className="text-body-sm text-concrete hover:text-forest-deep transition-colors duration-200 flex items-center gap-2"
-                >
-                  <MessageCircle className="w-3.5 h-3.5 shrink-0" />
-                  WhatsApp
-                </a>
-              </li>
+              {waLink && (
+                <li>
+                  <a
+                    href={waLink}
+                    className="text-body-sm text-concrete hover:text-forest-deep transition-colors duration-200 flex items-center gap-2"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+                    WhatsApp
+                  </a>
+                </li>
+              )}
             </ul>
             <Button href="/templates" size="sm">
               Buat Undangan
