@@ -16,12 +16,17 @@ function formatRp(n: number) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 }
 
-function TemplateCard({ rec, tier, start }: {
+// Satu tema satu baris penuh, arahnya berselang-seling. Tiga tema dalam grid
+// tiga kolom meninggalkan satu kolom menganga dan terbaca sebagai toko yang
+// belum buka; tiga tema yang dipajang besar terbaca sebagai kurasi. Halaman ini
+// tujuan watermark di setiap undangan, jadi kesan pertamanya menentukan.
+function TemplateRow({ rec, tier, start, terbalik }: {
   rec: TemplateRecord
   /** Paket syarat template, hanya untuk label badge dan ringkasan fitur. */
   tier?: PriceTier
   /** Hasil startingPrice() untuk template ini, dihitung di halaman. */
   start: ReturnType<typeof startingPrice>
+  terbalik: boolean
 }) {
   const cs = rec.config.meta.color_scheme
   const opening = rec.config?.opening
@@ -36,11 +41,11 @@ function TemplateCard({ rec, tier, start }: {
   const discountedPrice = start?.price.flashSale ? finalPrice : null
 
   return (
-    <div className="bg-chalk rounded-card overflow-hidden border border-hairline shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 flex flex-col group">
+    <div className={`bg-chalk rounded-card overflow-hidden border border-hairline shadow-card hover:shadow-card-hover transition-all duration-300 flex flex-col group lg:items-stretch ${terbalik ? 'lg:flex-row-reverse' : 'lg:flex-row'}`}>
       {/* Thumbnail */}
-      <Link href={demoUrl} className="block relative">
+      <Link href={demoUrl} className="block relative lg:w-[42%] lg:shrink-0">
         <div
-          className="aspect-[2/3] relative overflow-hidden"
+          className="aspect-[2/3] lg:aspect-auto lg:h-full lg:min-h-[460px] relative overflow-hidden"
           style={{ backgroundColor: cs.primary }}
         >
           {coverPhoto && (
@@ -117,17 +122,17 @@ function TemplateCard({ rec, tier, start }: {
           {/* Overlay hover */}
           <div className="absolute inset-0 z-20 bg-forest-deep/0 group-hover:bg-forest-deep/25 transition-all duration-300 flex items-center justify-center">
             <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-chalk text-graphite text-button-sm font-semibold px-5 py-2.5 rounded-pill shadow-card">
-              Coba dengan namamu →
+              Coba dengan nama kalian
             </span>
           </div>
         </div>
       </Link>
 
       {/* Info */}
-      <div className="p-5 flex flex-col flex-1">
-        <h2 className="font-display text-h2 text-graphite">{rec.name}</h2>
+      <div className="p-6 sm:p-8 lg:p-10 flex flex-col flex-1 lg:justify-center">
+        <h2 className="font-display text-display-md text-graphite">{rec.name}</h2>
         {rec.description && (
-          <p className="mt-1 text-body-xs text-concrete line-clamp-2">{rec.description}</p>
+          <p className="mt-2 text-body-base text-concrete leading-relaxed max-w-md">{rec.description}</p>
         )}
 
         {/* Harga. Diawali "Mulai" karena angkanya harga paket termurah yang
@@ -161,19 +166,19 @@ function TemplateCard({ rec, tier, start }: {
           </div>
         )}
 
-        <div className="mt-auto pt-4 space-y-2">
+        <div className="mt-6 pt-2 space-y-2 lg:max-w-xs">
           <Link
             href={demoUrl}
             className="block w-full text-center min-h-[44px] py-3 rounded-button text-button-base font-semibold transition-opacity text-white hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 focus-visible:ring-offset-2"
             style={{ backgroundColor: cs.primary }}
           >
-            Coba Gratis
+            Coba dengan nama kalian
           </Link>
           <Link
             href={`/order?template=${rec.id}`}
-            className="block w-full text-center py-2.5 rounded-button text-button-sm border border-hairline text-concrete hover:border-gold-dark/50 hover:text-forest-deep transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 focus-visible:ring-offset-2"
+            className="flex w-full items-center justify-center min-h-[44px] py-2.5 rounded-button text-button-sm border border-hairline text-concrete hover:border-gold-dark/50 hover:text-forest-deep transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 focus-visible:ring-offset-2"
           >
-            Langsung buat undangan
+            Pesan tema ini
           </Link>
         </div>
       </div>
@@ -220,8 +225,8 @@ export default async function TemplatesPage(props: { searchParams: Promise<{ kat
             Pilih gaya undangan kalian
           </h1>
           <p className="mt-3 text-body-lg text-concrete max-w-md mx-auto">
-            Klik <strong className="text-graphite">Coba Gratis</strong> untuk lihat tampilan undangan dengan nama kalian sendiri.
-            Tidak perlu daftar.
+            Buka salah satunya dengan nama kalian sendiri dulu, gratis dan tanpa daftar.
+            Pemesanan baru dimulai kalau kalian memang mau melanjutkan.
           </p>
 
           {/* Chip filter kategori — link fungsional */}
@@ -270,8 +275,8 @@ export default async function TemplatesPage(props: { searchParams: Promise<{ kat
             </p>
             <p className="text-body-sm text-concrete">
               {activeKategori
-                ? 'Coba lihat kategori lain ya, koleksinya terus kami tambah.'
-                : 'Tim kami sedang menyiapkan koleksi template undangan digital terbaik untuk kalian.'}
+                ? 'Coba lihat kategori lain ya.'
+                : 'Belum ada tema yang aktif untuk ditampilkan.'}
             </p>
             {activeKategori && (
               <Link
@@ -283,10 +288,10 @@ export default async function TemplatesPage(props: { searchParams: Promise<{ kat
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+          <div className="space-y-8 sm:space-y-10">
             {shownTemplates
               .sort((a, b) => a.sort_order - b.sort_order)
-              .map(rec => {
+              .map((rec, i) => {
                 const tier = findTier(rec)
                 const start = startingPrice({
                   templatePrice: rec.price,
@@ -296,7 +301,7 @@ export default async function TemplatesPage(props: { searchParams: Promise<{ kat
                   flashSales,
                 })
                 return (
-                  <TemplateCard key={rec.id} rec={rec} tier={tier} start={start} />
+                  <TemplateRow key={rec.id} rec={rec} tier={tier} start={start} terbalik={i % 2 === 1} />
                 )
               })}
           </div>
@@ -305,10 +310,7 @@ export default async function TemplatesPage(props: { searchParams: Promise<{ kat
         {/* Catatan kaki */}
         <div className="mt-12 text-center bg-chalk border border-hairline rounded-card px-6 py-6">
           <p className="text-body-sm text-concrete">
-            Semua template bisa dikustomisasi: nama, tanggal, lokasi, foto, dan musik.
-          </p>
-          <p className="text-body-xs text-concrete mt-1.5">
-            Template baru akan terus ditambah. Sudah beli? Template lama tetap bisa dipakai.
+            Nama, tanggal, lokasi, foto, dan musik bisa kalian ubah sendiri sesudah memesan.
           </p>
         </div>
       </div>
