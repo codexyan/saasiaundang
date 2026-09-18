@@ -208,7 +208,7 @@ export default function Navbar() {
               {/* Mobile toggle */}
               <button
                 onClick={() => setMobileOpen(!mobileOpen)}
-                className="md:hidden p-2 rounded-lg text-concrete hover:text-forest-deep transition-colors duration-200"
+                className="md:hidden w-11 h-11 flex items-center justify-center rounded-lg text-concrete hover:text-forest-deep transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40"
                 aria-label={mobileOpen ? 'Tutup menu' : 'Buka menu'}
               >
                 <AnimatePresence mode="wait" initial={false}>

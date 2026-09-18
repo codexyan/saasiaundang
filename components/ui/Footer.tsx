@@ -105,7 +105,7 @@ export default function Footer({ whatsapp }: { whatsapp?: string }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={label}
-                  className="w-9 h-9 rounded-xl bg-chalk border border-hairline flex items-center justify-center text-concrete hover:text-forest hover:border-forest-light/40 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 focus-visible:ring-offset-2"
+                  className="w-11 h-11 rounded-xl bg-chalk border border-hairline flex items-center justify-center text-concrete hover:text-forest hover:border-forest-light/40 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 focus-visible:ring-offset-2"
                 >
                   <Icon className="w-4 h-4" />
                 </a>
