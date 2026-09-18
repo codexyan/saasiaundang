@@ -187,7 +187,7 @@ export default function Navbar() {
                 >
                   <Link
                     href="/login"
-                    className="hidden sm:inline-flex text-label-lg text-concrete hover:text-forest-deep px-3 py-1.5 rounded-lg transition-colors duration-200"
+                    className="hidden sm:inline-flex items-center min-h-[44px] text-label-lg text-concrete hover:text-forest-deep px-3 py-1.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40"
                   >
                     Masuk
                   </Link>
@@ -319,7 +319,7 @@ export default function Navbar() {
                       <Link
                         href="/login"
                         onClick={() => setMobileOpen(false)}
-                        className="text-label-lg text-concrete text-center px-4 py-2.5 rounded-xl hover:bg-forest-50 transition-colors duration-200"
+                        className="text-label-lg text-concrete text-center flex items-center justify-center min-h-[44px] px-4 py-2.5 rounded-xl hover:bg-forest-50 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40"
                       >
                         Masuk
                       </Link>

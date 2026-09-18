@@ -235,7 +235,7 @@ export default async function TemplatesPage(props: { searchParams: Promise<{ kat
               <Link
                 href="/templates"
                 aria-current={!activeKategori ? 'page' : undefined}
-                className={`text-label-base px-3.5 py-1.5 rounded-pill transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 focus-visible:ring-offset-2 ${
+                className={`text-label-base inline-flex items-center min-h-[44px] px-4 py-1.5 rounded-pill transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 focus-visible:ring-offset-2 ${
                   !activeKategori
                     ? 'bg-forest text-chalk'
                     : 'bg-chalk border border-hairline text-concrete hover:border-gold-dark/50 hover:text-forest-deep'
@@ -251,7 +251,7 @@ export default async function TemplatesPage(props: { searchParams: Promise<{ kat
                     key={cat}
                     href={`/templates?kategori=${encodeURIComponent(cat!.toLowerCase())}`}
                     aria-current={isActive ? 'page' : undefined}
-                    className={`text-label-base px-3.5 py-1.5 rounded-pill capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 focus-visible:ring-offset-2 ${
+                    className={`text-label-base inline-flex items-center min-h-[44px] px-4 py-1.5 rounded-pill capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 focus-visible:ring-offset-2 ${
                       isActive
                         ? 'bg-forest text-chalk'
                         : 'bg-chalk border border-hairline text-concrete hover:border-gold-dark/50 hover:text-forest-deep'

@@ -375,7 +375,7 @@ export default function OrderForm({ templateId, templateName, templatePrice, tem
                   type="button"
                   onClick={() => { if (canGoBack) setStep(i as Step) }}
                   disabled={!canGoBack && !isActive}
-                  className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-pill text-label-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 ${
+                  className={`flex items-center justify-center gap-1.5 min-h-[44px] min-w-[44px] px-2 sm:px-3 py-1.5 rounded-pill text-label-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 ${
                     isActive ? 'bg-forest-50 text-forest-deep' :
                     isDone ? 'text-forest hover:bg-forest-50 cursor-pointer' : 'text-concrete cursor-default'
                   }`}
