@@ -17,10 +17,21 @@ const PEMERIKSA = `(() => {
     const r = el.getBoundingClientRect()
     if (r.width === 0 || r.height === 0) continue
     if (r.height >= 44 && r.width >= 44) continue
-    // Tautan teks di dalam paragraf memang dikecualikan WCAG; yang dihitung
-    // di sini hanya yang berperilaku sebagai tombol.
-    const sepertiTombol = el.tagName === 'BUTTON' || el.getAttribute('role') === 'button'
-      || /rounded-(button|pill|xl|lg)|bg-(forest|gold|chalk)/.test(el.className || '')
+    // Yang dihitung hanya yang TERLIHAT sebagai tombol, bukan yang kebetulan
+    // memakai nama kelas tertentu. Patokannya bentuk visual: elemen button,
+    // role button, atau tautan yang punya latar atau garis tepi. Tautan teks
+    // biasa, termasuk judul yang bisa diklik, memang dikecualikan WCAG.
+    const g = getComputedStyle(el)
+    // Tanpa regex. Isi pemeriksa ini hidup di dalam template literal, dan di
+    // sana backslash adalah karakter escape: /rgba\(/ sampai ke halaman
+    // sebagai /rgba(/ dan berubah jadi grup tangkap yang tidak pernah cocok.
+    const latar = g.backgroundColor
+    const punyaLatar = !!latar && latar !== 'rgba(0, 0, 0, 0)' && latar !== 'transparent'
+    // Garis tepi harus mengelilingi, bukan sekadar garis bawah. Tautan teks
+    // sering memakai border-bottom sebagai garis bawah, dan itu bukan tombol.
+    const sisi = ['borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth']
+    const punyaGaris = sisi.every(s => parseFloat(g[s] || '0') > 0)
+    const sepertiTombol = el.tagName === 'BUTTON' || el.getAttribute('role') === 'button' || punyaLatar || punyaGaris
     if (!sepertiTombol) continue
     tombolKecil.push({
       tag: el.tagName.toLowerCase(),
@@ -36,8 +47,10 @@ const PEMERIKSA = `(() => {
     // Hanya gaya INLINE opacity 0 yang dihitung, karena itulah tanda tangan
     // animasi masuk yang tidak pernah selesai. Opacity 0 dari kelas CSS
     // (overlay hover, navbar yang menyembunyikan diri) memang disengaja.
-    tersangkutTransparan: [...document.querySelectorAll('body *')]
-      .filter(e => /opacity:\s*0(?!\.)/.test(e.getAttribute('style') || '')).length,
+    tersangkutTransparan: [...document.querySelectorAll('body *')].filter(e => {
+      const gaya = (e.getAttribute('style') || '').split(' ').join('')
+      return gaya.includes('opacity:0') && !gaya.includes('opacity:0.')
+    }).length,
   })
 })()`
 

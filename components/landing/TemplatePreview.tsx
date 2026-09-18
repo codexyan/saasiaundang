@@ -41,6 +41,7 @@ interface TemplateCard {
   href: string
   requiredPackage: string
   description: string
+  slug: string
 }
 
 type BadgeVariant = 'neutral' | 'forest' | 'gold'
@@ -74,6 +75,7 @@ function templateToCard(t: TemplateRecord): TemplateCard {
     // ditulis admin dari panel, bukan di kode. Diganti koma saat dirender;
     // sumber teksnya sendiri sebaiknya dirapikan dari panel admin.
     description: (t.description || '').replace(/\s*—\s*/g, ', '),
+    slug: t.slug,
   }
 }
 
@@ -165,7 +167,12 @@ export default function TemplatePreview({ templates }: { showcase?: ShowcaseData
                   <span className="text-body-xs text-concrete capitalize">{card.category}</span>
                 </div>
 
-                <h3 className="font-display text-display-md text-graphite">{card.name}</h3>
+                <Link
+                  href={`/templates/${card.slug}`}
+                  className="font-display text-display-md text-graphite hover:text-forest-deep transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 rounded-button"
+                >
+                  {card.name}
+                </Link>
 
                 {card.description && (
                   <p className="text-body-base text-concrete leading-relaxed mt-3 max-w-md mx-auto lg:mx-0">

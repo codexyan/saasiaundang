@@ -130,7 +130,15 @@ function TemplateRow({ rec, tier, start, terbalik }: {
 
       {/* Info */}
       <div className="p-6 sm:p-8 lg:p-10 flex flex-col flex-1 lg:justify-center">
-        <h2 className="font-display text-display-md text-graphite">{rec.name}</h2>
+        {/* Nama tema menautkan ke halaman detailnya. Sebelum ini tidak ada
+            satu pun tautan ke /templates/[slug] di seluruh situs, jadi
+            halaman itu hanya bisa dicapai lewat mesin pencari. */}
+        <Link
+          href={`/templates/${rec.slug}`}
+          className="font-display text-display-md text-graphite hover:text-forest-deep transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 rounded-button"
+        >
+          {rec.name}
+        </Link>
         {rec.description && (
           <p className="mt-2 text-body-base text-concrete leading-relaxed max-w-md">{rec.description}</p>
         )}
