@@ -5,6 +5,7 @@ import { Fraunces, Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'react-hot-toast'
 import { MotionProvider } from '@/components/marketing/MotionProvider'
+import { SessionProvider } from '@/components/ui/SessionProvider'
 
 // Font display serif (Arah A — Elegant Editorial): hanya untuk heading via
 // utility .font-display, bukan body text. Subset latin, weight 500/600 saja.
@@ -60,7 +61,9 @@ export default function RootLayout({
   return (
     <html lang="id" className={`${jakarta.variable} ${GeistSans.variable} ${GeistMono.variable} ${fraunces.variable}`}>
       <body>
-        <MotionProvider>{children}</MotionProvider>
+        <SessionProvider>
+          <MotionProvider>{children}</MotionProvider>
+        </SessionProvider>
         <Toaster position="top-center" />
       </body>
     </html>

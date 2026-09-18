@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Instagram, Mail, MessageCircle } from 'lucide-react'
 import { Button } from '@/components/marketing/Button'
+import { useSession } from '@/components/ui/SessionProvider'
 
 const productLinks = [
   { href: '/templates', label: 'Template' },
@@ -50,14 +51,7 @@ function FooterLinkGroup({ title, links }: { title: string; links: { href: strin
 export default function Footer({ whatsapp }: { whatsapp?: string }) {
   const waLink = whatsapp ? `https://wa.me/${whatsapp}` : null
   const currentYear = new Date().getFullYear()
-  const [user, setUser] = useState<{ email: string; role?: string } | null>(null)
-
-  useEffect(() => {
-    fetch('/api/auth/me')
-      .then((r) => r.json())
-      .then(({ user }) => setUser(user ?? null))
-      .catch(() => setUser(null))
-  }, [])
+  const { user } = useSession()
 
   const accountLinks = user
     ? [

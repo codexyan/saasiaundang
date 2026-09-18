@@ -8,6 +8,7 @@ import { Menu, X, LayoutDashboard, PenLine, Megaphone, Shield, ArrowRight } from
 import Logo from './Logo'
 import { Button } from '@/components/marketing/Button'
 import { EASE } from '@/lib/motion'
+import { useSession } from '@/components/ui/SessionProvider'
 
 const NAV_LINKS = [
   { href: '/#fitur', label: 'Fitur' },
@@ -71,21 +72,13 @@ function NavLink({ href, label, delay = 0 }: { href: string; label: string; dela
 export default function Navbar() {
   const router = useRouter()
   const pathname = usePathname()
-  const [user, setUser] = useState<{ email: string; role?: string } | null>(null)
-  const [loaded, setLoaded] = useState(false)
+  const { user, loaded, bersihkan } = useSession()
   const [scrolled, setScrolled] = useState(false)
   const [hidden, setHidden] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [lastY, setLastY] = useState(0)
 
   const { scrollY } = useScroll()
-
-  useEffect(() => {
-    fetch('/api/auth/me')
-      .then((r) => r.json())
-      .then(({ user }) => { setUser(user ?? null); setLoaded(true) })
-      .catch(() => setLoaded(true))
-  }, [])
 
   useMotionValueEvent(scrollY, 'change', useCallback((latest: number) => {
     setScrolled(latest > 16)
@@ -99,7 +92,7 @@ export default function Navbar() {
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' })
-    setUser(null)
+    bersihkan()
     router.push('/')
     router.refresh()
   }
