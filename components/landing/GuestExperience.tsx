@@ -60,9 +60,9 @@ function CardPersonalisasi({ personalisasi }: { personalisasi?: PersonalisasiDat
 
           <ul className="space-y-2.5">
             {[
-              'Import daftar tamu via spreadsheet',
+              'Daftar tamu bisa diekspor ke CSV',
               'Nama tampil otomatis di halaman pembuka',
-              'Link unik per tamu, tidak bisa di-forward',
+              'Tautan berbeda untuk tiap tamu',
             ].map(b => (
               <li key={b} className="flex items-center gap-2.5">
                 <div className="w-[18px] h-[18px] rounded-md bg-gold/[0.14] flex items-center justify-center shrink-0">
