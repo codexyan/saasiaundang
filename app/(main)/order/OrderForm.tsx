@@ -1,6 +1,7 @@
 'use client'
 
 import { computePrice } from '@/lib/pricing'
+import { bolehHapusWatermark } from '@/lib/watermark'
 import type { FlashSale } from '@/lib/types'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
@@ -101,7 +102,7 @@ function buildTierFeatureList(tierId: string, f: TierFeatures): FeatureItem[] {
   list.push({ label: 'Video pernikahan', included: f.video, section: true })
 
   // Fitur ekstra
-  list.push({ label: 'Tanpa logo iaundang', included: f.remove_watermark })
+  list.push({ label: 'Tanpa logo iaundang', included: bolehHapusWatermark(f.remove_watermark) })
   list.push({ label: 'Kode QR untuk absen tamu', included: f.qrcode })
   list.push({ label: 'Alamat website sendiri', included: f.custom_domain })
   list.push({ label: 'Dibantu lebih dulu lewat WhatsApp', included: f.priority_support })

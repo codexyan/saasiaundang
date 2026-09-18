@@ -12,6 +12,7 @@ import { LEGACY_TEMPLATE_IDS } from '@/lib/types'
 import type { Invitation, Gallery, Wish, Guest, NewInvitationData } from '@/lib/types'
 
 // Legacy hardcoded templates
+import { bolehHapusWatermark } from '@/lib/watermark'
 import ModernWhiteTemplate from '@/components/templates/modern-white/ModernWhiteTemplate'
 import FloralGardenTemplate from '@/components/templates/floral-garden/FloralGardenTemplate'
 import DarkElegantTemplate from '@/components/templates/dark-elegant/DarkElegantTemplate'
@@ -74,7 +75,7 @@ export default async function InvitationPage(props0: Props) {
   // `pkg.hasWatermarkFree` yang hardcoded, sehingga mematikan watermark lewat
   // panel Paket & Promo tidak berpengaruh apa pun.
   const tierFeatures = await resolveTierFeatures(tier).catch(() => null)
-  const showWatermark = !invitation.is_paid || !tierFeatures?.remove_watermark
+  const showWatermark = !invitation.is_paid || !bolehHapusWatermark(tierFeatures?.remove_watermark)
 
   // Build Event structured data for SEO
   const isLegacyData = (LEGACY_TEMPLATE_IDS as string[]).includes(invitation.template_id)

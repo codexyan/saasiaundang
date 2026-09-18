@@ -34,7 +34,7 @@ const STARTER_FEATURES: TierFeatures = {
   story: false, video: false, gift: false, gift_registry: false,
   livestream: false, ig_story: false, qrcode: false, closing: true,
   custom_domain: false, subdomain: true, remove_watermark: false,
-  analytics: false, priority_support: false, validity_days: 30,
+  analytics: false, priority_support: false, validity_days: 365,
   decoration_editing: false, max_decoration_assets: 0, custom_animations: false,
 }
 
@@ -45,8 +45,10 @@ const POPULAR_FEATURES: TierFeatures = {
   countdown: true, gallery: true, rsvp: true, wishes: true,
   story: true, video: true, gift: true, gift_registry: true,
   livestream: true, ig_story: false, qrcode: false, closing: true,
-  custom_domain: false, subdomain: true, remove_watermark: true,
-  analytics: true, priority_support: false, validity_days: 90,
+  // remove_watermark false di semua paket sampai 200 undangan terbit (D-12),
+  // dan masa aktif disamakan 1 tahun (D-11).
+  custom_domain: false, subdomain: true, remove_watermark: false,
+  analytics: true, priority_support: false, validity_days: 365,
   decoration_editing: true, max_decoration_assets: 3, custom_animations: false,
 }
 
@@ -57,8 +59,8 @@ const EKSKLUSIF_FEATURES: TierFeatures = {
   countdown: true, gallery: true, rsvp: true, wishes: true,
   story: true, video: true, gift: true, gift_registry: true,
   livestream: true, ig_story: true, qrcode: true, closing: true,
-  custom_domain: true, subdomain: true, remove_watermark: true,
-  analytics: true, priority_support: true, validity_days: 180,
+  custom_domain: true, subdomain: true, remove_watermark: false,
+  analytics: true, priority_support: true, validity_days: 365,
   decoration_editing: true, max_decoration_assets: -1, custom_animations: true,
 }
 

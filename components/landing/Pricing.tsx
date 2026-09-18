@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Check, ArrowRight, ShieldCheck, MessageCircle } from 'lucide-react'
 import { PRICING_CONFIG } from '@/lib/pricing-config'
+import { bolehHapusWatermark } from '@/lib/watermark'
 import { computePrice } from '@/lib/pricing'
 import { SectionContainer } from '@/components/marketing/SectionContainer'
 import { EASE, VIEWPORT_ONCE } from '@/lib/motion'
@@ -152,7 +153,7 @@ function buildFeatureList(tier: PriceTier, cheaperTier: PriceTier | undefined): 
   if (f.story) list.push('Kisah cinta pasangan')
   if (f.video) list.push('Video prewedding')
   if (f.qrcode) list.push('Scan barcode kehadiran tamu')
-  if (f.remove_watermark) list.push('Tanpa watermark')
+  if (bolehHapusWatermark(f.remove_watermark)) list.push('Tanpa watermark')
   if (f.custom_domain) list.push('Custom domain sendiri')
   if (f.priority_support) list.push('Priority support via WhatsApp')
   list.push(`Aktif ${f.validity_days} hari`)
