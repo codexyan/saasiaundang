@@ -1,6 +1,6 @@
 'use client'
 
-import { motion, useReducedMotion } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { fadeUp } from '@/lib/motion'
 
@@ -38,18 +38,13 @@ export function SectionContainer({
   className,
   children,
 }: SectionContainerProps) {
-  const reduced = useReducedMotion()
   const isDark = tone === 'dark'
   const hasHeader = eyebrow || title || lead
-  // Untuk pengunjung yang mematikan animasi, judul section HILANG sama sekali
-  // sebelum ini. Sebabnya: server selalu merender initial `opacity:0` ke HTML,
-  // karena di server tidak ada media query untuk dibaca. Begitu di klien
-  // useReducedMotion() bernilai true, propsnya dikosongkan, jadi tidak ada lagi
-  // yang mengembalikan opacity ke 1 dan gaya bawaan dari server menetap. Yang
-  // dimatikan seharusnya geraknya, bukan kemunculannya.
-  const enter = reduced
-    ? { initial: false as const, animate: { opacity: 1, y: 0 } }
-    : fadeUp()
+  // Satu bentuk untuk semua orang, tanpa percabangan server lawan klien.
+  // Setelan "kurangi gerak" ditangani terpusat oleh MotionProvider, yang
+  // mematikan animasi transform tapi tetap menganimasikan opacity, jadi judul
+  // section tidak pernah tersangkut di opacity 0.
+  const enter = fadeUp()
 
   return (
     <section id={id} className={cn('py-20 sm:py-28 lg:py-32 overflow-hidden', TONES[tone], className)}>
