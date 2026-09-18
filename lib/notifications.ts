@@ -70,8 +70,12 @@ const TEMPLATES: Record<NotificationType, (data: Record<string, string | number 
     body: `Pesanan kalian sebesar Rp ${d.amount} sudah kami terima. Lanjutkan pembayarannya lewat halaman status pesanan: ${d.statusUrl}.`,
   }),
   order_approved: (d) => ({
-    subject: 'Pembayaran berhasil, undangan kalian sudah aktif!',
-    body: `Pembayaran untuk pesanan ${d.orderNumber} sudah kami terima. Undangan kalian sekarang aktif di ${d.slug}.iaundang.online. Masuk ke akun kalian pakai email ${d.email}.`,
+    // Dulu subjeknya menjanjikan undangan "sudah aktif" padahal undangan baru
+    // dibuat dengan is_published false: belum ada yang bisa dibuka tamu.
+    subject: `Pembayaran pesanan ${d.orderNumber} sudah kami terima`,
+    body: d.setupUrl
+      ? `Pembayaran untuk pesanan ${d.orderNumber} sudah masuk. Buat password kalian lewat tautan ini: ${d.setupUrl}`
+      : `Pembayaran untuk pesanan ${d.orderNumber} sudah masuk. Masuk ke akun kalian seperti biasa.`,
   }),
   order_rejected: (d) => ({
     subject: 'Pesanan kalian belum bisa kami proses',
@@ -95,7 +99,7 @@ const TEMPLATES: Record<NotificationType, (data: Record<string, string | number 
   }),
   password_reset: (d) => ({
     subject: 'Buat password baru untuk akun iaundang',
-    body: `Kami menerima permintaan untuk mengganti password kalian. Klik tautan ini untuk membuat password baru: ${d.resetLink}. Tautannya berlaku 1 jam. Kalau kalian tidak merasa meminta ini, abaikan saja email ini.`,
+    body: `Kami menerima permintaan untuk mengganti password kalian. Klik tautan ini untuk membuat password baru: ${d.resetLink}. Tautannya berlaku ${d.validityLabel || '1 jam'}. Kalau kalian tidak merasa meminta ini, abaikan saja email ini.`,
   }),
 }
 

@@ -3,6 +3,7 @@ import { orders, users, invitations, affiliates } from './db'
 import { subscriptions } from './subscription'
 import { resolveExpiry, resolveTier } from './tiers'
 import { randomString } from './random'
+import { createPasswordToken, PASSWORD_TOKEN_PURPOSE } from './password-token'
 import type { InvitationData } from './types'
 
 /**
@@ -39,8 +40,12 @@ export type ProvisionOutcome =
       slug: string
       tierName: string
       expiresAt: Date
-      /** Hanya terisi kalau akunnya BARU dibuat. Akun lama tetap memakai password lamanya. */
-      plainPassword: string | null
+      /**
+       * Token tautan buat password, hanya untuk akun yang LAHIR dari pesanan
+       * ini. Akun lama tetap memakai password lamanya dan tidak menerima
+       * tautan apa pun.
+       */
+      passwordSetupToken: string | null
     }
 
 const PASSWORD_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789'
@@ -67,14 +72,26 @@ export async function provisionPaidOrder(
   if (!pkg) return { status: 'invalid-tier', tier: String(order.package_tier) }
 
   // ── 1. Akun ────────────────────────────────────────────────────────────
+  //
+  // Akun baru TIDAK lagi diberi password yang bisa dibaca siapa pun. Hash-nya
+  // diisi nilai acak yang tidak pernah keluar dari fungsi ini, dan satu-satunya
+  // jalan masuk adalah tautan buat password di langkah 4. Dulu password acak
+  // dikirim sebagai teks di dalam email, dan pada jalur approve admin juga
+  // ditampilkan di layar admin untuk diteruskan lewat WhatsApp — dua inbox yang
+  // menyimpannya selamanya tanpa ada yang bisa menariknya kembali.
   let user = await users.findByEmail(order.email)
-  let plainPassword: string | null = null
+
+  // Dibandingkan dengan waktu pesanan, bukan sekadar "tadi akunnya belum ada".
+  // Kalau percobaan pertama sempat membuat akun lalu gagal di langkah
+  // berikutnya, percobaan ulang menemukan akun itu sudah ada dan dulu
+  // menyimpulkan akunnya lama — sehingga pembeli tidak pernah menerima satu pun
+  // jalan masuk ke akun yang baru saja ia bayar.
+  const accountExistedBefore = user !== null && new Date(user.created_at) < new Date(order.created_at)
 
   if (!user) {
-    plainPassword = randomString(12, PASSWORD_ALPHABET)
     user = await users.create({
       email: order.email,
-      password_hash: await bcrypt.hash(plainPassword, 10),
+      password_hash: await bcrypt.hash(randomString(32, PASSWORD_ALPHABET), 10),
       role: 'user',
     })
   }
@@ -171,6 +188,14 @@ export async function provisionPaidOrder(
     }
   }
 
+  // ── 4. Tautan buat password ────────────────────────────────────────────
+  //
+  // Dibuat sebelum status pesanan berubah, mengikuti urutan modul ini: kalau
+  // langkah ini gagal, pesanannya tetap pending dan masih bisa diulang.
+  const passwordSetupToken = accountExistedBefore
+    ? null
+    : await createPasswordToken(user, PASSWORD_TOKEN_PURPOSE.purchase)
+
   // ── 5. TERAKHIR: tandai pesanan selesai ────────────────────────────────
   await orders.update(order.id, {
     status: 'approved',
@@ -187,6 +212,6 @@ export async function provisionPaidOrder(
     slug: order.subdomain,
     tierName: pkg.label,
     expiresAt,
-    plainPassword,
+    passwordSetupToken,
   }
 }

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { notifyUser } from '@/lib/notifications'
 import { runAfterResponse } from '@/lib/after-response'
 import { provisionPaidOrder } from '@/lib/provision-order'
+import { passwordTokenUrl, validityLabel, PASSWORD_TOKEN_PURPOSE } from '@/lib/password-token'
 
 export const dynamic = 'force-dynamic'
 
@@ -123,10 +124,14 @@ export async function POST(req: NextRequest) {
         orderNumber: order.orderNumber,
         email: customerEmail || order.email,
         name: customerName || `${order.groomName} & ${order.brideName}`,
-        // Pada jalur Mayar tidak ada admin yang meneruskan kredensial secara
-        // manual, jadi akun yang BARU dibuat harus menerima passwordnya lewat
-        // email ini — kalau tidak, pelanggan sudah membayar tapi tidak bisa masuk.
-        ...(outcome.plainPassword ? { password: outcome.plainPassword } : {}),
+        // Akun yang lahir dari pesanan ini menerima tautan buat password.
+        // Akun lama tidak menerima apa pun dan tetap memakai password lamanya.
+        ...(outcome.passwordSetupToken
+          ? {
+              setupUrl: passwordTokenUrl(outcome.passwordSetupToken),
+              setupValidity: validityLabel(PASSWORD_TOKEN_PURPOSE.purchase),
+            }
+          : {}),
         packageTier: order.packageTier,
         slug: order.subdomain,
       }),

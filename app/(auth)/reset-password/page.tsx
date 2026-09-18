@@ -33,6 +33,10 @@ function ResetPasswordContent() {
   const [tokenState, setTokenState] = useState<TokenState>('checking')
   const [tokenError, setTokenError] = useState('')
   const [email, setEmail] = useState('')
+  // Tautan dari pembelian membuat password PERTAMA sebuah akun; tautan dari
+  // Lupa password mengganti password yang sudah ada. Kalimat di halaman ini
+  // mengikuti asal tokennya, bukan satu teks untuk keduanya.
+  const [dariPembelian, setDariPembelian] = useState(false)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
 
@@ -51,6 +55,7 @@ function ResetPasswordContent() {
       .then((data) => {
         if (data.valid) {
           setEmail(data.email || '')
+          setDariPembelian(data.purpose === 'purchase')
           setTokenState('valid')
         } else {
           setTokenState('invalid')
@@ -81,7 +86,7 @@ function ResetPasswordContent() {
       return
     }
     setSuccess(true)
-    toast.success('Password baru kalian sudah aktif!')
+    toast.success(dariPembelian ? 'Password kalian sudah dibuat' : 'Password baru kalian sudah aktif')
     setTimeout(() => router.push('/login'), 2500)
   }
 
@@ -90,7 +95,7 @@ function ResetPasswordContent() {
       <AuthCard backHref="/login">
         <div className="text-center py-6">
           <Loader2 className="w-6 h-6 text-concrete animate-spin mx-auto mb-3" />
-          <p className="text-body-sm text-concrete">Memeriksa link reset...</p>
+          <p className="text-body-sm text-concrete">Memeriksa tautannya...</p>
         </div>
       </AuthCard>
     )
@@ -126,9 +131,13 @@ function ResetPasswordContent() {
           <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
             <CheckCircle className="w-7 h-7 text-green-600" />
           </div>
-          <h1 className="font-display text-h1 text-forest-deep mb-2">Password Berhasil Direset</h1>
+          <h1 className="font-display text-h1 text-forest-deep mb-2">
+            {dariPembelian ? 'Password Kalian Sudah Siap' : 'Password Berhasil Diganti'}
+          </h1>
           <p className="text-body-xs text-concrete mb-6">
-            Kamu akan diarahkan ke halaman login. Silakan masuk dengan password baru.
+            {dariPembelian
+              ? 'Kami arahkan ke halaman masuk. Pakai email kalian dan password yang barusan dibuat.'
+              : 'Kami arahkan ke halaman masuk. Silakan masuk dengan password baru.'}
           </p>
           <Button href="/login" className="w-full">
             <span>Masuk Sekarang</span>
@@ -142,15 +151,21 @@ function ResetPasswordContent() {
   return (
     <AuthCard backHref="/login">
       <div className="mb-8">
-        <h1 className="font-display text-display-md text-forest-deep">Buat Password Baru</h1>
+        <h1 className="font-display text-display-md text-forest-deep">
+          {dariPembelian ? 'Buat Password Kalian' : 'Buat Password Baru'}
+        </h1>
         <p className="text-body-sm text-concrete mt-2">
-          {email ? <>untuk akun <strong className="text-graphite">{email}</strong></> : 'Masukkan password baru untuk akunmu'}
+          {dariPembelian
+            ? <>Password pertama untuk akun {email ? <strong className="text-graphite">{email}</strong> : 'kalian'}. Sesudah ini kalian bisa masuk dan mulai mengisi undangan.</>
+            : email
+              ? <>untuk akun <strong className="text-graphite">{email}</strong></>
+              : 'Masukkan password baru untuk akunmu'}
         </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <PasswordField
-          label="Password Baru"
+          label={dariPembelian ? 'Password' : 'Password Baru'}
           autoComplete="new-password"
           placeholder="Min. 6 karakter"
           error={errors.password?.message}
@@ -158,7 +173,7 @@ function ResetPasswordContent() {
         />
 
         <PasswordField
-          label="Konfirmasi Password Baru"
+          label={dariPembelian ? 'Konfirmasi Password' : 'Konfirmasi Password Baru'}
           autoComplete="new-password"
           placeholder="Ulangi password"
           error={errors.confirmPassword?.message}
@@ -173,7 +188,7 @@ function ResetPasswordContent() {
             </>
           ) : (
             <>
-              <span>Simpan Password Baru</span>
+              <span>{dariPembelian ? 'Simpan Password' : 'Simpan Password Baru'}</span>
               <ArrowRight size={14} />
             </>
           )}

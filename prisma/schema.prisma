@@ -372,6 +372,11 @@ model PasswordResetToken {
   token     String   @unique
   expiresAt DateTime @map("expires_at")
   createdAt DateTime @default(now()) @map("created_at")
+  /// 'reset' untuk permintaan dari Lupa password, 'purchase' untuk tautan buat
+  /// password yang lahir dari pembelian. Membedakan keduanya menentukan masa
+  /// berlaku (1 jam lawan 72 jam), kalimat di halaman dan email, dan token mana
+  /// yang boleh dihapus saat pengguna meminta reset baru.
+  purpose   String   @default("reset")
 
   @@index([token])
   @@index([userId])
