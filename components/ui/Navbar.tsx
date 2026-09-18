@@ -10,13 +10,17 @@ import { Button } from '@/components/marketing/Button'
 import { EASE } from '@/lib/motion'
 import { useSession } from '@/components/ui/SessionProvider'
 
-const NAV_LINKS = [
+// Tautan Blog hanya ikut kalau memang ada tulisan terbit. Menautkan ke
+// halaman kosong melanggar R-24, dan di produk yang belum punya jejak,
+// kepercayaan yang hilang karena klik yang sia-sia itu mahal.
+const NAV_LINKS_DASAR = [
   { href: '/#fitur', label: 'Fitur' },
   { href: '/#templates', label: 'Template' },
   { href: '/#harga', label: 'Harga' },
   { href: '/#faq', label: 'FAQ' },
-  { href: '/blog', label: 'Blog' },
 ]
+
+const TAUTAN_BLOG = { href: '/blog', label: 'Blog' }
 
 const ROLE_LINKS: Record<string, { href: string; label: string; icon: React.ReactNode }[]> = {
   admin: [
@@ -73,7 +77,8 @@ function NavLink({ href, label, delay = 0, gelap = false }: { href: string; labe
   )
 }
 
-export default function Navbar() {
+export default function Navbar({ adaArtikel = false }: { adaArtikel?: boolean }) {
+  const NAV_LINKS = adaArtikel ? [...NAV_LINKS_DASAR, TAUTAN_BLOG] : NAV_LINKS_DASAR
   const router = useRouter()
   const pathname = usePathname()
   const { user, loaded, bersihkan } = useSession()

@@ -7,17 +7,9 @@ import { Instagram, Mail, MessageCircle } from 'lucide-react'
 import { Button } from '@/components/marketing/Button'
 import { useSession } from '@/components/ui/SessionProvider'
 
-const productLinks = [
-  { href: '/templates', label: 'Template' },
-  { href: '/#fitur', label: 'Fitur' },
-  { href: '/#harga', label: 'Harga' },
-  { href: '/demo/renderer?id=javanese-gold', label: 'Demo Live' },
-]
-
-const companyLinks = [
+const companyLinksDasar = [
   { href: '/#cara-kerja', label: 'Cara Kerja' },
   { href: '/#faq', label: 'FAQ' },
-  { href: '/blog', label: 'Blog' },
 ]
 
 // Nomor WhatsApp datang dari pengaturan admin lewat props, bukan ditulis mati.
@@ -48,7 +40,22 @@ function FooterLinkGroup({ title, links }: { title: string; links: { href: strin
   )
 }
 
-export default function Footer({ whatsapp }: { whatsapp?: string }) {
+export default function Footer({ whatsapp, adaArtikel = false, demoHref }: {
+  whatsapp?: string
+  /** Tautan Blog hanya muncul kalau ada tulisan terbit (R-24). */
+  adaArtikel?: boolean
+  /** Tujuan demo mengikuti tema yang aktif, bukan id yang ditulis mati. */
+  demoHref?: string
+}) {
+  const productLinks = [
+    { href: '/templates', label: 'Template' },
+    { href: '/#fitur', label: 'Fitur' },
+    { href: '/#harga', label: 'Harga' },
+    ...(demoHref ? [{ href: demoHref, label: 'Coba Demo' }] : []),
+  ]
+  const companyLinks = adaArtikel
+    ? [...companyLinksDasar, { href: '/blog', label: 'Blog' }]
+    : companyLinksDasar
   const waLink = whatsapp ? `https://wa.me/${whatsapp}` : null
   const currentYear = new Date().getFullYear()
   const { user } = useSession()

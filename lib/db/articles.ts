@@ -134,6 +134,11 @@ export const articles = {
     return rows.map(mapArticle)
   },
 
+  /** Dipakai layout untuk memutuskan tautan Blog ditampilkan atau tidak. */
+  async countPublished(): Promise<number> {
+    return prisma.article.count({ where: { isPublished: true } })
+  },
+
   async findPublished(): Promise<ArticleData[]> {
     const rows = await prisma.article.findMany({
       where: { isPublished: true },
