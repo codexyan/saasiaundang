@@ -36,7 +36,7 @@ const ROLE_LINKS: Record<string, { href: string; label: string; icon: React.Reac
   ],
 }
 
-function NavLink({ href, label, delay = 0 }: { href: string; label: string; delay?: number }) {
+function NavLink({ href, label, delay = 0, gelap = false }: { href: string; label: string; delay?: number; gelap?: boolean }) {
   const pathname = usePathname()
   const isAnchor = href.startsWith('/#')
   const isActive = !isAnchor && pathname.startsWith(href)
@@ -51,7 +51,11 @@ function NavLink({ href, label, delay = 0 }: { href: string; label: string; dela
         href={href}
         className="group relative text-label-lg px-1 py-1.5 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 focus-visible:ring-offset-2 rounded-sm"
       >
-        <span className={isActive ? 'text-forest-deep' : 'text-concrete group-hover:text-forest-deep'}>
+        <span className={
+          gelap
+            ? (isActive ? 'text-chalk' : 'text-chalk/75 group-hover:text-chalk')
+            : (isActive ? 'text-forest-deep' : 'text-concrete group-hover:text-forest-deep')
+        }>
           {label}
         </span>
         <motion.span
@@ -98,6 +102,10 @@ export default function Navbar() {
   }
 
   const isLanding = pathname === '/'
+  // Di puncak beranda, navbar duduk di atas hero sinematik yang gelap, jadi
+  // isinya harus terang. Begitu menggulir, ia mengerut jadi bar mengapung
+  // dengan latar chalk dan isinya kembali gelap.
+  const atasHero = isLanding && !scrolled
   const roleLinks = ROLE_LINKS[user?.role ?? 'user'] ?? ROLE_LINKS.user
 
   return (
@@ -114,13 +122,15 @@ export default function Navbar() {
         <div
           className={`transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
             scrolled
-              ? 'bg-ivory/85 backdrop-blur-xl border-b border-hairline'
+              ? 'mt-3 mx-3 sm:mx-auto sm:max-w-4xl rounded-pill bg-chalk/85 backdrop-blur-xl border border-hairline shadow-card'
               : isLanding
                 ? 'bg-transparent'
                 : 'bg-ivory border-b border-hairline/70'
           }`}
         >
-          <div className="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
+          <div className={`max-w-6xl mx-auto flex items-center justify-between transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            scrolled ? 'px-4 sm:px-6 h-14' : 'px-5 sm:px-8 h-16'
+          }`}>
 
             {/* Logo */}
             <motion.div
@@ -128,13 +138,18 @@ export default function Navbar() {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.6, ease: EASE }}
             >
-              <Logo variant="horizontal" size="sm" />
+              {/* Hanya ada satu berkas logo dan warnanya gelap, jadi di atas
+                  hero dibalik lewat filter. Kalau nanti ada versi terang,
+                  ganti ini dengan berkasnya. */}
+              <span className={`inline-block transition-[filter] duration-500 ${atasHero ? 'brightness-0 invert' : ''}`}>
+                <Logo variant="horizontal" size="sm" />
+              </span>
             </motion.div>
 
             {/* Desktop nav links — clean, no container */}
             <div className="hidden md:flex items-center gap-7">
               {NAV_LINKS.map((link, i) => (
-                <NavLink key={link.href} href={link.href} label={link.label} delay={0.06 * i + 0.1} />
+                <NavLink key={link.href} href={link.href} label={link.label} delay={0.06 * i + 0.1} gelap={atasHero} />
               ))}
             </div>
 
@@ -152,7 +167,7 @@ export default function Navbar() {
                   transition={{ duration: 0.5, delay: 0.3, ease: EASE }}
                   className="flex items-center gap-2"
                 >
-                  <span className="hidden lg:block text-body-xs text-concrete truncate max-w-[120px]">
+                  <span className={`hidden lg:block text-body-xs truncate max-w-[120px] ${atasHero ? 'text-chalk/70' : 'text-concrete'}`}>
                     {user.email}
                   </span>
                   <div className="hidden md:flex items-center gap-1">
@@ -173,7 +188,9 @@ export default function Navbar() {
                   </div>
                   <button
                     onClick={handleLogout}
-                    className="hidden md:inline-flex text-label-lg text-concrete hover:text-forest-deep px-2.5 py-1.5 rounded-lg hover:bg-forest-50 transition-colors duration-200"
+                    className={`hidden md:inline-flex text-label-lg px-2.5 py-1.5 rounded-lg transition-colors duration-200 ${
+                      atasHero ? 'text-chalk/75 hover:text-chalk' : 'text-concrete hover:text-forest-deep hover:bg-forest-50'
+                    }`}
                   >
                     Keluar
                   </button>
@@ -187,11 +204,13 @@ export default function Navbar() {
                 >
                   <Link
                     href="/login"
-                    className="hidden sm:inline-flex items-center min-h-[44px] text-label-lg text-concrete hover:text-forest-deep px-3 py-1.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40"
+                    className={`hidden sm:inline-flex items-center min-h-[44px] text-label-lg px-3 py-1.5 rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 ${
+                      atasHero ? 'text-chalk/80 hover:text-chalk' : 'text-concrete hover:text-forest-deep'
+                    }`}
                   >
                     Masuk
                   </Link>
-                  <Button href="/templates" size="sm">
+                  <Button href="/templates" size="sm" variant={atasHero ? 'inverse' : 'primary'}>
                     Buat Undangan
                     <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform duration-200" />
                   </Button>
@@ -201,7 +220,9 @@ export default function Navbar() {
               {/* Mobile toggle */}
               <button
                 onClick={() => setMobileOpen(!mobileOpen)}
-                className="md:hidden w-11 h-11 flex items-center justify-center rounded-lg text-concrete hover:text-forest-deep transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40"
+                className={`md:hidden w-11 h-11 flex items-center justify-center rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 ${
+                  atasHero ? 'text-chalk hover:text-gold' : 'text-concrete hover:text-forest-deep'
+                }`}
                 aria-label={mobileOpen ? 'Tutup menu' : 'Buka menu'}
               >
                 <AnimatePresence mode="wait" initial={false}>

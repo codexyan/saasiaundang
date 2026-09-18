@@ -43,10 +43,10 @@ export interface LandingPageSettings {
 
 const DEFAULT_LANDING: LandingPageSettings = {
   hero: {
-    headline: 'Undangan digital yang terasa personal sejak tamu membukanya',
-    subheadline: 'Begitu tamu membuka undangan kalian, musik mengalir lembut dan nama mereka tersapa satu per satu. Kesan hangat yang terasa sejak detik pertama, tanpa perlu memasang aplikasi apa pun.',
-    ctaPrimary: 'Mulai Buat Undangan',
-    ctaSecondary: 'Lihat Demo',
+    headline: 'Tamu buka undangannya, namanya sudah ada di sana.',
+    subheadline: 'Masukkan nama kalian berdua, lihat hasilnya sekarang juga. Gratis, tanpa daftar.',
+    ctaPrimary: 'Coba dengan nama kalian',
+    ctaSecondary: 'Lihat semua tema',
     socialProofCount: '',
     socialProofRating: '',
   },

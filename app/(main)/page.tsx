@@ -19,7 +19,7 @@ interface PageData {
 }
 
 const SECTION_MAP: Record<string, React.FC<PageData>> = {
-  hero: ({ landing }) => <HeroSection content={landing.hero} mockup={landing.heroMockup} />,
+  hero: ({ landing, activeTemplates }) => <HeroSection content={landing.hero} mockup={landing.heroMockup} template={activeTemplates[0]} />,
   templatePreview: ({ landing, activeTemplates }) => <TemplatePreview showcase={landing.templateShowcase} templates={activeTemplates} />,
   // Id-nya tetap `featureShowcase` supaya urutan section yang sudah tersimpan
   // di database tidak perlu disusun ulang. Isinya yang berganti: dari tujuh
