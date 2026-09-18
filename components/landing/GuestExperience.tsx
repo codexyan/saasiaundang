@@ -250,7 +250,7 @@ export default function GuestExperience({ personalisasi }: { personalisasi?: Per
   return (
     <SectionContainer
       id="fitur"
-      tone="ivory"
+      tone="mist"
       eyebrow="Yang dialami tamu"
       title={<>Tamu membuka tautannya,<br className="hidden sm:block" /> dan namanya sudah menunggu.</>}
       lead="Bagian ini bukan daftar fitur. Ini urutan yang benar-benar dialami tamu kalian, dari detik mereka menyentuh tautan di WhatsApp sampai mereka mengirim ucapan."

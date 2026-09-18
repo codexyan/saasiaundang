@@ -98,7 +98,17 @@ export default function HeroSection({ content, mockup, template }: Props) {
         style={{ background: 'linear-gradient(180deg, rgba(15,26,18,0.60) 0%, rgba(15,26,18,0) 100%)' }}
       />
 
-      <div className="relative z-10 w-full max-w-6xl mx-auto px-5 sm:px-8 pt-32 pb-14 sm:pb-20">
+      {/* Bibir bawah dilebur ke ivory supaya perpindahan dari hero gelap ke
+          section terang tidak berupa garis potong. Tingginya dijaga 80 piksel
+          dan ruang bawah konten 128 piksel, jadi tidak ada teks yang jatuh ke
+          area yang menerang. */}
+      <div
+        aria-hidden
+        className="absolute inset-x-0 bottom-0 h-20 z-[5]"
+        style={{ background: 'linear-gradient(180deg, rgba(250,249,246,0) 0%, rgba(250,249,246,0.75) 62%, #faf9f6 100%)' }}
+      />
+
+      <div className="relative z-10 w-full max-w-6xl mx-auto px-5 sm:px-8 pt-32 pb-32 sm:pb-36">
         <div className="flex flex-col lg:flex-row lg:items-end gap-12 lg:gap-16">
           <div className="max-w-2xl">
             <motion.h1
@@ -221,7 +231,7 @@ export default function HeroSection({ content, mockup, template }: Props) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1, delay: 1.1 }}
-        className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 hidden sm:block"
+        className="absolute bottom-24 left-1/2 -translate-x-1/2 z-10 hidden sm:block"
       >
         <div className="h-10 w-px bg-chalk/25 overflow-hidden">
           <motion.div
