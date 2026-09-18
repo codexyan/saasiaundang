@@ -90,11 +90,11 @@ export default function DemoEditorClient({ template, demoData, demoWishes }: Pro
       {!panelOpen && (
         <button
           onClick={() => setPanelOpen(true)}
-          className="absolute bottom-5 right-4 z-50 flex items-center gap-2 bg-white/95 backdrop-blur-md text-stone-800 shadow-xl rounded-full pl-4 pr-5 py-2.5 text-sm font-semibold hover:bg-white transition-all border border-stone-200/80"
+          className="absolute bottom-5 right-4 z-50 flex items-center gap-2 min-h-[44px] bg-chalk text-graphite rounded-pill pl-4 pr-5 py-2.5 text-button-sm font-semibold hover:bg-ivory transition-colors border border-hairline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 focus-visible:ring-offset-2"
           style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05)' }}
         >
           <Pencil className="w-4 h-4 text-forest-600" />
-          <span>Coba dengan namamu</span>
+          <span>Coba dengan nama kalian</span>
         </button>
       )}
 

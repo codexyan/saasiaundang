@@ -110,7 +110,7 @@ export default async function DemoRendererPage(props: Props) {
   }
 
   return (
-    <DemoShell templateName={template.name}>
+    <DemoShell templateName={template.name} templateId={template.id}>
       <DemoEditorClient
         template={demoTemplate}
         demoData={DEMO_DATA}
