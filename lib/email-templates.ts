@@ -81,9 +81,10 @@ export function orderCreatedTemplate(d: EmailData): string {
   return baseTemplate(`
     <h2 style="margin:0 0 16px;color:#1a4a1a;">Pesanan Kalian Sudah Kami Terima</h2>
     <p>Halo ${str(d.name, 'Kak')},</p>
-    <p>Terima kasih! Pesanan dengan nomor <strong>${str(d.orderNumber)}</strong> sudah masuk.</p>
+    <p>Pesanan dengan nomor <strong>${str(d.orderNumber)}</strong> sudah masuk.</p>
     <p>Total yang perlu dibayar: <strong>Rp ${money(d.amount)}</strong></p>
-    <p>Silakan selesaikan pembayaran sesuai petunjuk, lalu undangan kalian langsung kami aktifkan.</p>
+    ${d.statusUrl ? button(str(d.statusUrl), 'Lihat status dan lanjutkan pembayaran') : ''}
+    <p>Begitu pembayarannya kami terima, kami kirim email berikutnya berisi langkah masuk ke akun kalian.</p>
   `)
 }
 

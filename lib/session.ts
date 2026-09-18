@@ -23,7 +23,9 @@ const EXPIRES_DAYS = 30
  * JWT_SECRET tetap diterima sebagai alias supaya .env.local yang sudah ada
  * tidak perlu diubah.
  */
-function getSecret(): Uint8Array {
+/** Dipakai juga oleh token halaman status pesanan (lib/order-status.ts),
+ *  supaya syarat panjang dan sumber rahasianya tidak bercabang. */
+export function getSigningSecret(): Uint8Array {
   const secret = process.env.SESSION_SECRET || process.env.JWT_SECRET
 
   if (!secret) {
@@ -67,14 +69,14 @@ export async function createSessionToken(payload: SessionPayload): Promise<strin
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(`${EXPIRES_DAYS}d`)
-    .sign(getSecret())
+    .sign(getSigningSecret())
 }
 
 export async function verifySessionToken(token: string): Promise<SessionPayload | null> {
-  // getSecret() sengaja DI LUAR try: kesalahan konfigurasi harus mencuat,
+  // getSigningSecret() sengaja DI LUAR try: kesalahan konfigurasi harus mencuat,
   // bukan menyamar jadi "token tidak valid". Kalau ikut tertangkap, secret yang
   // lupa diset akan tampak seperti semua orang tiba-tiba logout tanpa petunjuk.
-  const secret = getSecret()
+  const secret = getSigningSecret()
   try {
     const { payload } = await jwtVerify(token, secret)
     return payload as unknown as SessionPayload

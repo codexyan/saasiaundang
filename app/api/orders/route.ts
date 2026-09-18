@@ -8,6 +8,7 @@ import { createMayarPayment } from '@/lib/mayar'
 import { computePrice, checkCoupon } from '@/lib/tiers'
 import { readJsonBody } from '@/lib/request-body'
 import { normalizeSubdomain } from '@/lib/subdomain'
+import { createOrderStatusToken } from '@/lib/order-status'
 
 export const dynamic = 'force-dynamic'
 
@@ -277,10 +278,19 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Satu tautan status dipakai dua kali: sebagai tujuan kembali dari Mayar,
+    // dan sebagai jalan melanjutkan pembayaran dari email pesanan dibuat.
+    // Dulu email itu hanya memuat nomor pesanan dan nominal, tanpa satu pun
+    // jalan kembali untuk pembeli yang menutup halaman bayar.
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const statusUrl = `${appUrl}/order/status/${await createOrderStatusToken(order.id)}`
+
     runAfterResponse(
       notifyUser('order_created', order.email, {
         orderNumber: order.order_number,
         amount: order.total_amount.toLocaleString('id-ID'),
+        name: `${groom_name} & ${bride_name}`,
+        statusUrl,
       }),
       `notifyUser(order_created) order=${order.order_number}`
     )
@@ -296,14 +306,16 @@ export async function POST(req: NextRequest) {
     let paymentUrl: string | null = null
     try {
       const expiredAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
       const mayarPayment = await createMayarPayment({
         name: `${groom_name} & ${bride_name}`,
         email: email.toLowerCase(),
         amount: totalAmount,
         mobile: phone || '08000000000',
-        redirectUrl: `${appUrl}/dashboard?payment=success&order=${order.id}`,
+        // Pembeli baru belum punya sesi saat kembali dari Mayar. Tujuan lama
+        // (/dashboard) dijaga middleware, jadi ia mendarat di /login tanpa
+        // password: buntu persis sesudah uang keluar.
+        redirectUrl: statusUrl,
         description: `Paket ${tier.label} - iaundang - ${order.order_number}`,
         expiredAt,
       })

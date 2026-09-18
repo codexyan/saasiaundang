@@ -67,7 +67,7 @@ const TEMPLATES: Record<NotificationType, (data: Record<string, string | number 
   }),
   order_created: (d) => ({
     subject: `Pesanan ${d.orderNumber} sudah kami terima`,
-    body: `Terima kasih! Pesanan kalian sebesar Rp ${d.amount} sudah kami terima. Silakan lanjutkan pembayaran sesuai petunjuk yang tertera.`,
+    body: `Pesanan kalian sebesar Rp ${d.amount} sudah kami terima. Lanjutkan pembayarannya lewat halaman status pesanan: ${d.statusUrl}.`,
   }),
   order_approved: (d) => ({
     subject: 'Pembayaran berhasil, undangan kalian sudah aktif!',
