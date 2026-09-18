@@ -184,7 +184,7 @@ export default function Pricing({ priceTiers, flashSales }: PricingProps) {
       tone="ivory"
       eyebrow="Harga"
       title="Sekali bayar. Tanpa langganan."
-      lead="Sekali bayar, langsung aktif. Tidak ada biaya bulanan atau biaya tersembunyi."
+      lead="Sekali bayar untuk satu undangan. Tidak ada biaya bulanan, tidak ada biaya tambahan di belakang."
     >
       <div className={`grid grid-cols-1 ${gridCols} gap-4 sm:gap-5 max-w-4xl mx-auto items-stretch`}>
         {tiers ? (
@@ -213,7 +213,10 @@ export default function Pricing({ priceTiers, flashSales }: PricingProps) {
                 <PricingCard
                   key={tier.id}
                   name={`Paket ${tier.label}`}
-                  badge={tier.highlight ? 'PALING DIPILIH' : tier.label.toUpperCase()}
+                  {/* Dulu tertulis "PALING DIPILIH". Nol pembeli berarti belum ada
+                      yang memilih apa pun, jadi itu klaim tanpa dasar (R-17).
+                      Yang jujur: ini paket yang kami sarankan. */}
+                  badge={tier.highlight ? 'SARAN KAMI' : tier.label.toUpperCase()}
                   price={formatRp(discounted ?? tier.price)}
                   originalPrice={discounted ? formatRp(tier.price) : undefined}
                   discountLabel={breakdown.flashSale ? `−${formatRp(breakdown.flashSale.saved)}` : undefined}
