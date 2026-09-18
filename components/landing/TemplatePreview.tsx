@@ -40,6 +40,7 @@ interface TemplateCard {
   coverPhoto: string
   href: string
   requiredPackage: string
+  description: string
 }
 
 type BadgeVariant = 'neutral' | 'forest' | 'gold'
@@ -69,29 +70,13 @@ function templateToCard(t: TemplateRecord): TemplateCard {
     coverPhoto: opening?.cover_photo_url || opening?.background_image || '',
     href: `/demo/renderer?id=${t.id}`,
     requiredPackage: t.required_package,
+    // Em dash dilarang di teks yang tampil (R-02), dan deskripsi template
+    // ditulis admin dari panel, bukan di kode. Diganti koma saat dirender;
+    // sumber teksnya sendiri sebaiknya dirapikan dari panel admin.
+    description: (t.description || '').replace(/\s*—\s*/g, ', '),
   }
 }
 
-const FALLBACK_CARDS: TemplateCard[] = [
-  {
-    id: 'javanese-gold', name: 'Javanese Gold', category: 'Tradisional',
-    primary: '#1a4a1a', accent: '#d4af37', textColor: '#ffffff',
-    coverPhoto: 'https://images.unsplash.com/photo-1537633552985-df8429e8048b?w=800&h=1200&fit=crop',
-    href: '/demo/renderer?id=javanese-gold', requiredPackage: 'all',
-  },
-  {
-    id: 'rose-garden', name: 'Rose Garden', category: 'Floral',
-    primary: '#6b3a3a', accent: '#d4918b', textColor: '#ffffff',
-    coverPhoto: 'https://images.unsplash.com/photo-1522748906645-95d8adfd52c7?w=800&h=1200&fit=crop',
-    href: '/demo/renderer?id=rose-garden', requiredPackage: 'popular',
-  },
-  {
-    id: 'midnight-luxe', name: 'Midnight Luxe', category: 'Modern',
-    primary: '#0c0c0c', accent: '#b8977e', textColor: '#f5f0eb',
-    coverPhoto: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800&h=1200&fit=crop',
-    href: '/demo/renderer?id=midnight-luxe', requiredPackage: 'eksklusif',
-  },
-]
 
 interface ShowcaseData {
   featured: { name: string; tagline: string; coverPhoto: string; primary: string; accent: string; href: string }
@@ -99,80 +84,104 @@ interface ShowcaseData {
 }
 
 export default function TemplatePreview({ templates }: { showcase?: ShowcaseData; templates?: TemplateRecord[] }) {
-  const activeTemplates = templates?.filter(t => t.status === 'active') ?? []
-  const cards = activeTemplates.length > 0 ? activeTemplates.map(templateToCard) : FALLBACK_CARDS
+  const cards: TemplateCard[] = (templates ?? [])
+    .filter(t => t.status === 'active')
+    .map(templateToCard)
+
+  // Tanpa daftar cadangan. Dulu tiga template contoh lengkap dengan foto
+  // Unsplash tampil di sini kalau database kosong, jadi halaman memamerkan tema
+  // yang tidak dijual siapa pun (D-9). Sekarang kosong terbaca sebagai kosong.
+  if (cards.length === 0) {
+    return (
+      <SectionContainer
+        id="templates"
+        tone="ivory"
+        eyebrow="Tema undangan"
+        title="Tema sedang disiapkan"
+        lead="Belum ada tema yang aktif untuk ditampilkan. Hubungi kami dan kami kabari begitu ada."
+      >
+        <div className="text-center">
+          <Button href="/#faq" variant="secondary">Baca pertanyaan umum</Button>
+        </div>
+      </SectionContainer>
+    )
+  }
 
   return (
     <SectionContainer
       id="templates"
       tone="ivory"
-      eyebrow="Koleksi Template"
-      title="Pilih desain, preview langsung"
-      lead="Setiap template sudah termasuk opening animasi, musik, dan semua section undangan."
+      eyebrow="Tema undangan"
+      title={<>Tiga tema, digarap satu per satu.</>}
+      lead="Bukan katalog ratusan tema hasil ganti warna. Masing-masing bisa kalian buka sekarang dengan nama kalian sendiri, gratis dan tanpa daftar."
     >
-      {/* Template Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+      {/* Satu tema satu baris penuh, arahnya berselang-seling. Tiga tema yang
+          dipajang besar terbaca sebagai kurasi; tiga tema dalam grid kartu kecil
+          terbaca sebagai stok yang belum terisi (RHYTHM 3). */}
+      <div className="space-y-16 sm:space-y-20">
         {cards.map((card, i) => {
           const badge = TIER_BADGE[card.requiredPackage] ?? TIER_BADGE.all
           const BadgeIcon = badge.icon
+          const terbalik = i % 2 === 1
 
           return (
             <motion.div
               key={card.id}
-              initial={{ opacity: 0, y: 32 }}
+              initial={{ opacity: 0, y: 28 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={VIEWPORT_ONCE}
-              transition={{ duration: 0.6, delay: i * 0.1, ease: EASE }}
-              className="group"
+              transition={{ duration: 0.6, ease: EASE }}
+              className={`group flex flex-col items-center gap-8 sm:gap-10 lg:gap-16 ${terbalik ? 'lg:flex-row-reverse' : 'lg:flex-row'}`}
             >
-              <div className="rounded-card border border-hairline bg-chalk shadow-card p-4 sm:p-5 transition-all duration-300 ease-out group-hover:-translate-y-1 group-hover:shadow-card-hover group-hover:border-ash/40">
-
-                {/* Phone Mockup */}
-                <div className="flex justify-center mb-5">
-                  <div className="relative w-[170px] sm:w-[190px] transition-transform duration-300 ease-out group-hover:-translate-y-1.5">
-                    <PhoneMockup>
-                      <div className="absolute inset-0" style={{ backgroundColor: card.primary }}>
-                        {card.coverPhoto && (
-                          <Image src={card.coverPhoto} alt={card.name} fill className="object-cover" sizes="200px"
-                            placeholder="blur" blurDataURL={blurFor(card.primary)} style={{ opacity: 0.6 }} />
-                        )}
-                        <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, transparent 18%, ${card.primary}99 56%, ${card.primary} 100%)` }} />
-                        <div className="absolute inset-0 z-10 flex flex-col items-center justify-end pb-10 px-4">
-                          <p className="text-[7px] tracking-[0.35em] uppercase mb-2" style={{ color: `${card.accent}bb` }}>
-                            The Wedding of
-                          </p>
-                          <p className="font-display text-[24px] leading-[0.95]" style={{ color: card.textColor }}>
-                            Ikhwal
-                          </p>
-                          <p className="font-display text-sm my-0.5" style={{ color: card.accent }}>&amp;</p>
-                          <p className="font-display text-[24px] leading-[0.95]" style={{ color: card.textColor }}>
-                            Fani
-                          </p>
-                          <div className="mt-3 px-4 py-1.5 rounded-full" style={{ border: `1px solid ${card.accent}30`, fontSize: 7, color: `${card.accent}aa`, letterSpacing: '0.15em' }}>
-                            BUKA UNDANGAN
-                          </div>
-                        </div>
+              <div className="w-[210px] sm:w-[240px] shrink-0 transition-transform duration-500 ease-out group-hover:-translate-y-2">
+                <PhoneMockup>
+                  <div className="absolute inset-0" style={{ backgroundColor: card.primary }}>
+                    {card.coverPhoto && (
+                      <Image src={card.coverPhoto} alt={`Tema ${card.name}`} fill className="object-cover" sizes="260px"
+                        placeholder="blur" blurDataURL={blurFor(card.primary)} style={{ opacity: 0.6 }} />
+                    )}
+                    <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, transparent 18%, ${card.primary}99 56%, ${card.primary} 100%)` }} />
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-end pb-12 px-4">
+                      <p className="text-[8px] tracking-[0.35em] uppercase mb-2" style={{ color: `${card.accent}bb` }}>
+                        The Wedding of
+                      </p>
+                      <p className="font-display text-[28px] leading-[0.95]" style={{ color: card.textColor }}>Ikhwal</p>
+                      <p className="font-display text-base my-0.5" style={{ color: card.accent }}>&amp;</p>
+                      <p className="font-display text-[28px] leading-[0.95]" style={{ color: card.textColor }}>Fani</p>
+                      <div className="mt-4 px-4 py-1.5 rounded-full" style={{ border: `1px solid ${card.accent}30`, fontSize: 8, color: `${card.accent}aa`, letterSpacing: '0.15em' }}>
+                        BUKA UNDANGAN
                       </div>
-                    </PhoneMockup>
+                    </div>
                   </div>
+                </PhoneMockup>
+              </div>
+
+              <div className={`flex-1 text-center ${terbalik ? 'lg:text-right' : 'lg:text-left'}`}>
+                <div className={`flex items-center justify-center gap-2 mb-3 ${terbalik ? 'lg:justify-end' : 'lg:justify-start'}`}>
+                  <Badge variant={badge.variant}>
+                    <BadgeIcon className="w-3 h-3" />
+                    {badge.label}
+                  </Badge>
+                  <span className="text-body-xs text-concrete capitalize">{card.category}</span>
                 </div>
 
-                {/* Info */}
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-2 mb-2.5">
-                    <Badge variant={badge.variant}>
-                      <BadgeIcon className="w-3 h-3" />
-                      {badge.label}
-                    </Badge>
-                    <span className="text-body-xs text-concrete capitalize">{card.category}</span>
-                  </div>
-                  <h3 className="font-display text-h3 text-graphite mb-4">{card.name}</h3>
+                <h3 className="font-display text-display-md text-graphite">{card.name}</h3>
 
-                  <Button href={card.href} variant="secondary" className="w-full">
-                    <span className="w-5 h-5 rounded-full bg-forest-50 flex items-center justify-center">
-                      <Play size={9} className="fill-forest text-forest ml-0.5" />
+                {card.description && (
+                  <p className="text-body-base text-concrete leading-relaxed mt-3 max-w-md mx-auto lg:mx-0">
+                    {card.description}
+                  </p>
+                )}
+
+                <div className={`mt-7 flex flex-col sm:flex-row gap-3 justify-center ${terbalik ? 'lg:justify-end' : 'lg:justify-start'}`}>
+                  <Button href={card.href} className="w-full sm:w-auto">
+                    <span className="w-5 h-5 rounded-full bg-chalk/20 flex items-center justify-center">
+                      <Play size={9} className="fill-current ml-0.5" />
                     </span>
-                    Preview
+                    Coba dengan nama kalian
+                  </Button>
+                  <Button href={`/order?template=${card.id}`} variant="secondary" className="w-full sm:w-auto">
+                    Pesan tema ini
                   </Button>
                 </div>
               </div>
@@ -181,24 +190,20 @@ export default function TemplatePreview({ templates }: { showcase?: ShowcaseData
         })}
       </div>
 
-      {/* Bottom CTA */}
       <motion.div
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.5, delay: 0.3 }}
-        className="text-center mt-12 sm:mt-14"
+        viewport={VIEWPORT_ONCE}
+        transition={{ duration: 0.5, delay: 0.2, ease: EASE }}
+        className="text-center mt-14 sm:mt-16"
       >
         <Link
           href="/templates"
           className="group inline-flex items-center gap-2 text-button-base text-concrete hover:text-forest-deep pb-0.5 border-b border-hairline hover:border-gold-dark transition-colors"
         >
-          Lihat semua template
+          Lihat halaman tema
           <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
         </Link>
-        <p className="text-body-xs text-concrete mt-4">
-          {cards.length} template tersedia &middot; Koleksi terus bertambah
-        </p>
       </motion.div>
     </SectionContainer>
   )

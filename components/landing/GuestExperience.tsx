@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import Image from 'next/image'
-import { Users, ClipboardCheck, Music2, Globe, ImageIcon, ArrowRight, Check, Gift, BookOpen, MessageSquare } from 'lucide-react'
+import { Users, ClipboardCheck, ArrowRight, Check, Gift, MessageSquare } from 'lucide-react'
 import { SectionContainer } from '@/components/marketing/SectionContainer'
 import { Button } from '@/components/marketing/Button'
 import { EASE, VIEWPORT_ONCE } from '@/lib/motion'
@@ -164,7 +164,7 @@ function MiniRSVP() {
       <div className="space-y-2 mb-3">
         <div className="bg-chalk rounded-lg px-3 py-2 border border-hairline">
           <p className="text-[8px] text-ash">Nama</p>
-          <p className="text-[10px] text-graphite font-medium">Bapak Andi Sanjaya</p>
+          <p className="text-[10px] text-ash font-medium">Nama tamu kalian</p>
         </div>
         <div className="flex gap-2">
           <div className="flex-1 py-2 rounded-lg bg-forest text-chalk text-[9px] font-semibold text-center">Hadir</div>
@@ -172,10 +172,13 @@ function MiniRSVP() {
         </div>
       </div>
       <div className="space-y-1">
+        {/* Nama karangan diganti penanda. Ilustrasi boleh menunjukkan bentuk
+            antarmukanya, tapi tidak boleh memasang orang yang tidak ada
+            seolah mereka tamu sungguhan (R-38). */}
         {[
-          { name: 'Andi S.', status: 'Hadir', ok: true },
-          { name: 'Sinta R.', status: 'Hadir', ok: true },
-          { name: 'Hendra', status: 'Tidak', ok: false },
+          { name: 'Tamu 1', status: 'Hadir', ok: true },
+          { name: 'Tamu 2', status: 'Hadir', ok: true },
+          { name: 'Tamu 3', status: 'Tidak', ok: false },
         ].map(g => (
           <div key={g.name} className="flex items-center justify-between bg-chalk rounded-lg px-2.5 py-1.5 border border-hairline">
             <p className="text-[9px] text-concrete">{g.name}</p>
@@ -187,109 +190,8 @@ function MiniRSVP() {
   )
 }
 
-function MiniMusic() {
-  return (
-    <div className="bg-forest-deep rounded-xl p-3.5">
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-9 h-9 rounded-lg bg-gold/[0.12] flex items-center justify-center shrink-0">
-          <Music2 size={14} className="text-gold/70" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-[11px] text-chalk font-semibold truncate">A Thousand Years</p>
-          <p className="text-[9px] text-chalk/40">Christina Perri</p>
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="text-[8px] text-chalk/30">1:24</span>
-        <div className="flex-1 h-1 bg-chalk/[0.08] rounded-full overflow-hidden">
-          <div className="h-full rounded-full bg-gold/50" style={{ width: '42%' }} />
-        </div>
-        <span className="text-[8px] text-chalk/30">4:45</span>
-      </div>
-      <div className="mt-3 flex gap-1.5">
-        {['Perfect', 'All of Me', '+Upload'].map((s, i) => (
-          <span key={s} className={`text-[8px] px-2 py-1 rounded-md ${
-            i === 2
-              ? 'border border-dashed border-chalk/15 text-chalk/30'
-              : 'bg-chalk/[0.08] text-chalk/45'
-          }`}>
-            {s}
-          </span>
-        ))}
-      </div>
-    </div>
-  )
-}
 
-function MiniDomain() {
-  return (
-    <div className="bg-ivory rounded-xl overflow-hidden border border-hairline">
-      <div className="bg-mist px-3 py-2 flex items-center gap-2">
-        <div className="flex gap-1">
-          {['#d9d4c9', '#c5bfae', '#a8a294'].map(c => (
-            <div key={c} className="w-2 h-2 rounded-full" style={{ backgroundColor: c }} />
-          ))}
-        </div>
-        <div className="flex-1 bg-chalk rounded-md px-2.5 py-0.5 flex items-center gap-1 border border-hairline">
-          <svg className="w-2 h-2 text-concrete shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"/>
-          </svg>
-          <span className="text-[8px] text-ash font-mono">
-            <span className="text-graphite font-semibold">rizky-aulia</span>.iaundang.online
-          </span>
-        </div>
-      </div>
-      <div className="bg-chalk p-3">
-        <div className="flex items-start gap-2">
-          <div className="w-8 h-10 rounded bg-ivory border border-hairline shrink-0" />
-          <div className="flex-1 space-y-1 pt-0.5">
-            <div className="h-1.5 bg-mist rounded-full w-3/4" />
-            <div className="h-1.5 bg-mist rounded-full w-1/2" />
-          </div>
-        </div>
-        <div className="mt-2 flex gap-1.5">
-          <div className="flex-1 h-5 bg-forest rounded flex items-center justify-center">
-            <div className="h-1 bg-white/30 rounded-full w-8" />
-          </div>
-          <div className="flex-1 h-5 bg-mist rounded" />
-        </div>
-      </div>
-    </div>
-  )
-}
 
-function MiniGallery() {
-  const shades = ['#e8e3d7', '#dbd4c4', '#cec6b3', '#e2dccd', '#d5cdbb', '#c8bfaa']
-  return (
-    <div className="bg-ivory rounded-xl p-3 border border-hairline">
-      <div className="grid grid-cols-3 gap-1.5">
-        {shades.map((c, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, scale: 0.85 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: i * 0.04, duration: 0.3, ease: EASE }}
-            className="rounded-lg overflow-hidden"
-            style={{ aspectRatio: '1', backgroundColor: c }}
-          >
-            {i === 2 && (
-              <div className="w-full h-full flex items-center justify-center">
-                <div className="w-3 h-3 rounded-full border border-forest/25 flex items-center justify-center">
-                  <div className="w-1.5 h-1.5 rounded-full bg-forest/25" />
-                </div>
-              </div>
-            )}
-          </motion.div>
-        ))}
-      </div>
-      <div className="mt-2 flex items-center gap-1.5 px-0.5">
-        <ImageIcon size={10} className="text-ash shrink-0" />
-        <p className="text-[8px] text-concrete">Tap foto untuk tampilan penuh</p>
-      </div>
-    </div>
-  )
-}
 
 function MiniGift() {
   return (
@@ -300,8 +202,8 @@ function MiniGift() {
             <span className="text-[8px] font-bold text-forest">BCA</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-semibold text-graphite">8230 4567 890</p>
-            <p className="text-[8px] text-ash">a.n. Rizky Pratama</p>
+            <p className="text-[10px] font-semibold text-ash">Nomor rekening kalian</p>
+            <p className="text-[8px] text-ash">a.n. nama di rekening</p>
           </div>
           <div className="w-6 h-6 rounded-md bg-mist flex items-center justify-center shrink-0">
             <svg className="w-3 h-3 text-concrete" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -323,47 +225,20 @@ function MiniGift() {
   )
 }
 
-function MiniStory() {
-  return (
-    <div className="bg-ivory rounded-xl p-3.5 border border-hairline">
-      <div className="flex gap-3">
-        <div className="flex flex-col items-center">
-          <div className="w-2 h-2 rounded-full bg-forest" />
-          <div className="w-px flex-1 bg-hairline" />
-          <div className="w-2 h-2 rounded-full bg-gold" />
-          <div className="w-px flex-1 bg-hairline" />
-          <div className="w-2 h-2 rounded-full bg-smoke" />
-        </div>
-        <div className="flex-1 space-y-3">
-          {[
-            { year: '2020', title: 'Pertama Bertemu', color: 'text-forest' },
-            { year: '2023', title: 'Lamaran', color: 'text-gold-700' },
-            { year: '2026', title: 'Hari Bahagia', color: 'text-ash' },
-          ].map(s => (
-            <div key={s.year}>
-              <p className={`text-[8px] font-bold ${s.color}`}>{s.year}</p>
-              <p className="text-[10px] text-concrete">{s.title}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
 
 function MiniWishes() {
   return (
     <div className="bg-ivory rounded-xl p-3.5 border border-hairline space-y-2">
+      {/* Dulu di sini ada tiga nama lengkap dengan ucapan dan stempel waktu,
+          semuanya karangan. Itu umpan aktivitas palsu yang membuat produk
+          kosong tampak ramai (R-38). */}
       {[
-        { name: 'Sinta Rahayu', msg: 'Semoga bahagia selalu ya! 🤍', time: '2 menit lalu' },
-        { name: 'Hendra Wijaya', msg: 'Selamat menempuh hidup baru, semoga sakinah mawaddah warahmah.', time: '5 menit lalu' },
-        { name: 'Dian Pratiwi', msg: 'Barakallah! Happy wedding 🎉', time: '12 menit lalu' },
+        { id: 1, msg: 'Ucapan dari tamu muncul di sini.' },
+        { id: 2, msg: 'Ucapan yang lebih panjang ikut tampil utuh, tidak dipotong di tengah.' },
+        { id: 3, msg: 'Ucapan pendek pun tetap rapi.' },
       ].map(w => (
-        <div key={w.name} className="bg-chalk rounded-lg px-3 py-2.5 border border-hairline">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-[10px] font-semibold text-graphite">{w.name}</p>
-            <p className="text-[8px] text-ash">{w.time}</p>
-          </div>
+        <div key={w.id} className="bg-chalk rounded-lg px-3 py-2.5 border border-hairline">
+          <p className="text-[10px] font-semibold text-ash mb-1">Nama tamu</p>
           <p className="text-[9px] text-concrete leading-relaxed">{w.msg}</p>
         </div>
       ))}
@@ -371,133 +246,72 @@ function MiniWishes() {
   )
 }
 
-export default function FeatureShowcase({ personalisasi }: { personalisasi?: PersonalisasiData }) {
+export default function GuestExperience({ personalisasi }: { personalisasi?: PersonalisasiData }) {
   return (
     <SectionContainer
       id="fitur"
       tone="ivory"
-      eyebrow="Fitur Unggulan"
-      title={<>Semua yang kalian butuhkan,<br className="hidden sm:block" /> dalam satu undangan.</>}
-      lead="Nama tamu yang tersapa satu per satu, konfirmasi kehadiran otomatis, musik pengiring, dan galeri foto. Semua bisa diatur langsung dari HP kalian."
+      eyebrow="Yang dialami tamu"
+      title={<>Tamu membuka tautannya,<br className="hidden sm:block" /> dan namanya sudah menunggu.</>}
+      lead="Bagian ini bukan daftar fitur. Ini urutan yang benar-benar dialami tamu kalian, dari detik mereka menyentuh tautan di WhatsApp sampai mereka mengirim ucapan."
     >
-      {/* Bento Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-
-        {/* Card 1: Personalisasi — large featured card */}
+        {/* Kartu besar. Personalisasi nama tamu yang paling membedakan
+            iaundang, jadi dia yang mendapat ruang paling banyak (R-14). */}
         <CardPersonalisasi personalisasi={personalisasi} />
 
-        {/* Card 2: RSVP */}
         <FeatureCard
           icon={ClipboardCheck}
-          tag="RSVP Digital"
-          title="Konfirmasi kehadiran dalam 10 detik"
+          tag="Konfirmasi kehadiran"
+          title="Tamu menjawab tanpa perlu mendaftar"
           points={[
-            'Hingga 500 tamu per undangan',
-            'Rekap otomatis di dashboard',
-            'Export ke spreadsheet',
+            'Cukup buka tautannya, tidak ada akun',
+            'Jawaban masuk ke dashboard kalian',
+            'Batas jumlah tamu mengikuti paket',
           ]}
           visual={<MiniRSVP />}
           delay={0.08}
         />
 
-        {/* Card 3: Musik */}
         <FeatureCard
-          icon={Music2}
-          tag="Musik Pengiring"
-          title="Lagu favorit menyambut setiap tamu"
+          icon={MessageSquare}
+          tag="Ucapan dan doa"
+          title="Ucapan tamu tampil di undangan"
           points={[
-            'Upload MP3 atau pilih koleksi',
-            'Play otomatis saat dibuka',
-            'Volume diatur oleh tamu',
+            'Tanpa login, langsung dari HP tamu',
+            'Muncul di halaman undangan',
+            'Bisa dibaca ulang kapan saja',
           ]}
-          visual={<MiniMusic />}
-          delay={0.16}
-        />
-
-        {/* Card 4: Link */}
-        <FeatureCard
-          icon={Globe}
-          tag="Link Undangan"
-          title="Alamat undangan atas nama kalian"
-          points={[
-            'Format: nama.iaundang.online',
-            'Bagikan langsung via WhatsApp',
-            'Masa aktif sesuai paket',
-          ]}
-          visual={<MiniDomain />}
-          delay={0.1}
-        />
-
-        {/* Card 5: Galeri */}
-        <FeatureCard
-          icon={ImageIcon}
-          tag="Galeri Foto"
-          title="Ceritakan kisah lewat galeri foto"
-          points={[
-            'Grid rapi & lightbox fullscreen',
-            'Jumlah foto sesuai paket',
-            'Optimasi otomatis',
-          ]}
-          visual={<MiniGallery />}
+          visual={<MiniWishes />}
           delay={0.14}
         />
 
-        {/* Card 6: Amplop Digital */}
         <FeatureCard
           icon={Gift}
-          tag="Amplop Digital"
-          title="Terima hadiah & angpao secara digital"
+          tag="Amplop digital"
+          title="Hadiah tanpa amplop yang tercecer"
           points={[
-            'Rekening bank & e-wallet',
-            'QR Code QRIS langsung',
-            'Konfirmasi bukti transfer',
+            'Rekening dan QRIS kalian ditampilkan',
+            'Tamu bisa mengirim bukti transfer',
+            'Tersedia mulai paket Popular',
           ]}
           visual={<MiniGift />}
-          delay={0.18}
-        />
-
-        {/* Card 7: Kisah Cinta */}
-        <FeatureCard
-          icon={BookOpen}
-          tag="Kisah Cinta"
-          title="Timeline perjalanan cinta kalian"
-          points={[
-            'Ceritakan momen penting',
-            'Timeline interaktif',
-            'Foto per chapter',
-          ]}
-          visual={<MiniStory />}
-          delay={0.22}
-        />
-
-        {/* Card 8: Ucapan & Doa */}
-        <FeatureCard
-          icon={MessageSquare}
-          tag="Ucapan & Doa"
-          title="Terima ucapan langsung dari tamu"
-          points={[
-            'Form ucapan tanpa login',
-            'Tampil real-time di undangan',
-            'Moderasi dari dashboard',
-          ]}
-          visual={<MiniWishes />}
-          delay={0.26}
+          delay={0.2}
         />
       </div>
 
-      {/* Bottom CTA */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.5, delay: 0.15 }}
+        viewport={VIEWPORT_ONCE}
+        transition={{ duration: 0.5, delay: 0.15, ease: EASE }}
         className="mt-12 sm:mt-16 text-center"
       >
         <p className="text-body-sm text-concrete mb-5">
-          Semua fitur tersedia mulai paket Starter.
+          Isi tiap paket berbeda. Rinciannya ada di bagian harga.
         </p>
-        <Button href="/templates" size="lg" className="w-full sm:w-auto">
-          Lihat semua template
+        <Button href="/#harga" size="lg" className="w-full sm:w-auto">
+          Lihat isi tiap paket
           <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
         </Button>
       </motion.div>

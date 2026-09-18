@@ -3,10 +3,10 @@
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Check, ArrowRight, ShieldCheck, MessageCircle } from 'lucide-react'
-import { PRICING_CONFIG } from '@/lib/pricing-config'
 import { bolehHapusWatermark } from '@/lib/watermark'
 import { computePrice } from '@/lib/pricing'
 import { SectionContainer } from '@/components/marketing/SectionContainer'
+import { Button } from '@/components/marketing/Button'
 import { EASE, VIEWPORT_ONCE } from '@/lib/motion'
 import type { PriceTier, FlashSale } from '@/lib/types'
 
@@ -229,29 +229,47 @@ export default function Pricing({ priceTiers, flashSales }: PricingProps) {
               )
             })
         ) : (
-          <>
-            {/* Teks tombol sama dengan TIER_CTA.starter, lihat alasannya di sana. */}
-            <PricingCard
-              name="Paket Starter" badge={PRICING_CONFIG.starter.badge}
-              price={PRICING_CONFIG.starter.priceFormatted} duration={PRICING_CONFIG.starter.durationLabel}
-              features={PRICING_CONFIG.starter.features}
-              ctaLabel="Pilih Starter" ctaHint="Coba demonya gratis dulu" variant="light" delay={0}
-            />
-            <PricingCard
-              name="Paket Popular" badge={PRICING_CONFIG.popular.badge}
-              price={PRICING_CONFIG.popular.priceFormatted} duration={PRICING_CONFIG.popular.durationLabel}
-              features={PRICING_CONFIG.popular.features} highlightedFeature={PRICING_CONFIG.popular.highlightedFeature}
-              ctaLabel="Pilih Popular" ctaHint="Fitur lengkap untuk acara kalian" variant="dark" popular delay={0.1}
-            />
-            <PricingCard
-              name="Paket Eksklusif" badge={PRICING_CONFIG.eksklusif.badge}
-              price={PRICING_CONFIG.eksklusif.priceFormatted} duration={PRICING_CONFIG.eksklusif.durationLabel}
-              features={PRICING_CONFIG.eksklusif.features} highlightedFeature={PRICING_CONFIG.eksklusif.highlightedFeature}
-              ctaLabel="Pilih Eksklusif" ctaHint="Untuk acara besar & eksklusif" variant="gold" delay={0.2}
-            />
-          </>
+          // Tanpa kartu cadangan. Dulu tiga kartu dengan harga yang ditulis
+          // mati tampil di sini kalau pengaturan paket gagal dibaca, jadi
+          // pembeli bisa melihat harga yang sudah lama tidak berlaku (D-9).
+          <div className="col-span-full text-center py-10">
+            <p className="text-body-base text-concrete">
+              Daftar harga sedang tidak bisa dimuat. Muat ulang halaman ini, atau tanyakan langsung ke kami.
+            </p>
+          </div>
         )}
       </div>
+
+      {/* Pertanyaan yang pasti muncul di kepala pembeli yang sudah melihat
+          pesaing dengan paket gratis. Halaman yang diam soal ini kehilangan
+          mereka tanpa jejak, jadi keberatannya dijawab di tempat keputusan
+          diambil, bukan disembunyikan di FAQ. */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={VIEWPORT_ONCE}
+        transition={{ duration: 0.6, delay: 0.15, ease: EASE }}
+        className="mt-14 sm:mt-16 max-w-3xl mx-auto"
+      >
+        <div className="rounded-card border border-hairline bg-chalk shadow-card p-6 sm:p-8">
+          <h3 className="font-display text-h3 text-forest-deep">Kenapa bayar dulu, padahal ada yang gratis?</h3>
+          <p className="text-body-base text-concrete leading-relaxed mt-3">
+            Ada layanan undangan digital yang gratis selamanya, dan itu pilihan yang masuk akal untuk
+            banyak orang. Kami tidak mengambil jalan itu karena undangan gratis dibayar dengan cara
+            lain: tema yang dipakai ribuan pasangan lain, dan iklan atau tawaran yang menempel di
+            undangan kalian.
+          </p>
+          <p className="text-body-base text-concrete leading-relaxed mt-3">
+            Kami hanya punya tiga tema, dan tiga-tiganya digarap satu per satu. Yang kami minta adalah
+            pembayaran di muka, dan yang kami berikan sebelum kalian membayar adalah kesempatan
+            membuka tema itu dengan nama kalian sendiri, gratis dan tanpa daftar. Kalau hasilnya tidak
+            membuat kalian yakin, jangan bayar.
+          </p>
+          <div className="mt-6 flex flex-col sm:flex-row gap-3">
+            <Button href="/templates" className="w-full sm:w-auto">Lihat tema dengan nama kalian</Button>
+          </div>
+        </div>
+      </motion.div>
 
       {/* Trust badges */}
       <motion.div

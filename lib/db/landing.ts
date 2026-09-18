@@ -146,15 +146,20 @@ export interface LandingSectionConfig {
   order: number
 }
 
+// Urutan angkanya sengaja tidak dirapatkan. Nomor yang sama sudah tersimpan di
+// database untuk halaman yang sedang hidup, jadi membuang tiga section tanpa
+// menggeser sisanya membuat urutan barunya berlaku tanpa perlu menyusun ulang
+// apa pun dari panel admin.
+//
+// Yang dibuang 18 Sep 2026: Trust Bar (tidak ada logo atau angka nyata untuk
+// dipajang), Testimoni (nol pembeli berarti nol testimoni, R-18), dan Blog di
+// beranda (halaman /blog sendiri tetap ada dan tetap ditautkan).
 const DEFAULT_SECTIONS: LandingSectionConfig[] = [
   { id: 'hero', label: 'Hero', visible: true, order: 0 },
-  { id: 'trustBar', label: 'Trust Bar', visible: true, order: 1 },
   { id: 'templatePreview', label: 'Template Preview', visible: true, order: 2 },
-  { id: 'featureShowcase', label: 'Fitur Unggulan', visible: true, order: 3 },
+  { id: 'featureShowcase', label: 'Pengalaman Tamu', visible: true, order: 3 },
   { id: 'howItWorks', label: 'Cara Kerja', visible: true, order: 4 },
-  { id: 'testimonials', label: 'Testimoni', visible: true, order: 5 },
   { id: 'pricing', label: 'Harga', visible: true, order: 6 },
-  { id: 'blogShowcase', label: 'Blog', visible: true, order: 7 },
   { id: 'faq', label: 'FAQ', visible: true, order: 8 },
   { id: 'closingCta', label: 'Closing CTA', visible: true, order: 9 },
 ]
