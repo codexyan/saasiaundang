@@ -8,9 +8,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   ChevronRight, ChevronLeft, Check, Crown, Rocket, Gem,
   Copy, CreditCard, Send, Loader2, CheckCircle2,
-  Users, ShoppingBag, Clock, X, Landmark,
+  Users, ShoppingBag, Clock, X,
 } from 'lucide-react'
-import BankCard, { QrisCard } from '@/components/ui/BankCard'
 import { InputField } from '@/components/marketing/Field'
 import toast, { Toaster } from 'react-hot-toast'
 
@@ -50,9 +49,6 @@ interface TierInfo {
 }
 
 interface PaymentConfig {
-  bankAccounts: { id: string; bankName: string; accountNumber: string; accountName: string }[]
-  qrisImageUrl: string
-  paymentInstructions: string
   confirmationWhatsapp: string
 }
 
@@ -141,7 +137,6 @@ export default function OrderForm({ templateId, templateName, templatePrice, tem
   const [checkingCoupon, setCheckingCoupon] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)
-  const [selectedPayment, setSelectedPayment] = useState<string | null>(null)
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
@@ -255,20 +250,21 @@ export default function OrderForm({ templateId, templateName, templatePrice, tem
   function openWhatsApp() {
     if (!paymentConfig.confirmationWhatsapp || !order) return
     const tier = tiers.find(t => t.id === packageTier)
+    // Tidak ada transfer yang perlu dikonfirmasi: pembeli sampai ke sini justru
+    // karena halaman bayarnya gagal dibuat. Pesannya menyebut itu apa adanya.
     const msg = [
-      `Halo admin iaundang! 👋`,
-      ``,
-      `Saya ingin konfirmasi pembayaran:`,
-      `📋 No. Pesanan: ${order.order_number}`,
+      'Halo iaundang, halaman pembayaran saya gagal terbuka.',
+      '',
+      `Nomor pesanan: ${order.order_number}`,
       // Fallback ke nama lengkap: pembeli yang langsung ke /order tidak punya
-      // nama panggilan, dan tanpa fallback baris ini terkirim sebagai "👤  & ".
-      `👤 ${groomNickname || groomName} & ${brideNickname || brideName}`,
-      `📧 Email: ${email}`,
-      `📦 Paket: ${tier?.label ?? packageTier}`,
-      `💰 Total: Rp ${order.total_amount.toLocaleString('id-ID')}`,
-      `🌐 Subdomain: ${subdomain}.iaundang.online`,
-      ``,
-      `Mohon diverifikasi. Terima kasih! 🙏`,
+      // nama panggilan, dan tanpa fallback baris ini terkirim sebagai " & ".
+      `Nama: ${groomNickname || groomName} & ${brideNickname || brideName}`,
+      `Email: ${email}`,
+      `Paket: ${tier?.label ?? packageTier}`,
+      `Total: Rp ${order.total_amount.toLocaleString('id-ID')}`,
+      `Alamat undangan: ${subdomain}.iaundang.online`,
+      '',
+      'Mohon dibantu menyelesaikan pembayarannya.',
     ].join('\n')
     window.open(`https://wa.me/${paymentConfig.confirmationWhatsapp}?text=${encodeURIComponent(msg)}`, '_blank')
   }
@@ -681,170 +677,54 @@ export default function OrderForm({ templateId, templateName, templatePrice, tem
           )}
 
           {/* Langkah 2: Pembayaran */}
-          {step === 2 && order && (() => {
-            const hasBank = paymentConfig.bankAccounts.length > 0
-            const hasQris = !!paymentConfig.qrisImageUrl
-            const selectedBank = paymentConfig.bankAccounts.find(b => b.id === selectedPayment)
+          {/* Langkah 2 hanya tercapai kalau link pembayaran Mayar GAGAL dibuat.
+              Jalur normal tidak pernah sampai ke sini: begitu linknya ada,
+              pembeli langsung diantar ke halaman bayar Mayar.
 
-            return (
-              <div className="p-6 sm:p-8">
-                <div className="text-center mb-8">
-                  <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
-                    <CheckCircle2 size={28} className="text-green-600" />
-                  </div>
-                  <h2 className="font-display text-h1 text-graphite mb-1">Pesanan Berhasil Dibuat!</h2>
-                  <p className="text-body-sm text-concrete">Pilih metode pembayaran lalu transfer sesuai nominal</p>
+              Dulu di sini ada layar transfer manual lengkap dengan rekening,
+              kode unik, QRIS, dan tombol kirim bukti ke WhatsApp. Jalur itu
+              dibuang karena seluruh pembayaran sekarang lewat Mayar, yang sudah
+              menerima transfer bank dan QRIS. Yang tersisa adalah mengakui
+              keadaannya dan memberi satu jalan keluar. */}
+          {step === 2 && order && (
+            <div className="p-6 sm:p-8">
+              <div className="text-center mb-7">
+                <div className="w-14 h-14 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto mb-3">
+                  <Clock size={26} className="text-amber-700" />
                 </div>
-
-                {/* Order number & amount side by side */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                  <div className="rounded-card bg-forest-50 border border-forest-100 p-4 text-center">
-                    <p className="text-label-sm uppercase tracking-wider text-forest mb-1">Nomor Pesanan</p>
-                    <p className="text-body-xl font-bold font-mono text-forest-deep">{order.order_number}</p>
-                  </div>
-                  <div className="rounded-card bg-amber-50 border border-amber-200 p-4 text-center">
-                    <p className="text-label-sm uppercase tracking-wider text-amber-700 mb-1">Total Transfer</p>
-                    <p className="font-display text-h1 text-amber-900">
-                      Rp {order.total_amount.toLocaleString('id-ID')}
-                    </p>
-                    <p className="text-body-xs text-amber-700 mt-0.5">
-                      Rp {order.amount.toLocaleString('id-ID')} + Rp {order.unique_code} (kode unik)
-                    </p>
-                    <button onClick={() => copyText(String(order.total_amount), 'amount')} className="mt-1.5 inline-flex items-center gap-1 text-body-xs text-amber-800 hover:text-amber-900 font-medium">
-                      {copied === 'amount' ? <Check size={12} /> : <Copy size={12} />} Salin nominal
-                    </button>
-                  </div>
-                </div>
-
-                {/* Important notice */}
-                <div className="rounded-xl bg-red-50 border border-red-100 p-3 mb-8">
-                  <p className="text-body-xs text-red-700 font-medium text-center">
-                    Pastikan transfer sesuai nominal di atas (termasuk kode unik) agar pembayaran mudah diverifikasi
-                  </p>
-                </div>
-
-                {/* Payment method selection */}
-                <div className="mb-8">
-                  <p className="text-body-base font-semibold text-graphite mb-1">Pilih metode pembayaran</p>
-                  <p className="text-body-xs text-concrete mb-4">Klik kartu rekening atau QRIS yang ingin kamu gunakan untuk transfer</p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {paymentConfig.bankAccounts.map(bank => (
-                      <BankCard
-                        key={bank.id}
-                        bankName={bank.bankName}
-                        accountNumber={bank.accountNumber}
-                        accountName={bank.accountName}
-                        selectable
-                        selected={selectedPayment === bank.id}
-                        onClick={() => setSelectedPayment(bank.id)}
-                      />
-                    ))}
-                    {hasQris && (
-                      <QrisCard
-                        imageUrl={paymentConfig.qrisImageUrl}
-                        selectable
-                        selected={selectedPayment === 'qris'}
-                        onClick={() => setSelectedPayment('qris')}
-                      />
-                    )}
-                  </div>
-
-                  {!hasBank && !hasQris && (
-                    <div className="rounded-card border border-hairline bg-ivory p-6 text-center">
-                      <Landmark size={24} className="text-smoke mx-auto mb-2" />
-                      <p className="text-body-xs text-concrete">Hubungi admin via WhatsApp untuk info metode pembayaran</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Selected payment detail */}
-                {selectedPayment && selectedPayment !== 'qris' && selectedBank && (
-                  <div className="mb-8 rounded-card bg-ivory border border-hairline p-5">
-                    <p className="text-eyebrow text-concrete mb-3">Detail Transfer</p>
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-body-sm text-concrete">Bank</span>
-                        <span className="text-body-sm font-semibold text-graphite">{selectedBank.bankName}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-body-sm text-concrete">No. Rekening</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-body-sm font-mono font-bold text-graphite">{selectedBank.accountNumber}</span>
-                          <button onClick={() => copyText(selectedBank.accountNumber, selectedBank.id)} aria-label="Salin nomor rekening" className="text-concrete hover:text-forest">
-                            {copied === selectedBank.id ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
-                          </button>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-body-sm text-concrete">Atas Nama</span>
-                        <span className="text-body-sm font-semibold text-graphite">{selectedBank.accountName}</span>
-                      </div>
-                      <div className="border-t border-hairline pt-2 mt-2 flex justify-between items-center">
-                        <span className="text-body-sm font-semibold text-carbon">Nominal Transfer</span>
-                        <span className="text-body-lg font-bold text-amber-800">Rp {order.total_amount.toLocaleString('id-ID')}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {selectedPayment === 'qris' && hasQris && (
-                  <div className="mb-8 rounded-card bg-ivory border border-hairline p-5 text-center">
-                    <p className="text-eyebrow text-concrete mb-4">Scan QRIS untuk Bayar</p>
-                    <div className="inline-block rounded-xl bg-chalk border border-hairline p-3 shadow-card">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={paymentConfig.qrisImageUrl} alt="QRIS" className="w-52 h-52 object-contain" />
-                    </div>
-                    <p className="text-body-sm font-bold text-amber-800 mt-4">Rp {order.total_amount.toLocaleString('id-ID')}</p>
-                    <p className="text-body-xs text-concrete mt-1">Pastikan nominal sesuai termasuk kode unik</p>
-                  </div>
-                )}
-
-                {/* Payment instructions */}
-                {selectedPayment && paymentConfig.paymentInstructions && (
-                  <div className="mb-8 rounded-card bg-blue-50 border border-blue-100 p-5">
-                    <p className="text-label-sm uppercase tracking-wider text-blue-800 mb-3">Instruksi Pembayaran</p>
-                    <div className="text-body-xs text-blue-900/80 leading-relaxed whitespace-pre-line">
-                      {paymentConfig.paymentInstructions}
-                    </div>
-                  </div>
-                )}
-
-                {/* CTA: Konfirmasi WA */}
-                <div className="rounded-card bg-green-50 border border-green-200 p-5 mb-6">
-                  <p className="text-body-sm font-semibold text-green-900 mb-1">Sudah transfer?</p>
-                  <p className="text-body-xs text-green-800 mb-4">Kirimkan bukti transfer ke WhatsApp admin untuk verifikasi pembayaran.</p>
-                  {paymentConfig.confirmationWhatsapp && (
-                    <button
-                      onClick={openWhatsApp}
-                      className="w-full flex items-center justify-center gap-2 min-h-[48px] px-6 py-3.5 bg-green-600 text-white text-button-base font-bold rounded-button hover:bg-green-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600/50 focus-visible:ring-offset-2"
-                    >
-                      <Send size={16} />
-                      Kirim Bukti Transfer via WhatsApp
-                    </button>
-                  )}
-                </div>
-
-                {/* Next steps */}
-                <div className="rounded-card bg-ivory border border-hairline p-4">
-                  <div className="flex items-start gap-2">
-                    <Clock size={14} className="text-concrete mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-body-xs font-semibold text-carbon">Langkah selanjutnya</p>
-                      <ol className="text-body-xs text-concrete mt-1 space-y-1 list-decimal list-inside">
-                        <li>Pilih metode pembayaran di atas</li>
-                        <li>Transfer sesuai nominal unik</li>
-                        <li>Screenshot bukti transfer</li>
-                        <li>Kirim bukti ke WhatsApp admin (klik tombol di atas)</li>
-                        <li>Admin memeriksa pembayaran kalian</li>
-                        <li>Terima email berisi tautan untuk membuat password</li>
-                      </ol>
-                    </div>
-                  </div>
-                </div>
+                <h2 className="font-display text-h1 text-graphite mb-1">Pesanan tercatat, pembayarannya belum</h2>
+                <p className="text-body-sm text-concrete leading-relaxed">
+                  Pesanan kalian sudah kami simpan, tapi halaman pembayarannya gagal dibuka dari sisi kami.
+                  Kirimkan nomor pesanan di bawah lewat WhatsApp dan kami selesaikan manual.
+                </p>
               </div>
-            )
-          })()}
+
+              <div className="rounded-card bg-forest-50 border border-forest-100 p-4 text-center mb-6">
+                <p className="text-label-sm uppercase tracking-wider text-forest mb-1">Nomor Pesanan</p>
+                <p className="text-body-xl font-bold font-mono text-forest-deep">{order.order_number}</p>
+                <button
+                  onClick={() => copyText(order.order_number, 'nomor')}
+                  className="mt-2 inline-flex items-center gap-1.5 text-body-xs text-forest hover:text-forest-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 rounded-button px-2 py-1"
+                >
+                  <Copy size={12} /> {copied === 'nomor' ? 'Tersalin' : 'Salin nomor pesanan'}
+                </button>
+              </div>
+
+              {paymentConfig.confirmationWhatsapp ? (
+                <button
+                  onClick={openWhatsApp}
+                  className="w-full flex items-center justify-center gap-2 min-h-[48px] px-6 py-3.5 bg-forest text-chalk text-button-base font-semibold rounded-button hover:bg-forest-deep transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 focus-visible:ring-offset-2"
+                >
+                  <Send size={16} />
+                  Hubungi kami lewat WhatsApp
+                </button>
+              ) : (
+                <p className="text-body-sm text-concrete text-center">
+                  Kirim nomor pesanan di atas ke <a href="mailto:halo@iaundang.online" className="text-forest font-medium underline underline-offset-2">halo@iaundang.online</a> dan kami bantu selesaikan.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Navigation */}
           {step < 2 && (

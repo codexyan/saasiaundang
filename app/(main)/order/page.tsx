@@ -44,10 +44,9 @@ export default async function OrderPage({ searchParams }: { searchParams: Promis
       features: t.features ?? null,
     }))
 
+  // Hanya kontak yang tersisa. Rekening, QRIS, dan instruksi transfer tidak
+  // lagi dikirim ke form karena seluruh pembayaran lewat Mayar.
   const paymentConfig = {
-    bankAccounts: appSettings.bankAccounts.filter(b => b.isActive),
-    qrisImageUrl: appSettings.qrisImageUrl,
-    paymentInstructions: appSettings.paymentInstructions,
     confirmationWhatsapp: appSettings.confirmationWhatsapp,
   }
 
