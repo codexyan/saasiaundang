@@ -12,8 +12,8 @@ export interface BlogTypography {
 }
 
 export const DEFAULT_BLOG_TYPOGRAPHY: BlogTypography = {
-  headingFont: 'var(--font-geist-sans), system-ui, sans-serif',
-  bodyFont: 'var(--font-geist-sans), system-ui, sans-serif',
+  headingFont: 'var(--font-sans), system-ui, sans-serif',
+  bodyFont: 'var(--font-sans), system-ui, sans-serif',
   bodySize: 17,
   h2Scale: 1.6,
   h3Scale: 1.3,

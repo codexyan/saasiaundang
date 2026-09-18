@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
-import { Fraunces } from 'next/font/google'
+import { Fraunces, Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'react-hot-toast'
 
@@ -13,6 +13,19 @@ const fraunces = Fraunces({
   style: ['normal'],
   display: 'swap',
   variable: '--font-display',
+  preload: true,
+})
+
+// Sans produk, dari DESIGN.md. Dipilih karena bentuk hurufnya yang hangat dan
+// agak membulat menemani serif Fraunces tanpa ikut berebut perhatian, dan
+// karena angkanya terbaca jelas di ukuran kecil, tempat harga dan tanggal acara
+// hidup. Geist Sans tetap dimuat sampai pengaturan tipografi blog dipastikan
+// tidak lagi menyimpan nilai lamanya.
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-sans',
   preload: true,
 })
 
@@ -44,7 +57,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="id" className={`${GeistSans.variable} ${GeistMono.variable} ${fraunces.variable}`}>
+    <html lang="id" className={`${jakarta.variable} ${GeistSans.variable} ${GeistMono.variable} ${fraunces.variable}`}>
       <body>
         {children}
         <Toaster position="top-center" />

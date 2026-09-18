@@ -14,14 +14,17 @@ interface BlogTypography {
 }
 
 const DEFAULTS: BlogTypography = {
-  headingFont: 'var(--font-geist-sans), system-ui, sans-serif',
-  bodyFont: 'var(--font-geist-sans), system-ui, sans-serif',
+  headingFont: 'var(--font-sans), system-ui, sans-serif',
+  bodyFont: 'var(--font-sans), system-ui, sans-serif',
   bodySize: 17, h2Scale: 1.6, h3Scale: 1.3, lineHeight: 1.75,
 }
 
 // Only fonts already available to the app (no new @font-face imports).
 const FONTS = [
-  { label: 'Geist Sans (default)', value: 'var(--font-geist-sans), system-ui, sans-serif' },
+  { label: 'Plus Jakarta Sans (bawaan)', value: 'var(--font-sans), system-ui, sans-serif' },
+  // Tetap ditawarkan karena pengaturan blog yang sudah tersimpan bisa memakai
+  // nilai ini, dan fontnya masih dimuat di app/layout.tsx.
+  { label: 'Geist Sans', value: 'var(--font-geist-sans), system-ui, sans-serif' },
   { label: 'Serif Klasik', value: 'Georgia, Cambria, "Times New Roman", serif' },
   { label: 'System Sans', value: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif' },
   { label: 'Monospace', value: 'ui-monospace, SFMono-Regular, Menlo, monospace' },
