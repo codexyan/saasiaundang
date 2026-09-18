@@ -209,13 +209,13 @@ export default function Pricing({ priceTiers, flashSales }: PricingProps) {
                 ? features.find(x => !buildFeatureList(tiers[i - 1], tiers[i - 2]).includes(x) && !x.startsWith('Semua fitur') && !x.startsWith('Aktif '))
                 : undefined
 
+              // Badge dulu tertulis "PALING DIPILIH". Nol pembeli berarti belum
+              // ada yang memilih apa pun, jadi itu klaim tanpa dasar (R-17).
+              // Yang jujur: ini paket yang kami sarankan.
               return (
                 <PricingCard
                   key={tier.id}
                   name={`Paket ${tier.label}`}
-                  {/* Dulu tertulis "PALING DIPILIH". Nol pembeli berarti belum ada
-                      yang memilih apa pun, jadi itu klaim tanpa dasar (R-17).
-                      Yang jujur: ini paket yang kami sarankan. */}
                   badge={tier.highlight ? 'SARAN KAMI' : tier.label.toUpperCase()}
                   price={formatRp(discounted ?? tier.price)}
                   originalPrice={discounted ? formatRp(tier.price) : undefined}
