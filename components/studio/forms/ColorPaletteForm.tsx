@@ -1,6 +1,23 @@
 /**
- * ColorPaletteForm - Theme color customization (TIER 1 CRITICAL)
- * Allows users to customize invitation colors
+ * Layar "Tema Warna" milik pembeli.
+ *
+ * Yang ditawarkan hanya palet yang sudah benar benar kami render sebagai
+ * tema utuh, plus jalan kembali ke warna tema yang dibeli. Sebelumnya di
+ * sini ada enam palet siap pakai, dan dua hal salah dengannya:
+ *
+ *   1. Palet bernama "Javanese Gold" memakai #2c4a34 dan #c9a961, padahal
+ *      Javanese Gold yang sungguhan #1a4a1a dan #d4af37. Namanya menjanjikan
+ *      sesuatu yang tidak ia berikan.
+ *   2. Lima sisanya warna Tailwind mentah (emerald 400, rose 500, blue 800,
+ *      purple 600, amber 900). Belum pernah satu pun dirender sebagai
+ *      undangan utuh, dan mint neon serta ungu elektrik bukan warna yang
+ *      dipakai orang untuk undangan pernikahan.
+ *
+ * Tidak ada juga jalan pulang: sekali menekan salah satu preset, pembeli
+ * tidak punya cara kembali ke warna tema yang ia beli. Sekarang ada, dan itu
+ * petak pertama.
+ *
+ * Yang ingin warna lain tetap bisa, lewat pemilih warna di bawahnya.
  */
 
 'use client'
@@ -9,12 +26,18 @@ import { Palette } from 'lucide-react'
 import FormField from '../ui/FormField'
 import { StudioInput } from '../ui/StudioInput'
 import SectionCard from '../ui/SectionCard'
+import { PALET_RUMAH } from '@/lib/house-palettes'
+import type { ColorScheme } from '@/lib/types'
 
 interface ColorPaletteFormProps {
   primaryColor: string
   accentColor: string
   textColor: string
   backgroundColor: string
+  /** Tema yang dibeli: id-nya dipakai supaya paletnya sendiri tidak ikut
+   *  ditawarkan dua kali, warnanya jadi petak "Bawaan tema". */
+  temaId: string
+  temaWarna: ColorScheme
   onPrimaryColorChange: (color: string) => void
   onAccentColorChange: (color: string) => void
   onTextColorChange: (color: string) => void
@@ -22,78 +45,45 @@ interface ColorPaletteFormProps {
   onPresetApply?: (colors: { primary: string; accent: string; text: string; background: string }) => void
 }
 
-// Preset palettes
-const PRESETS = [
-  {
-    id: 'javanese-gold',
-    name: 'Javanese Gold',
-    primary: '#2c4a34',
-    accent: '#c9a961',
-    text: '#1a1a1a',
-    background: '#fefdf8',
-  },
-  {
-    id: 'modern-mint',
-    name: 'Modern Mint',
-    primary: '#34D399',
-    accent: '#10B981',
-    text: '#111827',
-    background: '#F0FDF4',
-  },
-  {
-    id: 'romantic-rose',
-    name: 'Romantic Rose',
-    primary: '#F43F5E',
-    accent: '#FB7185',
-    text: '#1F2937',
-    background: '#FFF1F2',
-  },
-  {
-    id: 'elegant-navy',
-    name: 'Elegant Navy',
-    primary: '#1E3A8A',
-    accent: '#3B82F6',
-    text: '#1F2937',
-    background: '#EFF6FF',
-  },
-  {
-    id: 'soft-purple',
-    name: 'Soft Purple',
-    primary: '#9333EA',
-    accent: '#A855F7',
-    text: '#1F2937',
-    background: '#FAF5FF',
-  },
-  {
-    id: 'rustic-brown',
-    name: 'Rustic Brown',
-    primary: '#78350F',
-    accent: '#D97706',
-    text: '#1F2937',
-    background: '#FFFBEB',
-  },
-]
-
 export default function ColorPaletteForm({
   primaryColor,
   accentColor,
   textColor,
   backgroundColor,
+  temaId,
+  temaWarna,
   onPrimaryColorChange,
   onAccentColorChange,
   onTextColorChange,
   onBackgroundColorChange,
   onPresetApply,
 }: ColorPaletteFormProps) {
-  function applyPreset(preset: typeof PRESETS[0]) {
+  /**
+   * Petak pertama mengosongkan keempat warna, bukan menuliskan warna tema.
+   * Kosong berarti "ikut tema", jadi undangannya tetap ikut kalau temanya
+   * kelak diperbarui. Menuliskan hexnya akan membekukan warna hari ini.
+   */
+  const petak = [
+    { id: 'bawaan', nama: 'Bawaan tema', warna: { primary: '', accent: '', text: '', background: '' }, tampil: temaWarna },
+    ...PALET_RUMAH.filter(p => p.id !== temaId).map(p => ({ id: p.id, nama: p.nama, warna: p.warna, tampil: p.warna })),
+  ]
+
+  /** Sedang terpakai kalau keempat warnanya persis sama dengan yang tampil. */
+  const terpakai = (t: ColorScheme) =>
+    primaryColor === t.primary
+    && accentColor === t.accent
+    && textColor === t.text
+    && backgroundColor === (t.background ?? backgroundColor)
+
+  function pakai(w: { primary: string; accent: string; text: string; background: string }) {
     if (onPresetApply) {
-      onPresetApply({ primary: preset.primary, accent: preset.accent, text: preset.text, background: preset.background })
-    } else {
-      onPrimaryColorChange(preset.primary)
-      onAccentColorChange(preset.accent)
-      onTextColorChange(preset.text)
-      onBackgroundColorChange(preset.background)
+      onPresetApply(w)
+      return
     }
+    onPrimaryColorChange(w.primary)
+    onAccentColorChange(w.accent)
+    onTextColorChange(w.text)
+    onBackgroundColorChange(w.background)
   }
 
   return (
@@ -103,37 +93,41 @@ export default function ColorPaletteForm({
       required
       description="Pilih palet warna atau kustomisasi sendiri"
     >
-      {/* Preset Palettes */}
       <div>
-        <p className="text-ui-sm font-medium text-concrete mb-2">Palet Siap Pakai</p>
+        <p className="text-ui-sm font-medium text-concrete mb-2">Palet dari tema kami</p>
         <div className="grid grid-cols-3 gap-2">
-          {PRESETS.map((preset) => (
-            <button
-              key={preset.id}
-              type="button"
-              onClick={() => applyPreset(preset)}
-              className={`group relative p-2 border rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 ${
-                primaryColor === preset.primary
-                  ? 'border-gold-dark ring-1 ring-gold/30 bg-forest-50/40'
-                  : 'border-hairline hover:border-ash/50'
-              }`}
-            >
-              <div className="flex gap-0.5 mb-1.5">
-                <div className="w-full h-5 rounded-sm" style={{ backgroundColor: preset.primary }} />
-                <div className="w-full h-5 rounded-sm" style={{ backgroundColor: preset.accent }} />
-              </div>
-              <p className="text-ui-2xs font-medium text-concrete text-center truncate">
-                {preset.name}
-              </p>
-              {primaryColor === preset.primary && (
-                <div className="absolute top-1 right-1 w-4 h-4 bg-forest text-chalk rounded-full flex items-center justify-center">
-                  <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
+          {petak.map((p) => {
+            const aktif = terpakai(p.tampil)
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => pakai(p.warna)}
+                aria-pressed={aktif}
+                aria-label={`Pakai palet ${p.nama}`}
+                className={`group relative p-2 border rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 ${
+                  aktif
+                    ? 'border-gold-dark ring-1 ring-gold/30 bg-forest-50/40'
+                    : 'border-hairline hover:border-ash/50'
+                }`}
+              >
+                <div className="flex gap-0.5 mb-1.5">
+                  <div className="w-full h-5 rounded-sm border border-hairline" style={{ backgroundColor: p.tampil.primary }} />
+                  <div className="w-full h-5 rounded-sm border border-hairline" style={{ backgroundColor: p.tampil.accent }} />
                 </div>
-              )}
-            </button>
-          ))}
+                <p className="text-ui-2xs font-medium text-concrete text-center truncate">
+                  {p.nama}
+                </p>
+                {aktif && (
+                  <div className="absolute top-1 right-1 w-4 h-4 bg-forest text-chalk rounded-full flex items-center justify-center">
+                    <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                )}
+              </button>
+            )
+          })}
         </div>
       </div>
 
@@ -154,7 +148,7 @@ export default function ColorPaletteForm({
                 type="text"
                 value={primaryColor}
                 onChange={(e) => onPrimaryColorChange(e.target.value)}
-                placeholder="#2c4a34"
+                placeholder={temaWarna.primary}
               />
             </div>
           </FormField>
@@ -171,7 +165,7 @@ export default function ColorPaletteForm({
                 type="text"
                 value={accentColor}
                 onChange={(e) => onAccentColorChange(e.target.value)}
-                placeholder="#c9a961"
+                placeholder={temaWarna.accent}
               />
             </div>
           </FormField>
@@ -188,7 +182,7 @@ export default function ColorPaletteForm({
                 type="text"
                 value={textColor}
                 onChange={(e) => onTextColorChange(e.target.value)}
-                placeholder="#1a1a1a"
+                placeholder={temaWarna.text}
               />
             </div>
           </FormField>
@@ -205,7 +199,7 @@ export default function ColorPaletteForm({
                 type="text"
                 value={backgroundColor}
                 onChange={(e) => onBackgroundColorChange(e.target.value)}
-                placeholder="#fefdf8"
+                placeholder={temaWarna.background}
               />
             </div>
           </FormField>

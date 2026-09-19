@@ -14,8 +14,13 @@ interface Props {
   section: SectionConfig
   data: NewInvitationData
   onUpdate: (patch: Partial<NewInvitationData>) => void
-  /** Warna default color picker */
-  primaryColor?: string
+  /**
+   * Warna awal color picker. WAJIB, dan pemanggilnya mengisi dengan warna
+   * primer tema yang sedang dipakai. Dulu ada nilai bawaan #2c4a34 di sini;
+   * nilai itu membuat picker menawarkan hijau yang sama untuk tema mana pun,
+   * termasuk tema yang marun dan yang hitam.
+   */
+  primaryColor: string
 }
 
 /**
@@ -24,7 +29,7 @@ interface Props {
  * section.id, TIDAK menimpa template global. Kalau user tidak menyentuh apa pun,
  * section tetap pakai default dari template.
  */
-export default function SectionAppearanceControls({ section, data, onUpdate, primaryColor = '#2c4a34' }: Props) {
+export default function SectionAppearanceControls({ section, data, onUpdate, primaryColor }: Props) {
   const bgOverride = data.section_background_overrides?.[section.id]
   const effectiveBg: BackgroundConfig = bgOverride ?? section.background
 

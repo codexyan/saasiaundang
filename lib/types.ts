@@ -349,7 +349,9 @@ export interface OpeningConfig {
   button_size?: 'sm' | 'md' | 'lg' // default 'lg'
   couple_name_connector?: 'ampersand' | 'heart' | 'dot' | 'dash' | 'ring' | 'flower' // default 'ampersand'
   couple_name_connector_size?: number // px, default 26
-  couple_name_gap?: number            // px, gap antara nama pria, connector, nama wanita, default 3
+  /** TIDAK DIPAKAI: tidak ada komponen pembuka yang membacanya. Kontrolnya
+   *  sudah dicabut dari panel admin. Lihat catatan di NewInvitationData. */
+  couple_name_gap?: number
   content_padding_x?: number       // px, default 28
   content_padding_bottom?: number  // px, default 48
   // Aset dekorasi custom (upload-based)
@@ -747,6 +749,12 @@ export interface NewInvitationData {
   opening_type?: OpeningType
   opening_greeting?: string
   opening_subtitle?: string
+  /**
+   * TIDAK DIPAKAI. Tidak ada komponen pembuka yang membacanya: ketujuh belas
+   * memakai groom_name dan bride_name apa adanya. Kontrolnya sudah dicabut
+   * dari studio pembeli. Bidangnya dibiarkan di sini supaya payload lama
+   * yang masih membawanya tidak ditolak, bukan supaya dipakai lagi.
+   */
   opening_groom_name?: string
   opening_bride_name?: string
   opening_name_gap?: number

@@ -593,22 +593,6 @@ export default function OpeningPanel() {
             </div>
           </Field>
 
-          <Field label="Jarak Nama (px)">
-            <div className="flex items-center gap-2">
-              <input type="range" min={0} max={24} step={1}
-                value={cfg.opening.couple_name_gap ?? 3}
-                onChange={e => updateOpening({ couple_name_gap: Number(e.target.value) })}
-                className="flex-1 accent-indigo-600 h-1.5" />
-              <div className="flex items-center gap-0.5 shrink-0">
-                <input type="number" min={0} max={24} step={1}
-                  value={cfg.opening.couple_name_gap ?? 3}
-                  onChange={e => { const v = Number(e.target.value); if (v >= 0 && v <= 24) updateOpening({ couple_name_gap: v }) }}
-                  className="w-14 px-1 py-0.5 text-[10px] text-center border border-gray-200 rounded-md focus:border-indigo-400 focus:outline-none font-mono" />
-                <span className="text-[8px] text-gray-400">px</span>
-              </div>
-            </div>
-          </Field>
-
         </div>
       </div>
 

@@ -45,14 +45,12 @@ export default function DemoEditorClient({ template, demoData, demoWishes }: Pro
     ...demoData,
     groom_name: groomFull,
     bride_name: brideFull,
-    opening_groom_name: groomNick,
-    opening_bride_name: brideNick,
     groom_parents: groomParents,
     bride_parents: brideParents,
     ...(groomPhoto ? { groom_photo_url: groomPhoto } : {}),
     ...(bridePhoto ? { bride_photo_url: bridePhoto } : {}),
     ...(coverPhoto ? { couple_photo_url: coverPhoto } : {}),
-  }), [demoData, groomNick, brideNick, groomFull, brideFull, groomParents, brideParents, groomPhoto, bridePhoto, coverPhoto])
+  }), [demoData, groomFull, brideFull, groomParents, brideParents, groomPhoto, bridePhoto, coverPhoto])
 
   const editedTemplate = useMemo<TemplateRecord>(() => {
     if (!coverPhoto) return template
@@ -124,10 +122,16 @@ export default function DemoEditorClient({ template, demoData, demoWishes }: Pro
 
             {/* Form content */}
             <div className="px-5 py-4 space-y-4 max-h-[50vh] overflow-y-auto">
-              {/* Nicknames   shown on cover */}
+              {/*
+                Nama panggilan TIDAK muncul di cover, walaupun labelnya dulu
+                menjanjikan begitu: ketujuh belas komponen pembuka memakai
+                groom_name dan bride_name apa adanya. Yang benar benar
+                dilakukannya adalah mengisi awal form pesanan dan menjadi
+                alamat undangan, dan itulah yang sekarang ditulis labelnya.
+              */}
               <div>
                 <label className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider mb-1.5 block">
-                  Nama Panggilan <span className="normal-case font-normal text-stone-400">(tampil di cover)</span>
+                  Nama Panggilan <span className="normal-case font-normal text-stone-400">(jadi alamat undangan)</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2.5">
                   <input

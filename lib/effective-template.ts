@@ -1,4 +1,4 @@
-import type { TemplateRecord, NewInvitationData, TierFeatures } from './types'
+import type { TemplateRecord, NewInvitationData, TierFeatures, OpeningType } from './types'
 
 /**
  * Tema yang benar benar dipakai sebuah undangan.
@@ -21,6 +21,19 @@ import type { TemplateRecord, NewInvitationData, TierFeatures } from './types'
  * Starter tidak lagi menjual musik, jadi pemutarnya dimatikan di sini alih
  * alih di dalam mesin render.
  */
+/**
+ * Jenis seksi render dan kunci fitur paket yang membukanya.
+ *
+ * Peta ini dulu ada di InvitationStudio, di mana ia hanya menyaring
+ * pratinjau. Sekarang tinggal di sini karena penyaringnya juga di sini.
+ */
+const SEKSI_KE_FITUR: Record<string, keyof TierFeatures> = {
+  hero: 'hero', profiles: 'profiles', events: 'events', quote: 'quote',
+  countdown: 'countdown', gallery: 'gallery', rsvp: 'rsvp', wishes: 'wishes',
+  story: 'story', video: 'video', gift: 'gift', 'gift-registry': 'gift_registry',
+  livestream: 'livestream', 'ig-story': 'ig_story', qrcode: 'qrcode', closing: 'closing',
+}
+
 export function temaEfektif(
   template: TemplateRecord,
   data: NewInvitationData,
@@ -40,6 +53,40 @@ export function temaEfektif(
     ...meta.font,
     ...(data.font_heading ? { heading: data.font_heading } : {}),
     ...(data.font_body ? { body: data.font_body } : {}),
+  }
+
+  /**
+   * Gaya pembuka dan dua teks sampulnya.
+   *
+   * Penggabungan ini dulu hidup di dalam InvitationStudio, hanya untuk
+   * pratinjau. Halaman tamu memanggil fungsi ini dan tidak pernah tahu
+   * tentangnya, jadi pembeli memilih "Amplop Surat", melihatnya di
+   * pratinjau, menyimpan, lalu undangannya tetap terbuka dengan gaya
+   * bawaan tema. Persis kegagalan yang sama dengan warna, cuma di layar
+   * sebelah, dan komentar di studio justru berbunyi "supaya pratinjau
+   * tidak pernah berbohong".
+   *
+   * `opening_name_gap` sengaja TIDAK ikut digabungkan. Tidak ada satu pun
+   * komponen pembuka yang membaca `couple_name_gap`, jadi menggabungkannya
+   * hanya akan memindahkan kontrol mati, bukan menghidupkannya.
+   */
+  const pembuka = {
+    ...template.config.opening,
+    ...(data.opening_type ? { type: data.opening_type as OpeningType } : {}),
+    ...(data.opening_greeting ? { subtitle: data.opening_greeting } : {}),
+    ...(data.opening_subtitle ? { invitation_text: data.opening_subtitle } : {}),
+  }
+
+  /**
+   * Layar loading, kegagalan yang sama persis dengan pembuka.
+   *
+   * `loading_config` juga digabung hanya di dalam studio, hanya untuk
+   * pratinjau. Pembeli mengatur layar loading, melihatnya berubah, menyimpan,
+   * lalu tamu tetap melihat layar loading bawaan tema.
+   */
+  const memuat = {
+    ...template.config.loading,
+    ...(data.loading_config ?? {}),
   }
 
   // `fitur` tidak diketahui (mis. pratinjau demo tanpa paket) berarti jangan
@@ -68,7 +115,7 @@ export function temaEfektif(
   pasangkan(meta.color_scheme.background, warna.background)
   pasangkan(meta.color_scheme.accent, warna.accent)
 
-  const sections = peta.size === 0
+  const diwarnai = peta.size === 0
     ? template.config.sections
     : template.config.sections.map(s => {
       if (s.background?.type !== 'color') return s
@@ -76,11 +123,35 @@ export function temaEfektif(
       return baru ? { ...s, background: { ...s.background, value: baru } } : s
     })
 
+  /**
+   * Seksi yang paketnya tidak beli dibuang, di sini, bukan hanya di studio.
+   *
+   * Penyaringan ini dulu hidup di dalam InvitationStudio dan hanya menyaring
+   * pratinjau. Halaman tamu memanggil fungsi ini dan merender seluruh seksi
+   * yang dinyalakan tema. Untuk pembeli Starter itu berarti undangannya
+   * memuat seksi Kisah Kami lengkap dengan ornamen dan judul "Perjalanan
+   * Cinta", kosong isinya, karena studio memang tidak pernah mengizinkannya
+   * mengisi. Enam seksi lain ikut bocor tapi punya penjaga sendiri dan
+   * mengembalikan null saat datanya kosong, jadi yang benar benar terlihat
+   * satu.
+   *
+   * `fitur` tidak diketahui berarti jangan menyaring apa pun, aturan yang
+   * sama dengan musik di atas.
+   */
+  const sections = fitur
+    ? diwarnai.filter(s => {
+      const kunci = SEKSI_KE_FITUR[s.type]
+      return kunci ? !!fitur[kunci] : true
+    })
+    : diwarnai
+
   return {
     ...template,
     config: {
       ...template.config,
       meta: { ...meta, color_scheme: warna, font },
+      opening: pembuka,
+      loading: memuat,
       sections,
       // `config.music` boleh tidak ada sama sekali di tema lama, jadi
       // pematiannya hanya ditulis kalau objeknya memang ada.
