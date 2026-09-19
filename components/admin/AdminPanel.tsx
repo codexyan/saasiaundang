@@ -409,7 +409,9 @@ export default function AdminPanel({
               logoHorizontalUrl: appSettings.logoHorizontalUrl ?? '/logos/logo-horizontal.png',
               logoVerticalUrl: appSettings.logoVerticalUrl ?? '/logos/logo-vertical.png',
               contactEmail: appSettings.contactEmail ?? 'halo@iaundang.online',
-              contactWhatsapp: appSettings.confirmationWhatsapp ?? '628123456789',
+              // Tanpa nomor contoh. Kalau pengaturannya kosong, kolomnya juga
+              // kosong, bukan terisi nomor yang bukan milik siapa pun (D-9).
+              contactWhatsapp: appSettings.confirmationWhatsapp ?? '',
               socialInstagram: appSettings.socialInstagram ?? 'ia.undang',
               socialTwitter: appSettings.socialTwitter ?? 'iaundang',
               socialGithub: appSettings.socialGithub ?? 'iaundang',
