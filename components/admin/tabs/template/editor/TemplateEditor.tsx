@@ -87,6 +87,14 @@ export default function TemplateEditor({
     fn()
     requestAnimationFrame(() => tabContentRef.current?.scrollTo(0, y))
   }, [])
+  // Tinggi lembar kontrol di layar sempit. Di layar lebar keadaan ini
+  // diabaikan: panel tetap kolom kiri selebar 420 piksel.
+  //
+  // Kenapa pratinjau yang jadi utama di HP: yang dinilai admin saat menggeser
+  // warna atau mengganti font adalah HASILNYA, bukan kontrolnya. Menaruh
+  // kontrol di lembar yang bisa ditarik membuat keduanya bisa dilihat
+  // bergantian tanpa berpindah halaman dan tanpa kehilangan posisi gulir.
+  const [lembar, setLembar] = useState<'ringkas' | 'separuh' | 'penuh'>('separuh')
   const [previewMode, setPreviewMode] = useState<'invitation' | 'opening' | 'loading'>('opening')
   const [previewGuestName, setPreviewGuestName] = useState('Bapak Budi dan Keluarga')
   const [previewData, setPreviewData] = useState<NewInvitationData>(PREVIEW_DATA_DEFAULT)
@@ -599,15 +607,66 @@ export default function TemplateEditor({
 
   return (
     <EditorProvider value={editorValue}>
-    <div className="flex flex-1 min-h-0 h-full overflow-hidden">
+    <div className="relative flex flex-col lg:flex-row flex-1 min-h-0 h-full overflow-hidden">
 
-      {/*  Left: Config Editor  */}
-      <div className="w-[420px] shrink-0 flex flex-col border-r border-gray-200 bg-white overflow-hidden min-h-0">
+      {/* Bar identitas khusus layar sempit. Di desktop informasi yang sama ada
+          di kepala panel kiri; di HP panel itu jadi lembar yang bisa ditutup,
+          jadi tombol kembali harus tetap terlihat di luar lembar. */}
+      <div className="lg:hidden shrink-0 flex items-center gap-2.5 px-4 py-3 bg-white border-b border-gray-200">
+        <button
+          onClick={exitEditor}
+          aria-label="Simpan draf dan kembali ke koleksi"
+          className="w-11 h-11 -ml-2 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-sm font-bold text-gray-900 truncate">{record.name}</h2>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <StatusBadge status={record.status} size="sm" />
+            {categoryLabel && (
+              <span className="text-[10px] text-gray-400 capitalize truncate">{categoryLabel}</span>
+            )}
+          </div>
+        </div>
+        <button
+          onClick={onOpenSettings}
+          aria-label="Pengaturan tema: nama, slug, kategori, harga, publikasi"
+          className="w-11 h-11 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors shrink-0"
+        >
+          <Settings2 className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/*  Panel kontrol. Kolom kiri di desktop, lembar tarik di HP.  */}
+      <div className={`z-40 flex flex-col bg-white overflow-hidden min-h-0 transition-[height] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]
+        fixed inset-x-0 bottom-0 rounded-t-2xl border-t border-gray-200 shadow-[0_-10px_34px_rgba(0,0,0,0.14)]
+        lg:static lg:z-auto lg:w-[420px] lg:shrink-0 lg:h-auto lg:rounded-none lg:border-t-0 lg:border-r lg:shadow-none
+        ${lembar === 'penuh' ? 'h-[88dvh]' : lembar === 'separuh' ? 'h-[56dvh]' : 'h-[92px]'}`}>
+
+        {/* Pegangan tarik, hanya di layar sempit. Satu ketukan memutar tinggi
+            lembar: separuh, penuh, lalu ringkas. */}
+        <button
+          type="button"
+          onClick={() => setLembar(l => (l === 'separuh' ? 'penuh' : l === 'penuh' ? 'ringkas' : 'separuh'))}
+          aria-label={
+            lembar === 'separuh' ? 'Perbesar panel kontrol'
+              : lembar === 'penuh' ? 'Ringkaskan panel kontrol supaya pratinjau terlihat penuh'
+                : 'Buka panel kontrol'
+          }
+          className="lg:hidden shrink-0 w-full py-3 flex items-center justify-center gap-2 text-[10px] font-semibold text-gray-400 hover:text-gray-700 transition-colors"
+        >
+          <span aria-hidden className="w-10 h-1 rounded-full bg-gray-300" />
+          <span>
+            {lembar === 'ringkas' ? 'Buka kontrol' : lembar === 'separuh' ? 'Perbesar' : 'Ringkaskan'}
+          </span>
+        </button>
+
 
         {/* Header — identitas template hanya DITAMPILKAN di sini.
             Mengubahnya lewat panel Pengaturan, supaya nama/slug/harga punya
             satu tempat saja alih-alih dua form yang bisa berbeda isi. */}
-        <div className="px-5 py-4 border-b border-gray-100 bg-white shrink-0">
+        <div className="hidden lg:block px-5 py-4 border-b border-gray-100 bg-white shrink-0">
           <div className="flex items-center gap-2.5">
             <button
               onClick={exitEditor}
@@ -636,7 +695,7 @@ export default function TemplateEditor({
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-100 bg-gray-50 shrink-0">
+        <div className={`border-b border-gray-100 bg-gray-50 shrink-0 ${lembar === 'ringkas' ? 'hidden lg:flex' : 'flex'}`}>
           {([
             ['tampilan', Palette,   'Tampilan'],
             ['opening',  Sparkles,  'Opening'],
@@ -660,7 +719,7 @@ export default function TemplateEditor({
         </div>
 
         {/* Tab content */}
-        <div ref={tabContentRef} className="flex-1 overflow-y-auto scrollbar-hide p-5 space-y-5">
+        <div ref={tabContentRef} className={`flex-1 overflow-y-auto scrollbar-hide p-5 space-y-5 ${lembar === 'ringkas' ? 'hidden lg:block' : ''}`}>
 
 
           {activeTab === 'tampilan' && <AppearancePanel />}
@@ -677,7 +736,7 @@ export default function TemplateEditor({
               tersimpan" yang dulu menuntut admin menekan Simpan. Sekarang
               draf tersimpan sendiri; yang perlu diketahui admin hanyalah
               apakah sudah sampai ke server. */}
-          <div className="flex items-center justify-between gap-2 px-0.5">
+          <div className={`items-center justify-between gap-2 px-0.5 ${lembar === 'ringkas' ? 'hidden lg:flex' : 'flex'}`}>
             <div className="flex items-center gap-1.5 min-w-0">
               {saveState === 'saving' ? (
                 <>
@@ -715,7 +774,7 @@ export default function TemplateEditor({
           </div>
 
           {hasPendingDraft && (
-            <div className="flex items-start gap-2 px-2.5 py-2 rounded-lg bg-indigo-50 border border-indigo-100">
+            <div className={`items-start gap-2 px-2.5 py-2 rounded-lg bg-indigo-50 border border-indigo-100 ${lembar === 'ringkas' ? 'hidden lg:flex' : 'flex'}`}>
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] font-semibold text-indigo-700 leading-tight">
                   Perubahan belum terbit
@@ -747,7 +806,14 @@ export default function TemplateEditor({
         </div>
       </div>
 
-      <EditorPreview />
+      {/* Ruang bawah menyesuaikan tinggi lembar, supaya pratinjau tidak
+          tertutup lembar kontrol di layar sempit. */}
+      <div
+        className="flex-1 min-h-0 flex lg:contents"
+        style={{ paddingBottom: lembar === 'penuh' ? '88dvh' : lembar === 'separuh' ? '56dvh' : '92px' }}
+      >
+        <EditorPreview />
+      </div>
 
 
 

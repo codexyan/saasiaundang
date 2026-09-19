@@ -40,13 +40,15 @@ export default function EditorPreview() {
     <div className="flex-1 bg-slate-100 flex flex-col overflow-hidden">
 
       {/* Preview toolbar */}
-      <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-200 shrink-0">
+      <div className="flex items-center justify-between gap-2 px-3 lg:px-5 py-2 lg:py-3 bg-white border-b border-gray-200 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
+          <div className="hidden lg:flex items-center gap-2">
             <span className="text-xs font-semibold text-gray-600">Live Preview</span>
           </div>
-          {/* Undo / Redo */}
-          <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+          {/* Undo / Redo. Di layar sempit keduanya sudah ada di lembar
+              kontrol, jadi di sini disembunyikan agar tinggi bar tidak
+              memakan ruang pratinjau. */}
+          <div className="hidden lg:flex items-center bg-gray-100 rounded-lg p-0.5">
             <button onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)"
               className="p-1.5 rounded-md text-gray-500 hover:text-indigo-600 hover:bg-white disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:text-gray-500 transition-colors">
               <Undo2 className="w-3.5 h-3.5" />
@@ -59,7 +61,7 @@ export default function EditorPreview() {
         </div>
         <div className="flex items-center gap-2">
           {previewMode === 'invitation' && (
-            <span className="text-xs text-gray-400">
+            <span className="hidden lg:inline text-xs text-gray-400">
               {sections.filter(s => s.enabled).length} sections
             </span>
           )}
