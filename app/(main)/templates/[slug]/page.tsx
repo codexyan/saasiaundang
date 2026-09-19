@@ -72,7 +72,7 @@ export default async function TemplateDetailPage(props: Props) {
     { icon: MessageCircle, label: 'Buku ucapan', available: f.wishes },
     { icon: Gift, label: 'Amplop digital', available: f.gift },
     { icon: Video, label: 'Video', available: f.video },
-    { icon: Globe, label: 'Custom domain', available: f.custom_domain },
+    // Custom domain dicabut: belum ada mekanismenya sama sekali.
   ] : []
 
   const jsonLd = {

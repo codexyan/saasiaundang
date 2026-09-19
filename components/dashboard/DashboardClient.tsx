@@ -9,11 +9,11 @@ import {
   LayoutDashboard, FileEdit, Users, LogOut,
   ExternalLink, Copy, Menu, X, ChevronRight, Eye, Send,
   Settings, MessageSquare, BarChart3,
-  Globe, ArrowUpRight, ShieldCheck, MoreHorizontal,
-} from 'lucide-react'
+  Globe, ArrowUpRight, ShieldCheck, MoreHorizontal, Lock} from 'lucide-react'
 import type { Invitation, NewInvitationData, PriceTier } from '@/lib/types'
 import { LEGACY_TEMPLATE_IDS } from '@/lib/types'
 import { getInvitationUrl, isExpired } from '@/lib/utils'
+import { resolveTierDisplay } from '@/lib/packages'
 import { useInvitationUrl } from '@/lib/use-invitation-url'
 import { Button } from '@/components/ui/Button'
 import Logo from '@/components/ui/Logo'
@@ -145,6 +145,21 @@ export default function DashboardClient({ user, invitations, selectedTemplateId,
   // dipasang sesudah hydration. Penangan klik di bawah boleh memanggil
   // getInvitationUrl langsung, karena jalannya sesudah mount.
   const invUrlAktif = useInvitationUrl(inv?.slug ?? '')
+
+  /**
+   * Fitur paket undangan yang sedang dibuka.
+   *
+   * Dipakai mengunci menu yang memang tidak termasuk paketnya. Sebelum ini
+   * tab Analitik terbuka untuk semua paket padahal `analytics: false` di
+   * Starter, jadi pembedanya diberikan gratis dan tidak ada alasan naik
+   * paket. Admin dikecualikan supaya bisa memeriksa undangan siapa pun.
+   */
+  const fiturPaket = isAdmin
+    ? null
+    : resolveTierDisplay(priceTiers, (inv as unknown as Record<string, unknown> | null)?.package_tier as string | undefined).features
+
+  const menuTerkunci = (id: Tab): boolean =>
+    id === 'analytics' && !!fiturPaket && !fiturPaket.analytics
 
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false)
@@ -331,10 +346,18 @@ export default function DashboardClient({ user, invitations, selectedTemplateId,
           <p className="text-[9px] text-white/20 uppercase tracking-[0.2em] font-semibold px-3 mb-2 mt-1">Menu</p>
           {NAV.map(({ id, label, icon: Icon }) => {
             const active = tab === id
+            const terkunci = menuTerkunci(id)
             return (
               <button
                 key={id}
-                onClick={() => navTo(id)}
+                onClick={() => {
+                  if (terkunci) {
+                    toast('Analitik tersedia mulai paket Popular.')
+                    return
+                  }
+                  navTo(id)
+                }}
+                aria-disabled={terkunci}
                 className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all text-left group ${
                   active
                     ? 'bg-white/[0.1] text-white shadow-sm'
@@ -344,7 +367,8 @@ export default function DashboardClient({ user, invitations, selectedTemplateId,
                 {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full bg-amber-400" />}
                 <Icon size={16} strokeWidth={active ? 2 : 1.5} />
                 <span className="flex-1">{label}</span>
-                {active && <ChevronRight size={12} className="text-white/30" />}
+                {terkunci && <Lock size={12} className="text-white/25" />}
+                {active && !terkunci && <ChevronRight size={12} className="text-white/30" />}
               </button>
             )
           })}

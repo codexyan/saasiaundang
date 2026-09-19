@@ -20,6 +20,7 @@
  *   node scripts/uji-studio.mjs buat
  *   node scripts/uji-studio.mjs cek
  *   node scripts/uji-studio.mjs hapus
+ *   node scripts/uji-studio.mjs paket starter|popular|eksklusif
  */
 import { readFileSync, writeFileSync } from 'node:fs'
 import pg from 'pg'
@@ -32,8 +33,14 @@ const ID_USER = 'uji_user_kanvas'
 const ID_INV = 'uji_inv_kanvas'
 
 const perintah = process.argv[2]
-if (!['buat', 'cek', 'hapus'].includes(perintah)) {
-  console.error('Pakai: node scripts/uji-studio.mjs buat|cek|hapus')
+if (!['buat', 'cek', 'hapus', 'paket'].includes(perintah)) {
+  console.error('Pakai: node scripts/uji-studio.mjs buat|cek|hapus|paket <tier>')
+  process.exit(1)
+}
+
+const paketBaru = process.argv[3]
+if (perintah === 'paket' && !['starter', 'popular', 'eksklusif'].includes(paketBaru)) {
+  console.error('Pakai: node scripts/uji-studio.mjs paket starter|popular|eksklusif')
   process.exit(1)
 }
 
@@ -58,6 +65,17 @@ async function cek() {
   if (r.rows.length === 0) { console.log('baris uji: belum ada'); return null }
   console.log('baris uji:', JSON.stringify(r.rows[0]))
   return r.rows[0]
+}
+
+if (perintah === 'paket') {
+  // Mengganti paket undangan uji supaya keadaan terkunci bisa dilihat
+  // sungguhan: gaya pembuka dasar, menu Analitik terkunci, unggah musik
+  // tertutup. Hanya menyentuh baris uji, tidak menyentuh data lain.
+  const r = await c.query('UPDATE invitations SET package_tier = $1 WHERE id = $2', [paketBaru, ID_INV])
+  console.log(r.rowCount === 1 ? `paket undangan uji jadi ${paketBaru}` : 'baris uji tidak ketemu')
+  await cek()
+  await c.end()
+  process.exit(0)
 }
 
 if (perintah === 'cek') {

@@ -1,10 +1,21 @@
 'use client'
 
-import { DoorOpen, Check } from 'lucide-react'
+import { DoorOpen, Check, Lock} from 'lucide-react'
 import FormField from '../ui/FormField'
 import { StudioInput, StudioTextarea } from '../ui/StudioInput'
 import SectionCard from '../ui/SectionCard'
 import type { OpeningType } from '@/lib/types'
+
+/**
+ * Gaya yang termasuk paket dasar.
+ *
+ * `opening_styles: 'basic'` sudah lama ada di definisi paket dan diiklankan
+ * sebagai pembeda, tapi tidak pernah dibaca di mana pun: paket termurah
+ * mendapat ketujuh belas gaya, sama dengan yang termahal. Kategori Klasik
+ * dipilih sebagai isi paket dasar karena paling netral dan paling aman untuk
+ * tema apa pun.
+ */
+const GAYA_DASAR = new Set<OpeningType>(['fade-reveal', 'envelope', 'scroll-reveal', 'book-open'])
 
 interface OpeningFormProps {
   openingType: OpeningType
@@ -21,6 +32,10 @@ interface OpeningFormProps {
   onOpeningGroomNameChange: (value: string) => void
   onOpeningBrideNameChange: (value: string) => void
   onNameGapChange: (value: number) => void
+  /** Paket pembeli membuka semua gaya pembuka. */
+  semuaGaya: boolean
+  /** Paket termurah yang membuka sisanya. */
+  paketPembuka?: string
 }
 
 type OpeningCategory = 'klasik' | 'romantis' | 'modern' | 'dramatis'
@@ -77,6 +92,8 @@ export default function OpeningForm({
   onOpeningGroomNameChange,
   onOpeningBrideNameChange,
   onNameGapChange,
+  semuaGaya,
+  paketPembuka,
 }: OpeningFormProps) {
   return (
     <SectionCard
@@ -88,8 +105,22 @@ export default function OpeningForm({
       <div className="space-y-1">
         <p className="text-sm font-semibold text-graphite">Gaya Pembuka</p>
         <p className="text-xs text-concrete">Pilih animasi pembuka yang tampil pertama kali saat tamu membuka undangan</p>
+        {!semuaGaya && (
+          <div className="flex items-start gap-2.5 px-3.5 py-3 rounded-card border border-hairline bg-ivory">
+            <Lock size={14} className="text-concrete shrink-0 mt-0.5" />
+            <p className="text-ui-xs text-graphite leading-relaxed">
+              Paket kalian memuat {GAYA_DASAR.size} gaya pembuka.
+              {paketPembuka ? ` Gaya lainnya terbuka di paket ${paketPembuka}.` : ''}
+            </p>
+          </div>
+        )}
         {CATEGORIES.map((cat) => {
           const styles = OPENING_STYLES.filter((s) => s.category === cat.id)
+            // Gaya yang sedang dipakai tetap ditampilkan walau di luar paket:
+            // pilihannya datang dari tema, bukan dari pembeli, dan
+            // menyembunyikannya membuat layar berbohong soal apa yang tampil.
+            .filter((s) => semuaGaya || GAYA_DASAR.has(s.id) || s.id === openingType)
+          if (styles.length === 0) return null
           return (
             <div key={cat.id}>
               <p className="text-ui-2xs font-bold tracking-[0.1em] uppercase text-concrete mb-2 mt-4">

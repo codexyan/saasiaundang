@@ -100,8 +100,11 @@ function buildTierFeatureList(tierId: string, f: TierFeatures): FeatureItem[] {
   // Fitur ekstra
   list.push({ label: 'Tanpa logo iaundang', included: bolehHapusWatermark(f.remove_watermark) })
   list.push({ label: 'Kode QR untuk absen tamu', included: f.qrcode })
-  list.push({ label: 'Alamat website sendiri', included: f.custom_domain })
-  list.push({ label: 'Dibantu lebih dulu lewat WhatsApp', included: f.priority_support })
+  // "Alamat website sendiri" dan "Dibantu lebih dulu lewat WhatsApp" pernah
+  // berdiri di sini. Keduanya dicabut 19 Sep 2026 karena tidak ada satu pun
+  // mekanisme di belakangnya: tidak ada layar untuk memasang domain, dan
+  // tidak ada penanda prioritas di tiket dukungan. Menjual keduanya berarti
+  // menagih sesuatu yang tidak bisa diberikan.
   return list
 }
 

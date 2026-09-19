@@ -63,8 +63,13 @@ const EKSKLUSIF_FEATURES: TierFeatures = {
   countdown: true, gallery: true, rsvp: true, wishes: true,
   story: true, video: true, gift: true, gift_registry: true,
   livestream: true, ig_story: true, qrcode: true, closing: true,
-  custom_domain: true, subdomain: true, remove_watermark: false,
-  analytics: true, priority_support: true, validity_days: 365,
+  // custom_domain dan priority_support dimatikan 19 Sep 2026. Keduanya
+  // tertulis di paket dan diiklankan di empat tempat publik, tapi tidak ada
+  // satu pun mekanisme di belakangnya: tidak ada layar untuk memasang domain
+  // sendiri, dan tidak ada penanda prioritas di tiket dukungan. Nyalakan lagi
+  // kalau mekanismenya sudah benar benar ada, bukan sebaliknya.
+  custom_domain: false, subdomain: true, remove_watermark: false,
+  analytics: true, priority_support: false, validity_days: 365,
   decoration_editing: true, max_decoration_assets: -1, custom_animations: true,
 }
 

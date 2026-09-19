@@ -436,6 +436,13 @@ export default function InvitationStudio({ invitation, template, onSaved, isAdmi
           onOpeningGroomNameChange={(val) => updateData({ opening_groom_name: val })}
           onOpeningBrideNameChange={(val) => updateData({ opening_bride_name: val })}
           onNameGapChange={(val) => updateData({ opening_name_gap: val })}
+          semuaGaya={gating.features.opening_styles === 'all'}
+          /* getRequiredTier() tidak dipakai di sini: `opening_styles` bernilai
+             'basic' atau 'all', bukan boolean, jadi pemeriksaan truthy di
+             sana akan menganggap 'basic' sudah membuka semuanya. */
+          paketPembuka={[...(priceTiers ?? [])]
+            .sort((a, b) => a.price - b.price)
+            .find(t => t.features?.opening_styles === 'all')?.label}
         />
       )
       case 'loading': return (

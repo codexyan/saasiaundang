@@ -170,7 +170,6 @@ function TemplateRow({ rec, tier, start, terbalik }: {
             {tier.features.wishes && <span className="text-label-sm bg-mist text-concrete px-2 py-0.5 rounded-pill">Ucapan</span>}
             {tier.features.gift && <span className="text-label-sm bg-forest-50 text-forest px-2 py-0.5 rounded-pill">Amplop</span>}
             {tier.features.video && <span className="text-label-sm bg-forest-50 text-forest px-2 py-0.5 rounded-pill">Video</span>}
-            {tier.features.custom_domain && <span className="text-label-sm bg-gold-50 text-gold-700 px-2 py-0.5 rounded-pill">Custom Domain</span>}
           </div>
         )}
 
