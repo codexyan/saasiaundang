@@ -54,3 +54,6 @@ next-env.d.ts
 
 # Hasil potret dari scripts/ui-check
 ui-shots/
+
+# Skrip sekali pakai selama pengembangan
+scripts/.tmp-*
