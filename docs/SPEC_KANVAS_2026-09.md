@@ -227,8 +227,8 @@ Karena belum ada lalu lintas, semua angka di bawah adalah **hipotesis yang harus
 
 | # | Pertanyaan | Yang menjawab | Memblokir? |
 |---|---|---|---|
-| Q-1 | Pratinjau editor admin dipindahkan ke `InvitationRenderer` (menyatukan dua jalur render) atau `InvitationPreview` ditambahi penanda seksi saja? | Rekayasa | Ya, menentukan bentuk P0-1 |
-| Q-2 | Kanvas pelanggan: seret bebas seperti admin, atau hanya memilih dari titik tempel yang sudah ditentukan tema? | Pemilik produk | Ya, menentukan bentuk P0-2 |
+| Q-1 | ~~Pratinjau editor admin dipindahkan ke `InvitationRenderer` atau `InvitationPreview` ditambahi penanda seksi?~~ **Terjawab 19 Sep: penanda seksi.** Satu atribut `data-section-id`, sama persis dengan yang sudah dipakai `InvitationRenderer`. Menyatukan dua jalur render tetap layak, tapi sebagai pekerjaan tersendiri | Rekayasa | Selesai |
+| Q-2 | ~~Kanvas pelanggan: seret bebas atau titik tempel?~~ **Terjawab 19 Sep: titik tempel yang sudah ditentukan tema.** Pelanggan memilih ornamen lalu menaruhnya di titik yang kita siapkan per seksi. Tidak bisa menabrak teks, tidak bisa jelek, dan paling sedikit menimbulkan tiket dukungan | Pemilik produk | Selesai |
 | Q-3 | Apakah paket Starter melihat kanvas terkunci, atau tidak melihatnya sama sekali? | Pemilik produk | Tidak |
 | Q-4 | Batas ukuran unggahan dekorasi pelanggan, dan siapa yang membayar penyimpanannya | Pemilik produk | Tidak |
 | Q-5 | Gaya opening berbasis WebGL: dikerjakan sekarang, nanti, atau tidak sama sekali | Pemilik produk | Tidak |
@@ -405,6 +405,19 @@ Ini paling terasa di studio pelanggan, karena satu satunya tautan yang bisa kita
 - [ ] **P1-10.** Editor tema admin mengikuti pola yang sama: `/admin/template/[id]` dengan tab di URL.
 - [ ] **P0-8.** `/dev-preview/template` dihapus begitu pekerjaan modul template selesai.
 - [ ] **P1-11.** `/demo/renderer` tanpa `id` atau dengan id yang tidak aktif mengarah ke `/templates` dengan pesan satu kalimat, bukan layar kosong.
+
+**Sudah dikerjakan 19 Sep (commit `f976c72`), dengan satu penyimpangan yang disengaja dari bentuk alamat di P0-7.** Dipakai parameter kueri, bukan rute bersarang:
+
+```
+/dashboard?undangan=<id>&tab=undangan&bagian=galeri
+/admin?tab=template&template=<id>&panel=konten
+```
+
+Alasannya satu baris: data seluruh undangan sudah dimuat sekali di halaman dashboard, dan rute bersarang akan memaksa pemuatan kedua sekaligus memutus perpindahan antar undangan yang sekarang instan. Panel admin sudah memakai pola yang sama untuk `?tab=`, jadi ini menyatukan keduanya alih alih menambah pola baru.
+
+Ikut selesai di jalur yang sama: email pesanan lunas untuk akun lama menautkan undangannya langsung, `/demo/renderer` tanpa id mengambil tema aktif dari database alih alih salinan statis di kode, dan id yang tidak dikenal kembali ke `/templates` (terukur 307).
+
+Yang belum: perubahan sisi dashboard belum pernah dijalankan sebagai pelanggan sungguhan, karena database produksi belum punya satu undangan pun. Diperiksa lewat type check dan lewat pola yang sama di jalur admin yang sudah diuji di peramban.
 
 ---
 
