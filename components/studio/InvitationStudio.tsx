@@ -37,6 +37,7 @@ import QRCodeForm from './forms/QRCodeForm'
 import GiftRegistryForm from './forms/GiftRegistryForm'
 import ColorPaletteForm from './forms/ColorPaletteForm'
 import TypographyForm from './forms/TypographyForm'
+import DecorationForm from './forms/DecorationForm'
 import InfoCard from './ui/InfoCard'
 import FormField from './ui/FormField'
 import { StudioInput, StudioTextarea } from './ui/StudioInput'
@@ -150,6 +151,9 @@ function buildNavGroups(
         // menangkan. Menguncinya di paket termahal membuang keunggulan
         // sendiri di depan pembeli yang sedang membandingkan.
         item('huruf', 'Huruf', Type, 'Tampilan'),
+        // Kunci paketnya 'dekorasi' -> features.decoration_editing, yang
+        // sudah ada di peta gating dan sudah ditegakkan API.
+        item('hiasan', 'Hiasan', Sparkles, 'Tampilan', 'dekorasi'),
         item('opening', 'Pembuka', Sparkles, 'Tampilan'),
         item('loading', 'Loading', Loader2, 'Tampilan'),
       ],
@@ -446,6 +450,16 @@ export default function InvitationStudio({ invitation, template, onSaved, isAdmi
             text_color: colors.text,
             background_color: colors.background,
           })}
+        />
+      )
+      case 'hiasan': return (
+        <DecorationForm
+          sections={template.config.sections}
+          data={data}
+          onUpdate={updateData}
+          maxAset={gating.maxDecorationAssets}
+          warnaAksen={data.accent_color ?? template.config.meta.color_scheme.accent}
+          warnaLatar={data.primary_color ?? template.config.meta.color_scheme.primary}
         />
       )
       case 'huruf': return (

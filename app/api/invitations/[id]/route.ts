@@ -123,18 +123,35 @@ export async function PATCH(req: NextRequest, props: Params) {
         delete body.data.section_decoration_overrides
         delete body.data.opening_decoration_overrides
       } else if (features.max_decoration_assets >= 0) {
+        /**
+         * Batasnya SELURUH undangan, bukan per bagian.
+         *
+         * Dulu tiap bagian dipotong sendiri sendiri, jadi paket Popular yang
+         * tertulis "3 hiasan" sebenarnya memberi 3 dikali jumlah seksi, sampai
+         * 48 ornamen, dan "tanpa batas" milik Eksklusif nyaris tidak berarti
+         * apa apa. Halaman harga juga menjanjikan angka tunggal.
+         *
+         * Pemotongan berjalan berurutan dari bagian pertama, dan sisa jatah
+         * habis di bagian berikutnya. Layar Hiasan di studio menghitung dengan
+         * aturan yang sama, jadi pembeli tidak pernah kehilangan sesuatu yang
+         * tampak berhasil dipasang.
+         */
+        let sisa = features.max_decoration_assets
+
+        if (body.data.opening_decoration_overrides) {
+          const arr = body.data.opening_decoration_overrides as unknown[]
+          if (arr.length > sisa) {
+            body.data.opening_decoration_overrides = arr.slice(0, sisa) as typeof body.data.opening_decoration_overrides
+          }
+          sisa -= Math.min(arr.length, sisa)
+        }
+
         if (body.data.section_decoration_overrides) {
           const overrides = body.data.section_decoration_overrides as Record<string, unknown[]>
           for (const key of Object.keys(overrides)) {
-            if (overrides[key]?.length > features.max_decoration_assets) {
-              overrides[key] = overrides[key].slice(0, features.max_decoration_assets)
-            }
-          }
-        }
-        if (body.data.opening_decoration_overrides) {
-          const arr = body.data.opening_decoration_overrides as unknown[]
-          if (arr.length > features.max_decoration_assets) {
-            body.data.opening_decoration_overrides = arr.slice(0, features.max_decoration_assets) as typeof body.data.opening_decoration_overrides
+            const arr = overrides[key] ?? []
+            if (arr.length > sisa) overrides[key] = arr.slice(0, sisa)
+            sisa -= Math.min(arr.length, sisa)
           }
         }
       }
