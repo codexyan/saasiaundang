@@ -253,14 +253,16 @@ export default function DecorPanel() {
                     <button
                       onClick={e => { e.stopPropagation(); duplicate(a) }}
                       title="Gandakan"
-                      className="p-1 text-gray-300 hover:text-emerald-600 rounded transition-colors"
+                      aria-label={`Gandakan ${a.label || 'aset'}`}
+                      className="p-1 text-gray-500 hover:text-emerald-700 rounded transition-colors inline-flex items-center justify-center sentuh:w-11 sentuh:h-11"
                     >
                       <Copy className="w-3 h-3" />
                     </button>
                     <button
                       onClick={e => { e.stopPropagation(); remove(a.id) }}
                       title="Hapus"
-                      className="p-1 text-gray-300 hover:text-red-500 rounded transition-colors"
+                      aria-label={`Hapus ${a.label || 'aset'}`}
+                      className="p-1 text-gray-500 hover:text-red-600 rounded transition-colors inline-flex items-center justify-center sentuh:w-11 sentuh:h-11"
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
@@ -298,7 +300,7 @@ export default function DecorPanel() {
 
           <button
             onClick={() => { setPreviewPlaying(false); setDecorPreviewKey(k => k + 1) }}
-            className="w-full py-2.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition-colors"
+            className="w-full py-2.5 sentuh:min-h-[44px] text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition-colors"
             title="Putar ulang animasi masuk semua dekorasi"
           >
             ▶ Ulangi Animasi
@@ -315,7 +317,7 @@ function ScopeChip({ active, label, count, onClick }: {
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all ${
+      className={`px-3 py-1.5 sentuh:min-h-[44px] text-[10px] font-bold rounded-lg transition-all ${
         active ? 'bg-gray-900 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
       }`}
     >
@@ -339,7 +341,8 @@ function IconToggle({ on, onIcon: OnIcon, offIcon: OffIcon, title, onClick }: {
     <button
       onClick={onClick}
       title={title}
-      className={`p-1 rounded transition-colors ${on ? 'text-gray-300 hover:text-gray-600' : 'text-amber-500 hover:text-amber-700'}`}
+      aria-label={title}
+      className={`p-1 rounded transition-colors inline-flex items-center justify-center sentuh:w-11 sentuh:h-11 ${on ? 'text-gray-500 hover:text-gray-800' : 'text-amber-600 hover:text-amber-700'}`}
     >
       <Icon className="w-3 h-3" />
     </button>

@@ -8,7 +8,7 @@ import ImageUploadField from '@/components/admin/ImageUploadField'
 import SectionBackgroundControl from '@/components/controls/SectionBackgroundControl'
 import SectionTransitionControl from '@/components/controls/SectionTransitionControl'
 import VariantThumb from '../parts/VariantThumb'
-import { SectionField, miniInput } from '../parts/fields'
+import { SectionField, miniInput, Sakelar, tombolIkon } from '../parts/fields'
 import {
   SECTION_TYPES, SECTION_VARIANTS, SECTION_LABELS, GIFT_LAB_BRANDS, makeGiftAccount,
   HEADING_FONTS, BODY_FONTS,
@@ -39,7 +39,7 @@ export default function ContentPanel() {
         <p className="text-xs text-gray-500">Atur section yang tampil, urutan, dan warna latar.</p>
         <button
           onClick={() => { setDragModeEnabled(!dragModeEnabled); if (dragModeEnabled) { setDraggingSectionId(null); setDragOverSectionId(null) } }}
-          className={`flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1.5 rounded-lg transition-all ${
+          className={`flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1.5 sentuh:min-h-[44px] rounded-lg transition-all ${
             dragModeEnabled
               ? 'bg-indigo-600 text-white shadow-sm'
               : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 border border-gray-200'
@@ -92,7 +92,7 @@ export default function ContentPanel() {
               <div className={`shrink-0 transition-colors ${
                 lockedSectionIds.has(s.id)
                   ? 'text-yellow-400 cursor-not-allowed'
-                  : 'cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500'
+                  : 'cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-700'
               }`}>
                 {lockedSectionIds.has(s.id)
                   ? <Lock className="w-3.5 h-3.5" />
@@ -125,7 +125,7 @@ export default function ContentPanel() {
             {/* Section label */}
             <button
               onClick={() => setExpandedSectionId(expandedSectionId === s.id ? null : s.id)}
-              className="flex-1 text-left min-w-0"
+              className="flex-1 text-left min-w-0 flex items-center sentuh:min-h-[44px]"
             >
               <span className={`text-[11px] font-semibold truncate block ${s.enabled ? 'text-gray-700' : 'text-gray-400'}`}>
                 {SECTION_LABELS[s.type] ?? s.type}
@@ -137,12 +137,14 @@ export default function ContentPanel() {
               <div className="flex items-center gap-0.5 shrink-0">
                 <button onClick={() => moveSection(s.id, 'up')}
                   disabled={idx === 0 || lockedSectionIds.has(s.id) || (idx > 0 && lockedSectionIds.has(sections[idx - 1].id))}
-                  className="p-0.5 text-gray-300 hover:text-gray-600 disabled:opacity-20 rounded">
+                  title="Naikkan urutan" aria-label="Naikkan urutan seksi"
+                  className={tombolIkon + ' p-0.5 text-gray-500 hover:text-gray-800 disabled:opacity-20'}>
                   <ChevronUp className="w-3 h-3" />
                 </button>
                 <button onClick={() => moveSection(s.id, 'down')}
                   disabled={idx === sections.length - 1 || lockedSectionIds.has(s.id) || (idx < sections.length - 1 && lockedSectionIds.has(sections[idx + 1].id))}
-                  className="p-0.5 text-gray-300 hover:text-gray-600 disabled:opacity-20 rounded">
+                  title="Turunkan urutan" aria-label="Turunkan urutan seksi"
+                  className={tombolIkon + ' p-0.5 text-gray-500 hover:text-gray-800 disabled:opacity-20'}>
                   <ChevronDown className="w-3 h-3" />
                 </button>
                 <button
@@ -151,8 +153,9 @@ export default function ContentPanel() {
                     next.has(s.id) ? next.delete(s.id) : next.add(s.id)
                     return next
                   })}
-                  className={`p-0.5 rounded transition-colors ${lockedSectionIds.has(s.id) ? 'text-yellow-500' : 'text-gray-300 hover:text-gray-500'}`}
-                  title={lockedSectionIds.has(s.id) ? 'Unlock posisi' : 'Lock posisi'}
+                  className={`${tombolIkon} p-0.5 ${lockedSectionIds.has(s.id) ? 'text-yellow-600' : 'text-gray-500 hover:text-gray-800'}`}
+                  title={lockedSectionIds.has(s.id) ? 'Buka kunci posisi' : 'Kunci posisi'}
+                  aria-label={lockedSectionIds.has(s.id) ? 'Buka kunci posisi seksi' : 'Kunci posisi seksi'}
                 >
                   {lockedSectionIds.has(s.id) ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
                 </button>
@@ -160,23 +163,21 @@ export default function ContentPanel() {
             )}
 
             {/* Visibility toggle switch */}
-            <button
-              onClick={() => updateSection(s.id, { enabled: !s.enabled })}
-              className={`shrink-0 relative w-8 h-[18px] rounded-full transition-colors ${
-                s.enabled ? 'bg-emerald-500' : 'bg-gray-200'
-              }`}
-              title={s.enabled ? 'Nonaktifkan' : 'Aktifkan'}
-            >
-              <span className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow-sm transition-transform ${
-                s.enabled ? 'left-[16px]' : 'left-[2px]'
-              }`} />
-            </button>
+            <Sakelar
+              ukuran="mini"
+              warna="emerald"
+              nyala={s.enabled}
+              onUbah={() => updateSection(s.id, { enabled: !s.enabled })}
+              label={`Tampilkan seksi ${SECTION_LABELS[s.type] ?? s.type} di undangan`}
+            />
 
             {/* Expand/collapse */}
             <button
               onClick={() => setExpandedSectionId(expandedSectionId === s.id ? null : s.id)}
-              className={`shrink-0 p-1 rounded-lg transition-all ${
-                expandedSectionId === s.id ? 'text-indigo-500 bg-indigo-100' : 'text-gray-300 hover:text-gray-500'
+              aria-expanded={expandedSectionId === s.id}
+              aria-label={expandedSectionId === s.id ? 'Tutup pengaturan seksi' : 'Buka pengaturan seksi'}
+              className={`${tombolIkon} shrink-0 p-1 ${
+                expandedSectionId === s.id ? 'text-indigo-600 bg-indigo-100' : 'text-gray-500 hover:text-gray-800'
               }`}
             >
               <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${expandedSectionId === s.id ? 'rotate-180' : ''}`} />
@@ -185,7 +186,9 @@ export default function ContentPanel() {
             {/* Delete */}
             {s.type !== 'hero' && (
               <button onClick={() => removeSection(s.id)}
-                className="shrink-0 p-1 text-gray-200 hover:text-red-400 rounded-lg transition-colors">
+                title="Hapus seksi"
+                aria-label={`Hapus seksi ${SECTION_LABELS[s.type] ?? s.type}`}
+                className={tombolIkon + ' shrink-0 p-1 text-gray-500 hover:text-red-600'}>
                 <Trash2 className="w-3 h-3" />
               </button>
             )}

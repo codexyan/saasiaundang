@@ -61,14 +61,14 @@ export default function ConfirmDialog({
           <button
             onClick={onCancel}
             disabled={busy}
-            className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 disabled:opacity-50 transition-colors"
+            className="flex-1 px-4 py-2.5 sentuh:min-h-[44px] text-sm font-medium text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 disabled:opacity-50 transition-colors"
           >
             {cancelLabel}
           </button>
           <button
             onClick={onConfirm}
             disabled={busy}
-            className={`flex-1 px-4 py-2.5 text-sm font-semibold text-white rounded-xl ${t.btn} disabled:opacity-60 transition-colors inline-flex items-center justify-center gap-2`}
+            className={`flex-1 px-4 py-2.5 sentuh:min-h-[44px] text-sm font-semibold text-white rounded-xl ${t.btn} disabled:opacity-60 transition-colors inline-flex items-center justify-center gap-2`}
           >
             {busy && <Loader2 className="w-4 h-4 animate-spin" />}
             {confirmLabel}

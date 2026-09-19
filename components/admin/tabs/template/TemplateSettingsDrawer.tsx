@@ -138,13 +138,13 @@ export default function TemplateSettingsDrawer({
       width="max-w-lg"
       footer={
         <div className="flex gap-3">
-          <button onClick={onClose} className="px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+          <button onClick={onClose} className="px-4 min-h-[44px] text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
             Batal
           </button>
           <button
             onClick={submit}
             disabled={saving || !!slugError}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-gray-900 rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-colors"
+            className="flex-1 inline-flex items-center justify-center gap-2 px-4 min-h-[44px] text-sm font-semibold text-white bg-gray-900 rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-colors"
           >
             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
             Simpan pengaturan
@@ -170,7 +170,7 @@ export default function TemplateSettingsDrawer({
                 <button
                   onClick={() => fileRef.current?.click()}
                   disabled={uploading}
-                  className="mt-2 w-full inline-flex items-center justify-center gap-1.5 px-2 py-1.5 text-[11px] font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
+                  className="mt-2 w-full inline-flex items-center justify-center gap-1.5 px-2 py-1.5 sentuh:min-h-[44px] text-[11px] font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
                 >
                   {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
                   Thumbnail
@@ -222,7 +222,7 @@ export default function TemplateSettingsDrawer({
                   <button
                     key={c.slug}
                     onClick={() => set({ category: c.slug })}
-                    className={`px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-colors ${
+                    className={`px-3 py-1.5 sentuh:min-h-[44px] rounded-lg text-[12px] font-semibold border transition-colors ${
                       sel ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
                     }`}
                   >
@@ -232,7 +232,7 @@ export default function TemplateSettingsDrawer({
               })}
               <button
                 onClick={onManageCategories}
-                className="px-3 py-1.5 rounded-lg text-[12px] font-semibold border border-dashed border-gray-300 text-gray-400 hover:text-gray-700 hover:border-gray-400 transition-colors inline-flex items-center gap-1.5"
+                className="px-3 py-1.5 sentuh:min-h-[44px] rounded-lg text-[12px] font-semibold border border-dashed border-gray-300 text-gray-400 hover:text-gray-700 hover:border-gray-400 transition-colors inline-flex items-center gap-1.5"
               >
                 <Tag className="w-3 h-3" /> Kelola
               </button>
@@ -247,7 +247,7 @@ export default function TemplateSettingsDrawer({
                   <button
                     key={t.id}
                     onClick={() => set({ required_package: t.id as TemplatePackageRequirement })}
-                    className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl border text-left transition-colors ${
+                    className={`w-full flex items-center gap-3 px-3.5 py-2.5 sentuh:min-h-[44px] rounded-xl border text-left transition-colors ${
                       sel ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-200 hover:border-gray-400'
                     }`}
                   >

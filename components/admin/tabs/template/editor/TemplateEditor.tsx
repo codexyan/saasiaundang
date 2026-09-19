@@ -654,7 +654,7 @@ export default function TemplateEditor({
               : lembar === 'penuh' ? 'Ringkaskan panel kontrol supaya pratinjau terlihat penuh'
                 : 'Buka panel kontrol'
           }
-          className="lg:hidden shrink-0 w-full py-3 flex items-center justify-center gap-2 text-[10px] font-semibold text-gray-400 hover:text-gray-700 transition-colors"
+          className="lg:hidden shrink-0 w-full min-h-[44px] py-3 flex items-center justify-center gap-2 text-[11px] font-semibold text-gray-400 hover:text-gray-700 transition-colors"
         >
           <span aria-hidden className="w-10 h-1 rounded-full bg-gray-300" />
           <span>
@@ -670,8 +670,9 @@ export default function TemplateEditor({
           <div className="flex items-center gap-2.5">
             <button
               onClick={exitEditor}
-              className="p-1.5 -ml-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+              className="w-11 h-11 -ml-2.5 -my-2 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
               title="Simpan draf & kembali ke koleksi"
+              aria-label="Simpan draf dan kembali ke koleksi template"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
@@ -687,7 +688,8 @@ export default function TemplateEditor({
             <button
               onClick={onOpenSettings}
               title="Nama, slug, kategori, harga, publikasi"
-              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors shrink-0"
+              aria-label="Buka pengaturan template"
+              className="w-11 h-11 -my-2 -mr-2 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors shrink-0"
             >
               <Settings2 className="w-4 h-4" />
             </button>
@@ -766,10 +768,10 @@ export default function TemplateEditor({
             </div>
 
             <div className="flex items-center gap-0.5 shrink-0">
-              <button onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)"
-                className="p-1 text-gray-400 hover:text-gray-800 disabled:opacity-20 transition-colors"><Undo2 className="w-3.5 h-3.5" /></button>
-              <button onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Y)"
-                className="p-1 text-gray-400 hover:text-gray-800 disabled:opacity-20 transition-colors"><Redo2 className="w-3.5 h-3.5" /></button>
+              <button onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)" aria-label="Urungkan perubahan terakhir"
+                className="w-11 h-11 -my-3 flex items-center justify-center text-gray-500 hover:text-gray-900 disabled:opacity-20 transition-colors"><Undo2 className="w-3.5 h-3.5" /></button>
+              <button onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Y)" aria-label="Ulangi perubahan yang diurungkan"
+                className="w-11 h-11 -my-3 flex items-center justify-center text-gray-500 hover:text-gray-900 disabled:opacity-20 transition-colors"><Redo2 className="w-3.5 h-3.5" /></button>
             </div>
           </div>
 
@@ -788,7 +790,8 @@ export default function TemplateEditor({
               <button
                 onClick={() => setConfirmDiscard(true)}
                 title="Buang draf, kembali ke versi terbit"
-                className="p-1 text-indigo-400 hover:text-indigo-700 transition-colors shrink-0"
+                aria-label="Buang draf, kembali ke versi terbit"
+                className="w-11 h-11 -my-2 -mr-2 flex items-center justify-center text-indigo-400 hover:text-indigo-700 transition-colors shrink-0"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
               </button>
@@ -798,7 +801,7 @@ export default function TemplateEditor({
           <button
             onClick={() => setShowPublish(true)}
             disabled={publishing}
-            className="w-full flex items-center justify-center gap-1.5 bg-gray-900 text-white text-xs font-semibold py-2.5 rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-colors"
+            className="w-full min-h-[44px] flex items-center justify-center gap-1.5 bg-gray-900 text-white text-xs font-semibold py-2.5 rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-colors"
           >
             <Rocket className="w-3.5 h-3.5" />
             {record.status === 'active' ? 'Terbitkan perubahan' : 'Terbitkan template'}
@@ -826,7 +829,9 @@ export default function TemplateEditor({
                 <Rocket className="w-4 h-4 text-gray-900" />
                 <h3 className="font-bold text-gray-900 text-sm">Terbitkan template</h3>
               </div>
-              <button onClick={() => setShowPublish(false)} disabled={publishing} className="text-gray-400 hover:text-gray-700">
+              <button onClick={() => setShowPublish(false)} disabled={publishing}
+                aria-label="Tutup" title="Tutup"
+                className="text-gray-400 hover:text-gray-700 inline-flex items-center justify-center -mr-2 sentuh:w-11 sentuh:h-11">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -859,7 +864,7 @@ export default function TemplateEditor({
               <button
                 onClick={() => publish('active')}
                 disabled={publishing}
-                className="w-full py-2.5 text-sm font-semibold bg-gray-900 text-white rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                className="w-full py-2.5 sentuh:min-h-[44px] text-sm font-semibold bg-gray-900 text-white rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
               >
                 {publishing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Rocket className="w-3.5 h-3.5" />}
                 Terbitkan &amp; tampilkan di galeri
@@ -867,14 +872,14 @@ export default function TemplateEditor({
               <button
                 onClick={() => publish('draft')}
                 disabled={publishing}
-                className="w-full py-2.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                className="w-full py-2.5 sentuh:min-h-[44px] text-sm font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 transition-colors"
               >
                 Simpan sebagai versi terbit, tetap draft
               </button>
               <button
                 onClick={() => setShowPublish(false)}
                 disabled={publishing}
-                className="w-full py-2 text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors"
+                className="w-full py-2 sentuh:min-h-[44px] text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors"
               >
                 Batal
               </button>

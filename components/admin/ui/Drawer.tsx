@@ -68,7 +68,7 @@ export default function Drawer({ open, onClose, title, subtitle, width = 'max-w-
           <button
             onClick={onClose}
             aria-label="Tutup"
-            className="p-1.5 -mr-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors shrink-0"
+            className="w-11 h-11 -mr-3 -my-1.5 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors shrink-0"
           >
             <X className="w-4 h-4" />
           </button>

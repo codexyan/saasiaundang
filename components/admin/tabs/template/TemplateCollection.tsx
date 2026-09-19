@@ -114,13 +114,13 @@ export default function TemplateCollection({
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={onManageCategories}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 sentuh:min-h-[44px] rounded-xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
             >
               <Tag className="w-4 h-4" /> Kategori
             </button>
             <button
               onClick={onCreate}
-              className="inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-800 transition-colors"
+              className="inline-flex items-center justify-center gap-2 bg-gray-900 text-white px-5 py-2.5 sentuh:min-h-[44px] rounded-xl text-sm font-semibold hover:bg-gray-800 transition-colors"
             >
               <Plus className="w-4 h-4" /> Buat Template
             </button>
@@ -145,7 +145,7 @@ export default function TemplateCollection({
                 <button
                   key={chip.key}
                   onClick={() => setStatus(chip.key)}
-                  className={`px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors ${
+                  className={`px-3 py-1.5 sentuh:min-h-[44px] rounded-lg text-[12px] font-semibold transition-colors ${
                     status === chip.key ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                   }`}
                 >
@@ -163,13 +163,13 @@ export default function TemplateCollection({
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 placeholder="Cari nama atau slug..."
-                className="w-full pl-9 pr-8 py-2.5 text-sm bg-white border border-gray-200/70 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400"
+                className="w-full pl-9 pr-8 py-2.5 sentuh:min-h-[44px] text-sm bg-white border border-gray-200/70 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400"
               />
               {query && (
                 <button
                   onClick={() => setQuery('')}
                   aria-label="Hapus pencarian"
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-gray-300 hover:text-gray-600"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 inline-flex items-center justify-center sentuh:w-11 sentuh:h-11 text-gray-500 hover:text-gray-800"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -179,7 +179,7 @@ export default function TemplateCollection({
             <select
               value={category}
               onChange={e => setCategory(e.target.value)}
-              className="px-3 py-2.5 text-sm bg-white border border-gray-200/70 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+              className="px-3 py-2.5 sentuh:min-h-[44px] text-sm bg-white border border-gray-200/70 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900/10"
             >
               <option value="all">Semua kategori</option>
               {categories.map(c => <option key={c.slug} value={c.slug}>{c.label}</option>)}
@@ -188,7 +188,7 @@ export default function TemplateCollection({
             <select
               value={sort}
               onChange={e => setSort(e.target.value as SortKey)}
-              className="px-3 py-2.5 text-sm bg-white border border-gray-200/70 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+              className="px-3 py-2.5 sentuh:min-h-[44px] text-sm bg-white border border-gray-200/70 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900/10"
             >
               {SORTS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
             </select>

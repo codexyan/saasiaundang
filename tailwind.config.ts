@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss'
+import plugin from 'tailwindcss/plugin'
 
 const config: Config = {
   content: [
@@ -103,7 +104,18 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    // Varian `sentuh:` untuk perangkat yang dipakai dengan jari.
+    //
+    // Panel editor template sengaja rapat di layar lebar: satu layar memuat
+    // puluhan kontrol dan pointernya tetikus, yang presisi. Aturan 44 piksel
+    // berlaku untuk jempol, bukan untuk kursor, jadi ukurannya dinaikkan
+    // hanya kalau penunjuk utamanya kasar. Tailwind 3 belum punya varian ini
+    // bawaan (baru ada di versi 4).
+    plugin(({ addVariant }) => {
+      addVariant('sentuh', '@media (pointer: coarse)')
+    }),
+  ],
 }
 
 export default config
