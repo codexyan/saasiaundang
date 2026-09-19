@@ -284,6 +284,15 @@ export default function InvitationStudio({ invitation, template, onSaved, isAdmi
    * tombol kembali peramban keluar dari studio sekaligus, dan tautan bantuan
    * tidak bisa menunjuk langsung ke bagian yang sedang dibicarakan.
    */
+  /**
+   * Seksi yang sedang dihias, dilaporkan balik oleh layar Hiasan.
+   *
+   * Tanpa ini pratinjau tetap berhenti di sampul, karena nav item 'hiasan'
+   * tidak punya padanan tipe seksi. Pembeli memasang ornamen di bagian Hero
+   * lalu tidak melihat apa apa, persis keluhan yang sama di sisi admin.
+   */
+  const [seksiHias, setSeksiHias] = useState<string | null>(null)
+
   const [bagianUrl, setBagianUrl] = useParamUrl('bagian', 'info')
   const activeSection = bagianUrl ?? 'info'
   const setActiveSection = (id: string) => setBagianUrl(id)
@@ -458,6 +467,7 @@ export default function InvitationStudio({ invitation, template, onSaved, isAdmi
           data={data}
           onUpdate={updateData}
           maxAset={gating.maxDecorationAssets}
+          onSectionChange={setSeksiHias}
           warnaAksen={data.accent_color ?? template.config.meta.color_scheme.accent}
           warnaLatar={data.primary_color ?? template.config.meta.color_scheme.primary}
         />
@@ -557,13 +567,16 @@ export default function InvitationStudio({ invitation, template, onSaved, isAdmi
     // Section template yang cocok dengan nav item aktif (untuk kontrol Latar Belakang & Transisi).
     // Hanya nav item konten yang punya padanan section render; item level-template (warna/opening/loading) tidak.
     const appearanceSection = sectionType ? template.config.sections.find(s => s.type === sectionType) : undefined
+    const sedangMenghias = activeSection === 'hiasan' && !!seksiHias
     const previewPhase: 'opening' | 'loading' | 'main' =
       activeSection === 'loading' ? 'loading'
-      : sectionType ? 'main'
+      : sectionType || sedangMenghias ? 'main'
       : 'opening'
-    const previewScrollTo = sectionType
-      ? template.config.sections.find(s => s.type === sectionType)?.id
-      : undefined
+    const previewScrollTo = sedangMenghias
+      ? seksiHias ?? undefined
+      : sectionType
+        ? template.config.sections.find(s => s.type === sectionType)?.id
+        : undefined
 
     const renderPhone = (pw: number) => {
       const pad = 6

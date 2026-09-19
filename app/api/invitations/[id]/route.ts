@@ -158,6 +158,20 @@ export async function PATCH(req: NextRequest, props: Params) {
     }
 
     const updated = await invitations.update(params.id, body)
+    if (!updated) {
+      /**
+       * Dulu rute ini membalas 200 dengan `invitation: null` kalau
+       * penyimpanan gagal. Studio membaca balasan itu sebagai sukses dan
+       * menampilkan "Tersimpan", jadi pemakai yakin pekerjaannya aman padahal
+       * database menolak. Ketahuan waktu koneksi pgbouncer tertinggal dalam
+       * mode read-only: setiap PATCH membalas 200, dan tidak ada satu pun
+       * tanda di layar.
+       */
+      return NextResponse.json(
+        { error: 'Perubahannya belum tersimpan. Coba lagi sebentar lagi ya.' },
+        { status: 500 },
+      )
+    }
     return NextResponse.json({ invitation: updated })
   } catch (error) {
     console.error('Invitation update error:', error)

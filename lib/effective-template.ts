@@ -46,11 +46,42 @@ export function temaEfektif(
   // mematikan apa pun. Yang dimatikan hanya kalau paketnya jelas melarang.
   const musikDilarang = fitur ? fitur.music === false : false
 
+  /**
+   * Latar seksi ikut berganti kalau warnanya memang warna tema.
+   *
+   * Tanpa ini, pembeli yang mengganti warna primer melihat sampulnya berubah
+   * tapi seluruh badan undangan tetap warna lama, karena latar tiap seksi
+   * disimpan sebagai nilai hex sendiri di konfigurasi tema, bukan diturunkan
+   * dari meta.color_scheme. Hasilnya sampul biru dengan isi hijau.
+   *
+   * Pemetaannya sempit dan disengaja: hanya seksi yang latarnya PERSIS salah
+   * satu dari empat warna tema yang ikut berganti. Seksi yang sengaja diberi
+   * warna lepas oleh perancang tema tetap seperti aslinya, dan latar yang
+   * diubah sendiri oleh pembeli lewat section_background_overrides tidak
+   * disentuh sama sekali karena digabungkan belakangan di renderer.
+   */
+  const peta = new Map<string, string>()
+  const pasangkan = (dari?: string, ke?: string) => {
+    if (dari && ke && dari.toLowerCase() !== ke.toLowerCase()) peta.set(dari.toLowerCase(), ke)
+  }
+  pasangkan(meta.color_scheme.primary, warna.primary)
+  pasangkan(meta.color_scheme.background, warna.background)
+  pasangkan(meta.color_scheme.accent, warna.accent)
+
+  const sections = peta.size === 0
+    ? template.config.sections
+    : template.config.sections.map(s => {
+      if (s.background?.type !== 'color') return s
+      const baru = peta.get((s.background.value ?? '').toLowerCase())
+      return baru ? { ...s, background: { ...s.background, value: baru } } : s
+    })
+
   return {
     ...template,
     config: {
       ...template.config,
       meta: { ...meta, color_scheme: warna, font },
+      sections,
       // `config.music` boleh tidak ada sama sekali di tema lama, jadi
       // pematiannya hanya ditulis kalau objeknya memang ada.
       ...(musikDilarang && template.config.music

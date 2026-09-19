@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Sparkles, Trash2 } from 'lucide-react'
 import type { NewInvitationData, SectionConfig, DecorationAsset } from '@/lib/types'
 import { BUILT_IN_ORNAMENTS, ORNAMENT_GROUPS, builtInUrl, resolveAssetUrl, type OrnamentGroup } from '@/lib/built-in-assets'
@@ -16,6 +16,8 @@ interface Props {
   maxAset: number
   warnaAksen: string
   warnaLatar: string
+  /** Memberi tahu studio seksi mana yang sedang dihias, supaya pratinjau ke sana. */
+  onSectionChange?: (sectionId: string | null) => void
 }
 
 /**
@@ -30,12 +32,19 @@ interface Props {
  * dan menghapus miliknya sendiri; hiasan yang datang dari tema adalah bagian
  * dari tema yang mereka beli.
  */
-export default function DecorationForm({ sections, data, onUpdate, maxAset, warnaAksen, warnaLatar }: Props) {
+export default function DecorationForm({ sections, data, onUpdate, maxAset, warnaAksen, warnaLatar, onSectionChange }: Props) {
   const seksiAktif = sections.filter(s => s.enabled)
   const [seksiId, setSeksiId] = useState<string>(seksiAktif[0]?.id ?? '')
   const [grup, setGrup] = useState<OrnamentGroup>('Sudut')
   const [warna, setWarna] = useState(warnaAksen)
   const [slotId, setSlotId] = useState<string>('kiri-atas')
+
+  // Dilaporkan saat layar dibuka dan tiap kali bagiannya berganti; dibersihkan
+  // saat ditutup supaya pratinjau kembali ke perilaku biasa.
+  useEffect(() => {
+    onSectionChange?.(seksiId || null)
+    return () => onSectionChange?.(null)
+  }, [seksiId, onSectionChange])
 
   const semua = data.section_decoration_overrides ?? {}
   const milikSeksi = semua[seksiId] ?? []
