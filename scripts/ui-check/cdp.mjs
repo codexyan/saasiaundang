@@ -70,7 +70,7 @@ export async function pastikanChrome() {
  * React, yang hanya muncul di konsol dan tidak pernah tertangkap tsc.
  */
 export async function bukaTab() {
-  await pastikanChrome()
+  const anak = await pastikanChrome()
   const r = await fetch(`http://127.0.0.1:${PORT}/json/new?about:blank`, { method: 'PUT' })
   const target = await r.json()
   const ws = new WebSocket(target.webSocketDebuggerUrl)
@@ -115,7 +115,29 @@ export async function bukaTab() {
   return {
     kirim,
     pesanKonsol,
-    tutup: () => ws.close(),
+
+    /**
+     * Menutup tab DAN browsernya, bukan cuma soketnya.
+     *
+     * Versi pertama hanya memanggil ws.close(), jadi setiap pemeriksaan
+     * meninggalkan satu Chrome headless hidup. Sepanjang satu sesi kerja itu
+     * menumpuk jadi 52 proses dan 8 GB, cukup untuk membuat mesin kehabisan
+     * memori dan mematikan build yang sedang berjalan. Tidak ada satu pun
+     * pesan error: yang terlihat cuma deploy yang berhenti di tengah.
+     *
+     * Browser yang SUDAH hidup sebelum kita datang tidak disentuh. Chrome
+     * milik orang lain di port yang sama bukan milik kita untuk ditutup.
+     */
+    async tutup() {
+      ws.close()
+      try {
+        await fetch(`http://127.0.0.1:${PORT}/json/close/${target.id}`)
+      } catch { /* tab mungkin sudah hilang duluan */ }
+      if (!anak) return
+      try {
+        anak.kill()
+      } catch { /* sudah mati, tidak apa apa */ }
+    },
 
     async ukuran(lebar, tinggi = lebar < 500 ? 812 : 900) {
       await kirim('Emulation.setDeviceMetricsOverride', {
