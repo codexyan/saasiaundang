@@ -67,9 +67,31 @@ if (perintah === 'cek') {
 }
 
 if (perintah === 'hapus') {
+  // Berkas yang sempat diunggah saat menguji ikut dibuang, kalau ada. Baris
+  // database saja tidak cukup: lagunya hidup di storage, bukan di tabel.
+  const sebelum = await c.query(`SELECT data->>'music_url' AS lagu FROM invitations WHERE id = $1`, [ID_INV])
+  const lagu = sebelum.rows[0]?.lagu
+
   const inv = await c.query('DELETE FROM invitations WHERE id = $1', [ID_INV])
   const usr = await c.query('DELETE FROM users WHERE id = $1', [ID_USER])
   console.log(`dihapus: ${inv.rowCount} undangan, ${usr.rowCount} akun`)
+
+  if (lagu && lagu.includes('/storage/v1/object/public/uploads/')) {
+    const jalur = lagu.split('/storage/v1/object/public/uploads/')[1]
+    const supabaseUrl = ambil('NEXT_PUBLIC_SUPABASE_URL')
+    const serviceKey = ambil('SUPABASE_SERVICE_ROLE_KEY')
+    if (supabaseUrl && serviceKey && jalur) {
+      const res = await fetch(`${supabaseUrl}/storage/v1/object/uploads/${jalur}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
+      })
+      console.log(`berkas lagu uji (${jalur}): ${res.ok ? 'terhapus' : 'gagal dihapus, ' + res.status}`)
+    } else {
+      console.log('berkas lagu uji tidak dihapus: kunci Supabase tidak lengkap di .env.local')
+      console.log('  jalurnya:', jalur)
+    }
+  }
+
   await c.end()
   process.exit(0)
 }

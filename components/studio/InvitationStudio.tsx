@@ -500,6 +500,8 @@ export default function InvitationStudio({ invitation, template, onSaved, isAdmi
           musicUrl={data.music_url || ''} musicTitle={data.music_title || ''}
           onMusicUrlChange={(val) => updateData({ music_url: val })}
           onMusicTitleChange={(val) => updateData({ music_title: val })}
+          bolehUnggah={!!gating.features.custom_music}
+          paketPembuka={gating.getRequiredTier('musik')}
         />
       )
       case 'quote': return (
