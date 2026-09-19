@@ -36,6 +36,17 @@ Karena itu urutannya terbalik dari kebiasaan: **migrasi kolom baru dijalankan SE
 
 ### 1. Migrasi kolom purpose
 
+> **SUDAH DIKERJAKAN 19 September 2026.** Kolom `purpose` sudah ada di database
+> produksi, dan migrasinya sudah tercatat `applied` di `_prisma_migrations`.
+> Dijalankan lebih awal karena jalur Lupa password dibutuhkan untuk masuk ke
+> panel admin, dan kolom tambahan dengan nilai bawaan aman untuk kode lama.
+> Perintah yang dipakai: `prisma db execute --file` pada berkas migrasi itu
+> saja, lalu `prisma migrate resolve --applied`. **JANGAN diulang.**
+>
+> Migrasi `20260911000000_drop_user_referral_program` sengaja TIDAK ikut
+> dijalankan dan statusnya masih menunggu.
+
+
 ```bash
 npx prisma migrate deploy
 ```
