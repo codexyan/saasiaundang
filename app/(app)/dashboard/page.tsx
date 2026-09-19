@@ -14,7 +14,13 @@ interface Props {
 export default async function DashboardPage(props: Props) {
   const searchParams = await props.searchParams;
   const session = await getSession()
-  if (!session) redirect('/login')
+  /**
+   * Sesi null tapi cookienya masih ada berarti tokennya sudah dicabut
+   * (epoch naik karena reset password atau ganti role). Dilempar ke rute
+   * keluar, BUKAN langsung ke /login, supaya cookie beracunnya dibuang.
+   * Langsung ke /login membuat orangnya memantul terus tanpa penjelasan.
+   */
+  if (!session) redirect('/api/auth/logout?alasan=sesi-berakhir')
 
   const [invitationList, activeTemplates, appSettings] = await Promise.all([
     invitations.findManyByUserId(session.userId) as Promise<Invitation[]>,

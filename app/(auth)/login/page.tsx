@@ -53,6 +53,10 @@ function LoginContent() {
   // membawa /dashboard?payment=success ke sini lewat ?redirect=; tanpa penanda
   // ini halaman login diam saja soal pembayaran yang baru terjadi.
   const fromPayment = new URL(redirect, REDIRECT_BASE).searchParams.get('payment') === 'success'
+  // Dikirim /api/auth/logout saat sesi lama dicabut (reset password atau
+  // ganti role). Tanpa ini halaman login diam saja, dan orangnya tidak
+  // pernah tahu kenapa ia tiba tiba dikeluarkan.
+  const sesiBerakhir = searchParams.get('alasan') === 'sesi-berakhir'
   const [loading, setLoading] = useState(false)
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
@@ -86,6 +90,27 @@ function LoginContent() {
       <div className="mb-8">
         <h1 className="font-display text-display-md text-forest-deep">Masuk ke Akun</h1>
         <p className="text-body-sm text-concrete mt-2">Kelola undangan dan tamu kalian dari satu tempat.</p>
+
+        {sesiBerakhir && (
+          <p className="mt-4 text-body-sm text-graphite bg-mist border border-hairline rounded-card px-4 py-3">
+            Sesi sebelumnya sudah berakhir karena password atau akses akunmu baru saja berubah.
+            Masuk lagi dengan password yang baru ya.
+          </p>
+        )}
+
+        {/*
+          Sengaja TIDAK berbunyi "pembayaranmu sudah kami terima". Penanda
+          payment=success datang dari alamat kembalian yang bisa diketik siapa
+          saja, jadi kalimat itu akan jadi pengakuan pembayaran yang belum
+          tentu benar. Yang boleh dikatakan cuma: kamu baru saja dari halaman
+          bayar, statusnya dilihat sesudah masuk.
+        */}
+        {fromPayment && (
+          <p className="mt-4 text-body-sm text-graphite bg-mist border border-hairline rounded-card px-4 py-3">
+            Kamu baru saja kembali dari halaman pembayaran. Masuk dulu ya,
+            status pesanannya ada di dashboard.
+          </p>
+        )}
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

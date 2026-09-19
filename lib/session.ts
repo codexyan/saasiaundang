@@ -105,6 +105,31 @@ export function setSessionCookie(res: NextResponse, token: string): void {
 /** Header string untuk Set-Cookie di API route Response. */
 export function buildSetCookieHeader(token: string): string {
   const maxAge = 60 * 60 * 24 * EXPIRES_DAYS
-  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : ''
-  return `${SESSION_COOKIE_NAME}=${token}; HttpOnly; SameSite=Lax; Max-Age=${maxAge}; Path=/${secure}`
+  return `${SESSION_COOKIE_NAME}=${token}; HttpOnly; SameSite=Lax; Max-Age=${maxAge}; Path=/${cukupAman()}`
+}
+
+/**
+ * Header untuk MENGHAPUS cookie sesi.
+ *
+ * Dipakai rute yang mencabut sesi tapi tidak menggantinya dengan sesi baru,
+ * yaitu reset password. Tanpa ini, peramban tetap memegang token yang tanda
+ * tangannya sah tapi generasinya sudah dicabut, dan akibatnya bukan sekadar
+ * ditolak: middleware meloloskannya (ia tidak memeriksa epoch, lihat catatan
+ * di SessionPayload), lalu /admin menolak dan melempar ke /dashboard,
+ * /dashboard menolak dan melempar ke /login. Dua redirect beruntun, cookie
+ * tidak pernah dibersihkan, dan orangnya terjebak di situ sampai ada login
+ * yang kebetulan berhasil menimpanya. Terjadi sungguhan di produksi
+ * 19 Sep 2026, tepat sesudah reset password.
+ *
+ * Atributnya harus sama dengan saat dipasang. Path yang berbeda berarti
+ * peramban menghapus cookie lain, bukan yang ini.
+ */
+export function buildClearCookieHeader(): string {
+  return `${SESSION_COOKIE_NAME}=; HttpOnly; SameSite=Lax; Max-Age=0; Path=/${cukupAman()}`
+}
+
+/** `; Secure` hanya di produksi: localhost memakai http dan peramban membuang
+ *  cookie Secure di sana, sehingga login lokal tidak akan pernah menempel. */
+function cukupAman(): string {
+  return process.env.NODE_ENV === 'production' ? '; Secure' : ''
 }

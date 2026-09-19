@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { buildClearCookieHeader } from '@/lib/session'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
@@ -127,9 +128,25 @@ export async function POST(req: NextRequest) {
       prisma.passwordResetToken.delete({ where: { id: resetToken.id } }),
     ])
 
-    return NextResponse.json({
-      message: 'Password berhasil direset',
-    })
+    /**
+     * Cookie sesi di peramban ini ikut dihapus.
+     *
+     * Menaikkan epoch saja mencabut token lama di sisi server, tapi
+     * perambannya tetap memegangnya. Token itu tanda tangannya masih sah,
+     * jadi middleware meloloskannya, lalu /admin menolak dan melempar ke
+     * /dashboard, /dashboard menolak dan melempar ke /login. Orangnya
+     * terjebak di dua redirect beruntun tanpa satu pun penjelasan, tepat
+     * sesudah mereset password, dan cookie itu tidak pernah dibersihkan.
+     *
+     * Terjadi sungguhan di produksi 19 Sep 2026. Paling berbahaya bukan
+     * untuk admin, tapi untuk pembeli baru: tautan buat password memakai
+     * rute yang sama, jadi itu hal pertama yang dilakukan orang yang baru
+     * saja membayar.
+     */
+    return NextResponse.json(
+      { message: 'Password berhasil direset' },
+      { headers: { 'Set-Cookie': buildClearCookieHeader() } }
+    )
   } catch (error) {
     console.error('Reset password error:', error)
     return NextResponse.json(

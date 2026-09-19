@@ -8,7 +8,16 @@ export const dynamic = 'force-dynamic'
 
 export default async function AdminPage() {
   const session = await getSession()
-  if (!session || !isAdmin(session)) redirect('/dashboard')
+  /**
+   * Sesi null tapi cookienya masih ada berarti tokennya sudah dicabut
+   * (epoch naik karena reset password atau ganti role). Dilempar ke rute
+   * keluar, BUKAN langsung ke /login, supaya cookie beracunnya dibuang.
+   * Langsung ke /login membuat orangnya memantul terus tanpa penjelasan.
+   */
+  if (!session) redirect('/api/auth/logout?alasan=sesi-berakhir')
+  // Sesi sah tapi bukan admin: itu bukan sesi basi, jadi cukup
+  // dipulangkan ke dashboardnya sendiri.
+  if (!isAdmin(session)) redirect('/dashboard')
 
   const adminEmail = getAdminEmail()
   const allUsers = await users.findAll()
