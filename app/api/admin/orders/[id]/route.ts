@@ -59,6 +59,7 @@ export const PATCH = withAdminAuth<{ params: Promise<{ id: string }> }>(async (r
         notifyUser('order_approved', order.email, {
           orderNumber: order.order_number,
           slug: outcome.slug,
+          invitationId: outcome.invitationId,
           email: order.email,
           tierName: outcome.tierName,
           expiresAt: outcome.expiresAt.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),

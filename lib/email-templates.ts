@@ -101,7 +101,15 @@ export function orderApprovedTemplate(d: EmailData): string {
     <p style="font-size:13px;color:#6b6b6b;">Kalau tautannya sudah lewat masa berlaku, minta yang baru lewat halaman Lupa password.</p>`
     : `
     <p>Akun kalian yang sudah ada tetap memakai password yang lama.</p>
-    ${button(`https://${APP_DOMAIN}/login`, 'Masuk ke Akun')}`
+    ${button(
+      d.invitationId
+        // Sesudah editor undangan punya alamat sendiri, tautan ini bisa
+        // membuka undangan yang benar langsung. Sebelumnya ia hanya sampai
+        // ke dashboard, dan pembeli harus mencari undangannya sendiri.
+        ? `https://${APP_DOMAIN}/dashboard?undangan=${encodeURIComponent(String(d.invitationId))}&tab=undangan`
+        : `https://${APP_DOMAIN}/login`,
+      'Buka Undangan Kalian',
+    )}`
 
   return baseTemplate(`
     <h2 style="margin:0 0 16px;color:#1a4a1a;">Pembayaran Kalian Sudah Kami Terima</h2>

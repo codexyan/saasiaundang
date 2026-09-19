@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useParamUrl } from '@/lib/use-param-url'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import dynamic from 'next/dynamic'
@@ -83,7 +84,17 @@ function getDisplayNames(inv: Invitation): { groom: string; bride: string } {
 
 export default function DashboardClient({ user, invitations, selectedTemplateId, allTemplates, isAdmin, paymentSuccess, priceTiers }: Props) {
   const router = useRouter()
-  const [tab, setTab] = useState<Tab>('overview')
+
+  /**
+   * Menu aktif dan undangan yang sedang dibuka disimpan di URL.
+   *
+   * Sebelumnya keduanya murni state, jadi tautan dari email hanya bisa
+   * mengantar ke dashboard kosong, tombol kembali mengusir orang keluar, dan
+   * menyegarkan halaman membuang posisi kerja.
+   */
+  const [tabUrl, setTabUrl] = useParamUrl('tab', 'overview', (v) => NAV.some(n => n.id === v))
+  const tab = (tabUrl ?? 'overview') as Tab
+  const setTab = (id: Tab) => setTabUrl(id)
 
   // Daftar undangan + penunjuk yang sedang dibuka.
   //
@@ -92,7 +103,13 @@ export default function DashboardClient({ user, invitations, selectedTemplateId,
   // tidak perlu diubah sama sekali. Yang berubah hanya dari mana objek itu
   // berasal.
   const [list, setList] = useState<Invitation[]>(invitations)
-  const [activeId, setActiveId] = useState<string | null>(invitations[0]?.id ?? null)
+  const [undanganUrl, setUndanganUrl] = useParamUrl(
+    'undangan',
+    invitations[0]?.id ?? null,
+    (v) => invitations.some(i => i.id === v),
+  )
+  const activeId = undanganUrl
+  const setActiveId = (id: string | null) => setUndanganUrl(id)
   // `creating` = pengguna menekan "Buat undangan baru" walau sudah punya satu.
   const [creating, setCreating] = useState(false)
 

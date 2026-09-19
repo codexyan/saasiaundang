@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
+import { useParamUrl } from '@/lib/use-param-url'
 import dynamic from 'next/dynamic'
 import toast from 'react-hot-toast'
 import { Loader2, Trash2, Archive, Rocket } from 'lucide-react'
@@ -51,7 +52,15 @@ type PendingAction =
 export default function TemplateModule({
   records, categories, palettes, tiers, onRecordsUpdate, onCategoriesUpdate,
 }: Props) {
-  const [editingId, setEditingId] = useState<string | null>(null)
+  /**
+   * Tema yang sedang dibuka ikut ke URL (`?template=<id>`).
+   *
+   * Sama alasannya dengan studio pelanggan: editor ini dipakai berjam jam,
+   * dan tanpa alamat, tombol kembali peramban melempar admin keluar dari
+   * panel alih alih menutup editornya.
+   */
+  const [editingId, setEditingIdUrl] = useParamUrl('template', null, (v) => records.some(r => r.id === v))
+  const setEditingId = (id: string | null) => setEditingIdUrl(id)
   const [settingsId, setSettingsId] = useState<string | null>(null)
   const [showCategories, setShowCategories] = useState(false)
   const [showCreate, setShowCreate] = useState(false)

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
+import { useParamUrl } from '@/lib/use-param-url'
 import toast from 'react-hot-toast'
 import {
   Palette, Type, Layers, Sparkles, Play,
@@ -79,9 +80,13 @@ export default function TemplateEditor({
     if (drafValid(record.draft_config)) base.config = deepClone(record.draft_config)
     return base
   })
-  const [activeTab, _setActiveTab] = useState<ConfigTab>('tampilan')
+  // Tab editor ikut ke URL (`?panel=konten`), supaya menyegarkan halaman atau
+  // menekan tombol kembali tidak melempar admin ke tab Tampilan lagi.
+  const [panelUrl, setPanelUrl] = useParamUrl('panel', 'tampilan',
+    (v) => ['tampilan', 'opening', 'decor', 'konten', 'music'].includes(v))
+  const activeTab = (panelUrl ?? 'tampilan') as ConfigTab
   const tabContentRef = useRef<HTMLDivElement>(null)
-  const setActiveTab = useCallback((tab: ConfigTab) => { _setActiveTab(tab); tabContentRef.current?.scrollTo(0, 0) }, [])
+  const setActiveTab = useCallback((tab: ConfigTab) => { setPanelUrl(tab); tabContentRef.current?.scrollTo(0, 0) }, [setPanelUrl])
   const withPreservedScroll = useCallback((fn: () => void) => {
     const y = tabContentRef.current?.scrollTop ?? 0
     fn()

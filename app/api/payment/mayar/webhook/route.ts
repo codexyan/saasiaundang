@@ -134,6 +134,7 @@ export async function POST(req: NextRequest) {
           : {}),
         packageTier: order.packageTier,
         slug: order.subdomain,
+        invitationId: outcome.invitationId,
       }),
       `notifyUser(order_approved) order=${order.orderNumber}`
     )

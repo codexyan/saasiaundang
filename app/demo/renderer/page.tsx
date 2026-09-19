@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import { templateRecords } from '@/lib/db'
 import JAVANESE_GOLD from '@/lib/template-configs/javanese-gold'
 import DemoShell from './DemoShell'
@@ -93,12 +93,28 @@ const DEMO_WISHES: Wish[] = [
 
 export default async function DemoRendererPage(props: Props) {
   const searchParams = await props.searchParams;
+
+  /**
+   * Tema yang ditampilkan diambil dari database, bukan dari salinan di kode.
+   *
+   * Dulu tanpa `?id=` halaman ini selalu memakai JAVANESE_GOLD dari
+   * lib/template-configs. Itu salinan statis: begitu admin menyunting tema
+   * Javanese Gold di panel, demo publik tetap memperlihatkan versi lama yang
+   * tidak dijual siapa pun. Salinan di kode sekarang hanya jaring pengaman
+   * terakhir kalau database benar benar tidak punya tema aktif.
+   *
+   * Id yang tidak dikenal dikembalikan ke galeri, bukan ke halaman 404.
+   * Tautan demo beredar di kartu tema dan di email, dan tema bisa dihapus.
+   */
   let template = JAVANESE_GOLD
 
   if (searchParams.id) {
     const rec = await templateRecords.findById(searchParams.id)
-    if (!rec) notFound()
+    if (!rec) redirect('/templates')
     template = rec
+  } else {
+    const aktif = await templateRecords.findActive()
+    if (aktif.length > 0) template = aktif[0]
   }
 
   const demoTemplate = {

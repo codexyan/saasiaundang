@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import { useParamUrl } from '@/lib/use-param-url'
 import toast from 'react-hot-toast'
 import dynamic from 'next/dynamic'
 import { Reorder, useDragControls, motion, AnimatePresence } from 'framer-motion'
@@ -265,7 +266,16 @@ export default function InvitationStudio({ invitation, template, onSaved, isAdmi
   const [data, setData] = useState<NewInvitationData>(() => initData(invitation))
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [showPreview, setShowPreview] = useState(false)
-  const [activeSection, setActiveSection] = useState<string>('info')
+  /**
+   * Bagian yang sedang dibuka ikut ke URL (`?bagian=galeri`).
+   *
+   * Studio ini adalah layar yang paling lama ditatap pelanggan. Tanpa alamat,
+   * tombol kembali peramban keluar dari studio sekaligus, dan tautan bantuan
+   * tidak bisa menunjuk langsung ke bagian yang sedang dibicarakan.
+   */
+  const [bagianUrl, setBagianUrl] = useParamUrl('bagian', 'info')
+  const activeSection = bagianUrl ?? 'info'
+  const setActiveSection = (id: string) => setBagianUrl(id)
   const [previewKey, setPreviewKey] = useState(0)
   const [showFullscreen, setShowFullscreen] = useState(false)
   const [reorderMode, setReorderMode] = useState(false)
