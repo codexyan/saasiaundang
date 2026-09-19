@@ -1,9 +1,11 @@
 'use client'
 
+import { useMemo, useState } from 'react'
 import {
   ChevronUp, ChevronDown, Palette, Layers, Sparkles, Plus, Trash2,
-  GripVertical, Play, Check, Lock, Unlock, ImageIcon, Type,
+  GripVertical, Play, Check, Lock, Unlock, ImageIcon, Type, Search, X,
 } from 'lucide-react'
+import type { SectionConfig } from '@/lib/types'
 import ImageUploadField from '@/components/admin/ImageUploadField'
 import SectionBackgroundControl from '@/components/controls/SectionBackgroundControl'
 import SectionTransitionControl from '@/components/controls/SectionTransitionControl'
@@ -14,6 +16,35 @@ import {
   HEADING_FONTS, BODY_FONTS,
 } from '../parts/constants'
 import { useEditor } from '../EditorContext'
+
+/**
+ * Ringkasan satu baris tentang isi sebuah seksi.
+ *
+ * Keluhannya: enam belas baris yang semuanya terlihat sama pentingnya.
+ * Membedakannya dengan tebakan "mana yang sering dipakai" tidak bisa
+ * dipertanggungjawabkan, karena belum ada satu pun undangan yang dibuat,
+ * jadi tidak ada data pemakaian. Yang bisa dipertanggungjawabkan adalah
+ * FAKTA yang sudah ada di konfigurasi seksi itu sendiri: varian gaya yang
+ * dipilih, jenis latarnya, dan berapa hiasan yang menempel.
+ *
+ * Dengan itu baris yang berbeda memang terlihat berbeda, dan admin bisa
+ * melihat sekali pandang mana yang sudah digarap dan mana yang masih bawaan.
+ */
+function ringkasSeksi(s: SectionConfig): string {
+  const bagian: string[] = []
+
+  const varian = SECTION_VARIANTS[s.type]?.find(v => v.value === (s.style_variant ?? 'default'))
+  if (varian && (s.style_variant ?? 'default') !== 'default') bagian.push(varian.label)
+
+  const latar = s.background?.type
+  if (latar === 'image') bagian.push('latar foto')
+  else if (latar === 'video') bagian.push('latar video')
+
+  const hiasan = s.decoration_assets?.length ?? 0
+  if (hiasan > 0) bagian.push(`${hiasan} hiasan`)
+
+  return bagian.join(' · ')
+}
 
 /**
  * Tab "Konten" — daftar seksi undangan: urutan, aktif/nonaktif, varian gaya,
@@ -31,6 +62,21 @@ export default function ContentPanel() {
     updateSection, moveSection, addSection, removeSection, handleSectionDrop,
     withPreservedScroll,
   } = useEditor()
+
+  const [cari, setCari] = useState('')
+
+  /**
+   * Daftar seksi yang lolos pencarian.
+   *
+   * Dicocokkan ke label yang dilihat admin, bukan ke `type` di data: yang
+   * diketik orang adalah "galeri", bukan "gallery".
+   */
+  const tersaring = useMemo(() => {
+    const kata = cari.trim().toLowerCase()
+    if (!kata) return sections
+    return sections.filter(s =>
+      (SECTION_LABELS[s.type] ?? s.type).toLowerCase().includes(kata))
+  }, [sections, cari])
 
   return (
     <div className="space-y-2">
@@ -50,6 +96,30 @@ export default function ContentPanel() {
         </button>
       </div>
 
+      {/* Cari seksi.
+          Enam belas baris yang semuanya terlihat sama membuat mencari satu
+          seksi jadi menggulir dan memindai. Mengetik tiga huruf lebih cepat
+          daripada memindai enam belas kali. */}
+      <div className="relative">
+        <input
+          value={cari}
+          onChange={e => setCari(e.target.value)}
+          placeholder="Cari seksi..."
+          aria-label="Cari seksi"
+          className="w-full pl-8 pr-8 py-2 sentuh:min-h-[44px] text-[11px] bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200"
+        />
+        <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        {cari && (
+          <button
+            onClick={() => setCari('')}
+            aria-label="Hapus pencarian seksi"
+            className="absolute right-1 top-1/2 -translate-y-1/2 inline-flex items-center justify-center w-9 h-9 sentuh:w-11 sentuh:h-11 text-gray-500 hover:text-gray-800"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
       {/* Section count summary */}
       <div className="flex items-center gap-3 px-3 py-2 bg-gray-50/80 rounded-lg border border-gray-100">
         <div className="flex items-center gap-1.5">
@@ -63,7 +133,13 @@ export default function ContentPanel() {
         <span className="text-[10px] text-gray-300 ml-auto">{sections.length} total</span>
       </div>
 
-      {sections.map((s, idx) => (
+      {tersaring.length === 0 && (
+        <p className="px-3 py-6 text-center text-[11px] text-gray-400">
+          Tidak ada seksi yang cocok dengan &quot;{cari}&quot;.
+        </p>
+      )}
+
+      {tersaring.map((s, idx) => (
         <div
           key={s.id}
           draggable={dragModeEnabled && !lockedSectionIds.has(s.id)}
@@ -125,11 +201,16 @@ export default function ContentPanel() {
             {/* Section label */}
             <button
               onClick={() => setExpandedSectionId(expandedSectionId === s.id ? null : s.id)}
-              className="flex-1 text-left min-w-0 flex items-center sentuh:min-h-[44px]"
+              className="flex-1 text-left min-w-0 sentuh:min-h-[44px] py-0.5"
             >
               <span className={`text-[11px] font-semibold truncate block ${s.enabled ? 'text-gray-700' : 'text-gray-400'}`}>
                 {SECTION_LABELS[s.type] ?? s.type}
               </span>
+              {ringkasSeksi(s) && (
+                <span className="block text-[9px] text-gray-500 truncate mt-0.5">
+                  {ringkasSeksi(s)}
+                </span>
+              )}
             </button>
 
             {/* Reorder arrows + lock — only in drag mode */}
