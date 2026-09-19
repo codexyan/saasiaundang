@@ -14,6 +14,7 @@ import {
 import type { Invitation, NewInvitationData, PriceTier } from '@/lib/types'
 import { LEGACY_TEMPLATE_IDS } from '@/lib/types'
 import { getInvitationUrl, isExpired } from '@/lib/utils'
+import { useInvitationUrl } from '@/lib/use-invitation-url'
 import { Button } from '@/components/ui/Button'
 import Logo from '@/components/ui/Logo'
 import RSVPList from './RSVPList'
@@ -138,6 +139,12 @@ export default function DashboardClient({ user, invitations, selectedTemplateId,
     setActiveId(updated.id)
     setCreating(false)
   }
+
+  // Alamat undangan untuk atribut href. Dipakai lewat hook supaya render
+  // server dan klien menghasilkan nilai yang sama; varian localhost baru
+  // dipasang sesudah hydration. Penangan klik di bawah boleh memanggil
+  // getInvitationUrl langsung, karena jalannya sesudah mount.
+  const invUrlAktif = useInvitationUrl(inv?.slug ?? '')
 
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false)
@@ -514,7 +521,7 @@ export default function DashboardClient({ user, invitations, selectedTemplateId,
                 </button>
               )}
               <a
-                href={getInvitationUrl(inv.slug)}
+                href={invUrlAktif}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 text-white/50 hover:text-white text-xs px-3 py-1.5 rounded-lg border border-white/10 hover:border-white/20 transition-colors"
@@ -550,7 +557,7 @@ export default function DashboardClient({ user, invitations, selectedTemplateId,
                     <p className="text-lg mb-2">Preview tidak tersedia</p>
                     <p className="text-sm">Template belum dimuat atau tidak didukung.</p>
                     <a
-                      href={getInvitationUrl(inv.slug)}
+                      href={invUrlAktif}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 mt-4 text-sm text-amber-600 hover:text-amber-700"

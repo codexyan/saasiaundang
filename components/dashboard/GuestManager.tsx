@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import type { Invitation, Guest, PriceTier } from '@/lib/types'
 import { resolveTierDisplay } from '@/lib/packages'
-import { getInvitationUrl } from '@/lib/utils'
+import { useInvitationUrl } from '@/lib/use-invitation-url'
 import { Button } from '@/components/ui/Button'
 
 interface Props {
@@ -71,7 +71,7 @@ export default function GuestManager({ invitation, priceTiers }: Props) {
   const maxGuests = features.max_guests
   const isAtLimit = maxGuests !== -1 && contacts.length >= maxGuests
 
-  const invUrl = getInvitationUrl(invitation.slug)
+  const invUrl = useInvitationUrl(invitation.slug)
 
   const defaultMessage = useCallback((name: string) => {
     const personalUrl = withGuestName(invUrl, name)

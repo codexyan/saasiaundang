@@ -38,6 +38,7 @@ import GiftRegistryForm from './forms/GiftRegistryForm'
 import ColorPaletteForm from './forms/ColorPaletteForm'
 import TypographyForm from './forms/TypographyForm'
 import DecorationForm from './forms/DecorationForm'
+import SectionColorSync from './forms/SectionColorSync'
 import InfoCard from './ui/InfoCard'
 import FormField from './ui/FormField'
 import { StudioInput, StudioTextarea } from './ui/StudioInput'
@@ -444,6 +445,7 @@ export default function InvitationStudio({ invitation, template, onSaved, isAdmi
         />
       )
       case 'warna': return (
+        <>
         <ColorPaletteForm
           primaryColor={data.primary_color ?? '#2c4a34'}
           accentColor={data.accent_color ?? '#c9a961'}
@@ -460,6 +462,16 @@ export default function InvitationStudio({ invitation, template, onSaved, isAdmi
             background_color: colors.background,
           })}
         />
+        {/* Latar tiap seksi disimpan terpisah dari meta.color_scheme, jadi
+            mengganti warna primer saja tidak menyentuhnya. Diserahkan ke
+            pembeli lewat tombol, bukan disamakan diam diam. */}
+        <SectionColorSync
+          sections={template.config.sections}
+          data={data}
+          onUpdate={updateData}
+          warna={data.primary_color ?? template.config.meta.color_scheme.primary}
+        />
+        </>
       )
       case 'hiasan': return (
         <DecorationForm

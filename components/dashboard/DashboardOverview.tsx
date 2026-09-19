@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import type { Invitation, NewInvitationData } from '@/lib/types'
 import { LEGACY_TEMPLATE_IDS as LTI } from '@/lib/types'
-import { getInvitationUrl } from '@/lib/utils'
+import { useInvitationUrl } from '@/lib/use-invitation-url'
 import toast from 'react-hot-toast'
 
 interface Props {
@@ -132,7 +132,9 @@ export default function DashboardOverview({ invitation, onNavigate, onTogglePubl
   }, [invitation.id])
 
   const daysUntil = d.akadDate ? getDaysUntil(d.akadDate) : null
-  const invUrl = getInvitationUrl(invitation.slug)
+  // Hook, bukan pemanggilan langsung: alamat localhost baru dipasang
+  // sesudah hydration supaya render server dan klien tidak berbeda.
+  const invUrl = useInvitationUrl(invitation.slug)
 
   const checklist = useMemo(() => [
     {
