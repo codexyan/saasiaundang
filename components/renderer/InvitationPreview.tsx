@@ -66,8 +66,13 @@ export default function InvitationPreview({
             ...(trOverride?.out ? { transition_out: trOverride.out } : {}),
           }
           return (
+            // Penanda seksi, sama persis dengan yang sudah dipakai
+            // InvitationRenderer. Tanpa ini, pemanggil tidak punya cara
+            // menggulir ke satu seksi tertentu: memetakan lewat urutan elemen
+            // <section> meleset, karena sebagian tipe seksi tidak merender
+            // elemen <section> sama sekali (16 seksi aktif, 14 elemen).
+            <div key={`${section.id}-${section.style_variant ?? 'default'}`} data-section-id={section.id}>
             <SectionRenderer
-              key={`${section.id}-${section.style_variant ?? 'default'}`}
               sectionConfig={merged}
               invitationData={data}
               templateMeta={meta}
@@ -76,6 +81,7 @@ export default function InvitationPreview({
               mode="preview"
               initialWishes={section.type === 'wishes' ? initialWishes : undefined}
             />
+            </div>
           )
         })}
       </div>

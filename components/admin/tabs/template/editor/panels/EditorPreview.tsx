@@ -33,6 +33,7 @@ export default function EditorPreview() {
     hiddenAssetIds, lockedAssetIds, updateSection,
     showFullscreen, setShowFullscreen,
     undo, redo, canUndo, canRedo, updateOpening,
+    expandedSectionId,
   } = useEditor()
 
   /**
@@ -78,6 +79,36 @@ export default function EditorPreview() {
     window.addEventListener('resize', hitung)
     return () => { ro.disconnect(); window.removeEventListener('resize', hitung) }
   }, [decorEditMode])
+
+  /**
+   * Pratinjau mengikuti seksi yang sedang dibuka di tab Konten.
+   *
+   * Dulu membuka "Detail Acara" tidak memindahkan apa pun: pratinjau tetap di
+   * sampul, dan admin harus menggulir sendiri mencari hasil kerjanya. Studio
+   * pelanggan sudah melakukan ini sejak awal lewat `scrollToSection` milik
+   * InvitationRenderer; editor admin memakai InvitationPreview yang tidak
+   * menandai seksinya, jadi seksi dicari lewat urutan elemen <section>.
+   *
+   * Posisi dihitung dari getBoundingClientRect, bukan offsetTop, karena isi
+   * pratinjau hidup di dalam pembungkus ber-zoom dan offsetTop di sana masih
+   * memakai satuan sebelum zoom.
+   */
+  const undanganRef = useRef<HTMLDivElement>(null)
+
+  useLayoutEffect(() => {
+    if (!expandedSectionId) return
+    if (previewMode !== 'invitation') setPreviewMode('invitation')
+
+    // Jeda pendek: lapisan undangan baru terlihat sesudah mode berpindah.
+    const jam = setTimeout(() => {
+      const wadah = undanganRef.current
+      const el = wadah?.querySelector(`[data-section-id="${expandedSectionId}"]`) as HTMLElement | null
+      if (!wadah || !el) return
+      const selisih = el.getBoundingClientRect().top - wadah.getBoundingClientRect().top
+      wadah.scrollTo({ top: wadah.scrollTop + selisih, behavior: 'smooth' })
+    }, 260)
+    return () => clearTimeout(jam)
+  }, [expandedSectionId, previewMode, sections, setPreviewMode])
 
   const MODE = [
     { id: 'opening' as const,    label: 'Opening' },
@@ -314,7 +345,7 @@ export default function EditorPreview() {
               })()}
 
               {/*  Invitation preview   scroll-snap, satu section = satu layar  */}
-              <div key={previewKey} style={{
+              <div key={previewKey} ref={undanganRef} style={{
                 position: 'absolute', inset: 0,
                 zIndex: 10, isolation: 'isolate',
                 overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'none',
