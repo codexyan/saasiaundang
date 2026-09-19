@@ -211,7 +211,20 @@ function DecorationAssetItem({ asset, doAnimate, exiting }: ItemProps) {
     <div style={outerStyle}>
       <motion.div
         initial="hidden"
-        animate={entryDone ? undefined : 'visible'}
+        /**
+         * Tetap 'visible' sesudah animasi masuk selesai.
+         *
+         * Dulu nilainya dikembalikan ke undefined begitu entryDone true.
+         * Dengan `initial="hidden"` masih terpasang, framer-motion menganggap
+         * tidak ada target dan memulangkan elemen ke varian hidden, yaitu
+         * opacity 0 — jadi setiap dekorasi muncul sebentar lalu lenyap, di
+         * pratinjau maupun di undangan hidup. Terukur: opacity pembungkus
+         * motion 0 sementara gambarnya sendiri opacity 1 dan posisinya benar.
+         *
+         * Animasi idle tetap menang karena idleProps disebar sesudah baris
+         * ini dan membawa `animate` sendiri.
+         */
+        animate="visible"
         variants={entryVariants}
         transition={entryTransition}
         onAnimationComplete={() => setEntryDone(true)}
