@@ -211,9 +211,17 @@ export default function MusicPanel() {
             <p className="text-[10px] font-semibold text-gray-500 mb-3">Pengaturan Putar</p>
 
             <div className="flex items-center justify-between p-3 rounded-xl border border-gray-200 bg-white mb-3">
-              <div>
+              <div className="pr-3">
                 <p className="text-xs font-medium text-gray-700">Autoplay</p>
-                <p className="text-[10px] text-gray-400">Putar otomatis saat undangan dibuka</p>
+                {/* Dikatakan apa adanya, bukan disembunyikan. Peramban HP
+                    memblokir suara yang menyala tanpa sentuhan, jadi tanpa
+                    kalimat ini admin akan menyalakan sakelarnya, membuka
+                    undangannya, tidak mendengar apa apa, lalu mengira musiknya
+                    rusak. */}
+                <p className="text-[10px] text-gray-400 leading-snug">
+                  Musik mulai begitu tamu menekan tombol buka undangan. Peramban HP
+                  memblokir suara yang menyala sendiri sebelum ada sentuhan.
+                </p>
               </div>
               <Sakelar
                 warna="purple"

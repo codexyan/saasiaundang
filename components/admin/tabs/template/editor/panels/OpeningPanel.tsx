@@ -7,6 +7,7 @@ import { Field, inputCls, Sakelar } from '../parts/fields'
 import LoadingScreenPanel from '../parts/LoadingScreenPanel'
 import { OPENING_TYPES, OPENING_META } from '../parts/constants'
 import { useEditor } from '../EditorContext'
+import OpeningStylePicker from '../parts/OpeningStylePicker'
 
 /** Lima kelompok navigasi internal panel Opening, meniru pola `settingsSection`
  *  di ArticlesTab.tsx (SettingsPanel). Cuma soal presentasi, tidak mengubah
@@ -116,32 +117,7 @@ export default function OpeningPanel() {
         <p className="text-[9px] text-gray-400 mb-3">
           Animasi saat tamu pertama kali membuka undangan
         </p>
-        <div className="grid grid-cols-3 gap-1.5">
-          {OPENING_TYPES.map(ot => {
-            const m = OPENING_META[ot]
-            const active = cfg.opening.type === ot
-            return (
-              <button key={ot} type="button" title={m?.desc}
-                onClick={() => { updateOpening({ type: ot }); setPreviewMode('opening'); setDecorPreviewKey(k => k + 1) }}
-                className={`relative p-2.5 rounded-xl text-center transition-all ${
-                  active
-                    ? 'bg-indigo-50 border-2 border-indigo-500 ring-1 ring-indigo-500/20'
-                    : 'bg-gray-50 border border-gray-200 hover:border-gray-300 hover:bg-gray-100'
-                }`}
-              >
-                <span className="text-lg block mb-0.5">{m?.icon}</span>
-                <p className={`text-[10px] font-semibold leading-tight ${active ? 'text-indigo-700' : 'text-gray-600'}`}>
-                  {m?.label ?? ot}
-                </p>
-                {active && (
-                  <div className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-indigo-500 flex items-center justify-center">
-                    <Check className="w-2 h-2 text-white" />
-                  </div>
-                )}
-              </button>
-            )
-          })}
-        </div>
+        <OpeningStylePicker />
       </div>
 
       {/* Atribut khusus Fade Reveal. Ditampilkan bersyarat — sama seperti
