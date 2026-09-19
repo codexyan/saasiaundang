@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Music, Loader2, Play, Pause, Trash2, Search } from 'lucide-react'
+import { Music, Loader2, Play, Pause, Trash2, Search, Upload, Lock } from 'lucide-react'
 import toast from 'react-hot-toast'
 import FormField from '../ui/FormField'
 import { StudioInput } from '../ui/StudioInput'
@@ -12,6 +12,10 @@ interface MusicFormProps {
   musicTitle: string
   onMusicUrlChange: (url: string) => void
   onMusicTitleChange: (title: string) => void
+  /** Paket pembeli mengizinkan mengunggah lagu sendiri. */
+  bolehUnggah: boolean
+  /** Paket termurah yang membuka unggah, untuk kalimat ajakan naik paket. */
+  paketPembuka?: string
 }
 
 interface LibraryTrack {
@@ -28,7 +32,10 @@ export default function MusicForm({
   musicTitle,
   onMusicUrlChange,
   onMusicTitleChange,
+  bolehUnggah,
+  paketPembuka,
 }: MusicFormProps) {
+  const [mengunggah, setMengunggah] = useState(false)
   const [playing, setPlaying] = useState(false)
   const [previewId, setPreviewId] = useState<string | null>(null)
   const [library, setLibrary] = useState<LibraryTrack[]>([])
@@ -49,6 +56,39 @@ export default function MusicForm({
       .catch(() => {})
       .finally(() => setLoadingLib(false))
   }, [])
+
+  /**
+   * Mengunggah lagu milik pembeli sendiri.
+   *
+   * Sebelum ini layar Musik hanya menawarkan perpustakaan, dan
+   * perpustakaannya kosong, jadi tidak ada satu pun pembeli yang bisa
+   * memasang musik. Sementara halaman harga sudah menjual "Musik pilihan
+   * sendiri" untuk Popular dan Eksklusif.
+   *
+   * Rutenya /api/user/upload yang memang sudah menerima audio, memeriksa
+   * tanda tangan berkasnya, dan membatasi 15 MB.
+   */
+  async function unggahLagu(berkas: File) {
+    setMengunggah(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', berkas)
+      fd.append('folder', 'music')
+      const res = await fetch('/api/user/upload', { method: 'POST', body: fd })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        toast.error(data?.error || 'Lagunya gagal diunggah. Coba lagi ya.')
+        return
+      }
+      onMusicUrlChange(data.url)
+      // Judul diisi dari nama berkas, tanpa ekstensi, supaya tidak kosong.
+      // Pembeli tetap bisa menggantinya di kolom Judul Musik.
+      if (!musicTitle) onMusicTitleChange(berkas.name.replace(/\.[^.]+$/, ''))
+      toast.success('Lagunya sudah terpasang')
+    } finally {
+      setMengunggah(false)
+    }
+  }
 
   function selectFromLibrary(track: LibraryTrack) {
     stopPreview()
@@ -105,7 +145,7 @@ export default function MusicForm({
     <SectionCard
       title="Musik Latar"
       icon={Music}
-      description="Pilih musik dari perpustakaan untuk undangan kamu"
+      description="Pakai lagu kalian sendiri, atau pilih dari perpustakaan"
     >
       {musicUrl && <audio ref={audioRef} src={musicUrl} onEnded={() => setPlaying(false)} />}
       <audio ref={previewAudioRef} onEnded={() => setPreviewId(null)} />
@@ -150,6 +190,47 @@ export default function MusicForm({
         </div>
       ) : (
         <div className="space-y-3">
+          {/* Unggah lagu sendiri. Ditaruh di ATAS perpustakaan karena
+              perpustakaannya masih kosong, jadi inilah satu satunya jalan
+              yang benar benar menghasilkan musik hari ini. */}
+          {bolehUnggah ? (
+            <div>
+              <p className="text-sm font-semibold text-graphite mb-1.5">Pakai lagu sendiri</p>
+              <label className={`flex items-center justify-center gap-2 px-4 py-3 sentuh:min-h-[44px] rounded-card border-2 border-dashed transition-colors ${
+                mengunggah
+                  ? 'border-hairline bg-ivory cursor-wait'
+                  : 'border-forest-light bg-forest-50 hover:bg-forest-100 cursor-pointer'
+              }`}>
+                {mengunggah ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                <span className="text-ui-sm font-semibold text-forest-deep">
+                  {mengunggah ? 'Mengunggah...' : 'Pilih berkas lagu'}
+                </span>
+                <input
+                  type="file"
+                  accept="audio/mpeg,audio/mp4,audio/x-m4a,audio/wav,audio/ogg,.mp3,.m4a,.wav,.ogg"
+                  className="hidden"
+                  disabled={mengunggah}
+                  onChange={e => {
+                    const f = e.target.files?.[0]
+                    e.target.value = ''
+                    if (f) unggahLagu(f)
+                  }}
+                />
+              </label>
+              <p className="mt-1.5 text-ui-xs text-concrete leading-relaxed">
+                MP3, M4A, WAV, atau OGG, maksimal 15 MB. Pastikan kalian berhak memakai lagunya.
+              </p>
+            </div>
+          ) : (
+            <div className="flex items-start gap-2.5 px-3.5 py-3 rounded-card border border-hairline bg-ivory">
+              <Lock size={14} className="text-concrete shrink-0 mt-0.5" />
+              <p className="text-ui-xs text-graphite leading-relaxed">
+                Paket kalian memakai lagu dari perpustakaan.
+                {paketPembuka ? ` Untuk memakai lagu sendiri, paketnya ${paketPembuka}.` : ''}
+              </p>
+            </div>
+          )}
+
           <p className="text-sm font-semibold text-graphite">Pilih dari Perpustakaan</p>
 
           {/* Search & Filter */}
@@ -183,8 +264,12 @@ export default function MusicForm({
               <Loader2 size={20} className="animate-spin text-ash" />
             </div>
           ) : filtered.length === 0 ? (
-            <p className="text-sm text-ash text-center py-4">
-              {library.length === 0 ? 'Belum ada musik tersedia' : 'Tidak ditemukan'}
+            <p className="text-sm text-concrete text-center py-4 leading-relaxed">
+              {library.length === 0
+                ? (bolehUnggah
+                  ? 'Perpustakaan lagunya masih kosong. Untuk sekarang, pakai lagu sendiri lewat tombol di atas.'
+                  : 'Perpustakaan lagunya masih kosong, jadi belum ada lagu yang bisa dipilih.')
+                : 'Tidak ada lagu yang cocok dengan pencarian itu.'}
             </p>
           ) : (
             <div className="space-y-2 max-h-72 overflow-y-auto">
@@ -229,7 +314,9 @@ export default function MusicForm({
 
       <div className="p-3 bg-forest-50 border border-forest-100 rounded-lg">
         <p className="text-xs text-forest-deep">
-          <strong>Tips:</strong> Musik mulai diputar sejak halaman pembuka ditampilkan. Tamu bisa pause/play melalui kontrol musik. Pilih lagu yang sesuai dengan suasana pernikahan.
+          <strong>Perlu diketahui:</strong> musik baru berbunyi setelah tamu menekan tombol buka undangan,
+          karena peramban HP memblokir suara yang menyala sendiri. Sesudah itu tamu bisa menjeda dan
+          memutarnya lagi lewat tombol musik.
         </p>
       </div>
     </SectionCard>

@@ -13,7 +13,8 @@ export async function GET(req: NextRequest) {
   // Dulu perbandingan template string: CRON_SECRET yang kosong menghasilkan
   // "Bearer undefined" yang bisa ditebak siapa pun.
   if (!(await verifyBearer(req.headers.get('authorization'), process.env.CRON_SECRET))) {
-    return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
+    // Dipanggil Cron Trigger, bukan manusia: pesannya menyebut sebab sebenarnya.
+    return NextResponse.json({ error: 'Token cron tidak cocok' }, { status: 401 })
   }
 
   const published = await articles.publishScheduledDue()

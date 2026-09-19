@@ -27,14 +27,18 @@ export const BUILT_IN_CATEGORIES: TemplateCategory[] = [
 ]
 
 const STARTER_FEATURES: TierFeatures = {
-  max_photos: 6, max_guests: 100, music: true, custom_music: false,
+  // Musik dicabut dari Starter 19 Sep 2026. `music: true` tanpa
+  // `custom_music` berarti pembeli hanya boleh memilih dari perpustakaan,
+  // dan perpustakaannya kosong (0 baris di music_tracks), jadi fiturnya
+  // bernilai nol sambil tetap tertulis di halaman harga.
+  max_photos: 6, max_guests: 100, music: false, custom_music: false,
   opening_animation: true, opening_styles: 'basic',
   hero: true, profiles: true, events: true, quote: true,
   countdown: true, gallery: true, rsvp: true, wishes: true,
   story: false, video: false, gift: false, gift_registry: false,
   livestream: false, ig_story: false, qrcode: false, closing: true,
   custom_domain: false, subdomain: true, remove_watermark: false,
-  analytics: false, priority_support: false, validity_days: 30,
+  analytics: false, priority_support: false, validity_days: 365,
   decoration_editing: false, max_decoration_assets: 0, custom_animations: false,
 }
 
@@ -45,8 +49,10 @@ const POPULAR_FEATURES: TierFeatures = {
   countdown: true, gallery: true, rsvp: true, wishes: true,
   story: true, video: true, gift: true, gift_registry: true,
   livestream: true, ig_story: false, qrcode: false, closing: true,
-  custom_domain: false, subdomain: true, remove_watermark: true,
-  analytics: true, priority_support: false, validity_days: 90,
+  // remove_watermark false di semua paket sampai 200 undangan terbit (D-12),
+  // dan masa aktif disamakan 1 tahun (D-11).
+  custom_domain: false, subdomain: true, remove_watermark: false,
+  analytics: true, priority_support: false, validity_days: 365,
   decoration_editing: true, max_decoration_assets: 3, custom_animations: false,
 }
 
@@ -57,8 +63,13 @@ const EKSKLUSIF_FEATURES: TierFeatures = {
   countdown: true, gallery: true, rsvp: true, wishes: true,
   story: true, video: true, gift: true, gift_registry: true,
   livestream: true, ig_story: true, qrcode: true, closing: true,
-  custom_domain: true, subdomain: true, remove_watermark: true,
-  analytics: true, priority_support: true, validity_days: 180,
+  // custom_domain dan priority_support dimatikan 19 Sep 2026. Keduanya
+  // tertulis di paket dan diiklankan di empat tempat publik, tapi tidak ada
+  // satu pun mekanisme di belakangnya: tidak ada layar untuk memasang domain
+  // sendiri, dan tidak ada penanda prioritas di tiket dukungan. Nyalakan lagi
+  // kalau mekanismenya sudah benar benar ada, bukan sebaliknya.
+  custom_domain: false, subdomain: true, remove_watermark: false,
+  analytics: true, priority_support: false, validity_days: 365,
   decoration_editing: true, max_decoration_assets: -1, custom_animations: true,
 }
 

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { withAdminAuth } from '@/lib/route-guards'
 import { prisma } from '@/lib/prisma'
-import type { UserRole } from '@/lib/db'
+import { USER_ROLES, type UserRole } from '@/lib/db'
 import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
@@ -67,6 +67,15 @@ export const POST = withAdminAuth(async (req) => {
 
   if (!email || !email.includes('@')) return NextResponse.json({ error: 'Email tidak valid' }, { status: 400 })
   if (!password || password.length < 6) return NextResponse.json({ error: 'Passwordnya minimal 6 karakter ya.' }, { status: 400 })
+
+  // Dulu role dari body langsung disimpan lewat `role || 'user'` tanpa dicek.
+  // Cast `as { role?: UserRole }` di atas hanya menenangkan TypeScript dan tidak
+  // memeriksa apa pun saat runtime, jadi string sembarang ikut masuk ke kolom
+  // users.role. Sekarang aturannya sama dengan PATCH /api/admin/users/[id].
+  // Role kosong tetap jatuh ke 'user' seperti sebelumnya.
+  if (role && !USER_ROLES.includes(role)) {
+    return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
+  }
 
   const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
   if (existing) return NextResponse.json({ error: 'Email ini sudah punya akun. Silakan masuk, atau pakai email lain.' }, { status: 409 })

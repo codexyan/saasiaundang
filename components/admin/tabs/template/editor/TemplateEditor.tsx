@@ -1,14 +1,17 @@
 'use client'
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
+import { useParamUrl } from '@/lib/use-param-url'
 import toast from 'react-hot-toast'
 import {
   Palette, Type, Layers, Sparkles, Play,
   Rocket, X, Undo2, Redo2, ArrowLeft,
-  Settings2, Loader2, CloudUpload, CircleAlert, RotateCcw,
+  Settings2, Loader2, CloudUpload, CircleAlert, RotateCcw, ExternalLink,
 } from 'lucide-react'
 import type { TemplateMeta, ColorScheme, OpeningConfig, MusicConfig, TemplateCategory, ColorPalette } from '@/lib/types'
 import type { TemplateRecord, NewInvitationData, SectionType } from '@/lib/types'
+import { drafValid } from '@/lib/template-draft'
+import { hitungDekorasi } from '@/lib/decoration-reuse'
 import ConfirmDialog from '@/components/admin/ui/ConfirmDialog'
 import StatusBadge from '@/components/admin/ui/StatusBadge'
 
@@ -73,17 +76,46 @@ export default function TemplateEditor({
   // Editor selalu menggarap draf. Kalau belum ada draf, mulai dari versi terbit.
   const [config, setConfig] = useState<TemplateRecord>(() => {
     const base = deepClone(record)
-    if (record.draft_config) base.config = deepClone(record.draft_config)
+    // Bentuknya yang diperiksa, bukan truthy-nya. Draf `{}` peninggalan versi
+    // lama pernah meruntuhkan seluruh editor di sini.
+    if (drafValid(record.draft_config)) base.config = deepClone(record.draft_config)
     return base
   })
-  const [activeTab, _setActiveTab] = useState<ConfigTab>('tampilan')
+  // Tab editor ikut ke URL (`?panel=konten`), supaya menyegarkan halaman atau
+  // menekan tombol kembali tidak melempar admin ke tab Tampilan lagi.
+  const [panelUrl, setPanelUrl] = useParamUrl('panel', 'tampilan',
+    (v) => ['tampilan', 'opening', 'decor', 'konten', 'music'].includes(v))
+  const activeTab = (panelUrl ?? 'tampilan') as ConfigTab
   const tabContentRef = useRef<HTMLDivElement>(null)
-  const setActiveTab = useCallback((tab: ConfigTab) => { _setActiveTab(tab); tabContentRef.current?.scrollTo(0, 0) }, [])
+  const setActiveTab = useCallback((tab: ConfigTab) => { setPanelUrl(tab); tabContentRef.current?.scrollTo(0, 0) }, [setPanelUrl])
   const withPreservedScroll = useCallback((fn: () => void) => {
     const y = tabContentRef.current?.scrollTop ?? 0
     fn()
     requestAnimationFrame(() => tabContentRef.current?.scrollTo(0, y))
   }, [])
+  // Tinggi lembar kontrol di layar sempit. Di layar lebar keadaan ini
+  // diabaikan: panel tetap kolom kiri selebar 420 piksel.
+  //
+  // Kenapa pratinjau yang jadi utama di HP: yang dinilai admin saat menggeser
+  // warna atau mengganti font adalah HASILNYA, bukan kontrolnya. Menaruh
+  // kontrol di lembar yang bisa ditarik membuat keduanya bisa dilihat
+  // bergantian tanpa berpindah halaman dan tanpa kehilangan posisi gulir.
+  //
+  // Tingginya diingat per peramban: admin yang terbiasa bekerja sambil melihat
+  // pratinjau penuh tidak perlu meringkaskan lembar ini setiap kali membuka
+  // tema lain.
+  const [lembar, setLembar] = useState<'ringkas' | 'separuh' | 'penuh'>('separuh')
+
+  useEffect(() => {
+    try {
+      const simpan = window.localStorage.getItem('editor-tinggi-lembar')
+      if (simpan === 'ringkas' || simpan === 'separuh' || simpan === 'penuh') setLembar(simpan)
+    } catch { /* localStorage bisa ditolak di mode privat; abaikan saja */ }
+  }, [])
+
+  useEffect(() => {
+    try { window.localStorage.setItem('editor-tinggi-lembar', lembar) } catch { /* sama */ }
+  }, [lembar])
   const [previewMode, setPreviewMode] = useState<'invitation' | 'opening' | 'loading'>('opening')
   const [previewGuestName, setPreviewGuestName] = useState('Bapak Budi dan Keluarga')
   const [previewData, setPreviewData] = useState<NewInvitationData>(PREVIEW_DATA_DEFAULT)
@@ -125,7 +157,7 @@ export default function TemplateEditor({
   const [publishing, setPublishing] = useState(false)
   const [showPublish, setShowPublish] = useState(false)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
-  const [hasPendingDraft, setHasPendingDraft] = useState(!!record.draft_config)
+  const [hasPendingDraft, setHasPendingDraft] = useState(drafValid(record.draft_config))
   const [previewKey, setPreviewKey] = useState(0)
   const [showFullscreen, setShowFullscreen] = useState(false)
 
@@ -309,6 +341,11 @@ export default function TemplateEditor({
     }))
   }, [])
 
+  // Dibandingkan sebelum menerbitkan, lihat peringatan di modal Terbitkan.
+  const dekorDraf = hitungDekorasi(cfg)
+  const dekorTerbit = hitungDekorasi(record.config)
+  const dekorHilang = Math.max(0, dekorTerbit - dekorDraf)
+
   const musicCfg: MusicConfig = { ...DEFAULT_MUSIC_CFG, ...cfg.music }
 
   const updateMusic = useCallback((patch: Partial<MusicConfig>) => {
@@ -395,7 +432,7 @@ export default function TemplateEditor({
 
   /** Snapshot terakhir yang SUDAH tersimpan di server. Pembanding untuk
    *  memutuskan perlu-tidaknya autosave berikutnya. */
-  const savedSnapshotRef = useRef(JSON.stringify(record.draft_config ?? record.config))
+  const savedSnapshotRef = useRef(JSON.stringify(drafValid(record.draft_config) ? record.draft_config : record.config))
   /** Simpan yang sedang berjalan. Dipegang sebagai PROMISE, bukan boolean:
    *  pemanggil yang datang di tengah simpan (mis. menekan Terbitkan tepat saat
    *  autosave jalan) harus MENUNGGU hasilnya, bukan langsung menyerah dan
@@ -596,20 +633,84 @@ export default function TemplateEditor({
 
   return (
     <EditorProvider value={editorValue}>
-    <div className="flex flex-1 min-h-0 h-full overflow-hidden">
+    <div className="relative flex flex-col lg:flex-row flex-1 min-h-0 h-full overflow-hidden">
 
-      {/*  Left: Config Editor  */}
-      <div className="w-[420px] shrink-0 flex flex-col border-r border-gray-200 bg-white overflow-hidden min-h-0">
+      {/* Bar identitas khusus layar sempit. Di desktop informasi yang sama ada
+          di kepala panel kiri; di HP panel itu jadi lembar yang bisa ditutup,
+          jadi tombol kembali harus tetap terlihat di luar lembar. */}
+      <div className="lg:hidden shrink-0 flex items-center gap-2.5 px-4 py-3 bg-white border-b border-gray-200">
+        <button
+          onClick={exitEditor}
+          aria-label="Simpan draf dan kembali ke koleksi"
+          className="w-11 h-11 -ml-2 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-sm font-bold text-gray-900 truncate">{record.name}</h2>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <StatusBadge status={record.status} size="sm" />
+            {categoryLabel && (
+              <span className="text-[10px] text-gray-400 capitalize truncate">{categoryLabel}</span>
+            )}
+          </div>
+        </div>
+        {/* Buka tema ini seperti tamu melihatnya. Dulu hanya ada di menu
+            kartu, jadi harus keluar dari editor dulu untuk memakainya. */}
+        <a
+          href={`/demo/renderer?id=${record.id}`}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Buka pratinjau seperti tamu di tab baru"
+          title="Pratinjau seperti tamu"
+          className="w-11 h-11 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors shrink-0"
+        >
+          <ExternalLink className="w-4 h-4" />
+        </a>
+        <button
+          onClick={onOpenSettings}
+          aria-label="Pengaturan tema: nama, slug, kategori, harga, publikasi"
+          className="w-11 h-11 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors shrink-0"
+        >
+          <Settings2 className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/*  Panel kontrol. Kolom kiri di desktop, lembar tarik di HP.  */}
+      <div className={`z-40 flex flex-col bg-white overflow-hidden min-h-0 transition-[height] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]
+        fixed inset-x-0 bottom-0 rounded-t-2xl border-t border-gray-200 shadow-[0_-10px_34px_rgba(0,0,0,0.14)]
+        lg:static lg:z-auto lg:w-[420px] lg:shrink-0 lg:h-auto lg:rounded-none lg:border-t-0 lg:border-r lg:shadow-none
+        ${lembar === 'penuh' ? 'h-[88dvh]' : lembar === 'separuh' ? 'h-[56dvh]' : 'h-[116px]'}`}>
+
+        {/* Pegangan tarik, hanya di layar sempit. Satu ketukan memutar tinggi
+            lembar: separuh, penuh, lalu ringkas. */}
+        <button
+          type="button"
+          onClick={() => setLembar(l => (l === 'separuh' ? 'penuh' : l === 'penuh' ? 'ringkas' : 'separuh'))}
+          aria-label={
+            lembar === 'separuh' ? 'Perbesar panel kontrol'
+              : lembar === 'penuh' ? 'Ringkaskan panel kontrol supaya pratinjau terlihat penuh'
+                : 'Buka panel kontrol'
+          }
+          className="lg:hidden shrink-0 w-full min-h-[44px] py-3 flex items-center justify-center gap-2 text-[11px] font-semibold text-gray-400 hover:text-gray-700 transition-colors"
+        >
+          <span aria-hidden className="w-10 h-1 rounded-full bg-gray-300" />
+          <span>
+            {lembar === 'ringkas' ? 'Buka kontrol' : lembar === 'separuh' ? 'Perbesar' : 'Ringkaskan'}
+          </span>
+        </button>
+
 
         {/* Header — identitas template hanya DITAMPILKAN di sini.
             Mengubahnya lewat panel Pengaturan, supaya nama/slug/harga punya
             satu tempat saja alih-alih dua form yang bisa berbeda isi. */}
-        <div className="px-5 py-4 border-b border-gray-100 bg-white shrink-0">
+        <div className="hidden lg:block px-5 py-4 border-b border-gray-100 bg-white shrink-0">
           <div className="flex items-center gap-2.5">
             <button
               onClick={exitEditor}
-              className="p-1.5 -ml-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+              className="w-11 h-11 -ml-2.5 -my-2 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
               title="Simpan draf & kembali ke koleksi"
+              aria-label="Simpan draf dan kembali ke koleksi template"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
@@ -622,10 +723,21 @@ export default function TemplateEditor({
                 )}
               </div>
             </div>
+            <a
+              href={`/demo/renderer?id=${record.id}`}
+              target="_blank"
+              rel="noreferrer"
+              title="Pratinjau seperti tamu"
+              aria-label="Buka pratinjau seperti tamu di tab baru"
+              className="w-11 h-11 -my-2 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors shrink-0"
+            >
+              <ExternalLink className="w-4 h-4" />
+            </a>
             <button
               onClick={onOpenSettings}
               title="Nama, slug, kategori, harga, publikasi"
-              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors shrink-0"
+              aria-label="Buka pengaturan template"
+              className="w-11 h-11 -my-2 -mr-2 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors shrink-0"
             >
               <Settings2 className="w-4 h-4" />
             </button>
@@ -633,7 +745,7 @@ export default function TemplateEditor({
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-100 bg-gray-50 shrink-0">
+        <div className={`border-b border-gray-100 bg-gray-50 shrink-0 ${lembar === 'ringkas' ? 'hidden lg:flex' : 'flex'}`}>
           {([
             ['tampilan', Palette,   'Tampilan'],
             ['opening',  Sparkles,  'Opening'],
@@ -657,7 +769,7 @@ export default function TemplateEditor({
         </div>
 
         {/* Tab content */}
-        <div ref={tabContentRef} className="flex-1 overflow-y-auto scrollbar-hide p-5 space-y-5">
+        <div ref={tabContentRef} className={`flex-1 overflow-y-auto scrollbar-hide p-5 space-y-5 ${lembar === 'ringkas' ? 'hidden lg:block' : ''}`}>
 
 
           {activeTab === 'tampilan' && <AppearancePanel />}
@@ -674,7 +786,7 @@ export default function TemplateEditor({
               tersimpan" yang dulu menuntut admin menekan Simpan. Sekarang
               draf tersimpan sendiri; yang perlu diketahui admin hanyalah
               apakah sudah sampai ke server. */}
-          <div className="flex items-center justify-between gap-2 px-0.5">
+          <div className={`items-center justify-between gap-2 px-0.5 ${lembar === 'ringkas' ? 'hidden lg:flex' : 'flex'}`}>
             <div className="flex items-center gap-1.5 min-w-0">
               {saveState === 'saving' ? (
                 <>
@@ -704,15 +816,15 @@ export default function TemplateEditor({
             </div>
 
             <div className="flex items-center gap-0.5 shrink-0">
-              <button onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)"
-                className="p-1 text-gray-400 hover:text-gray-800 disabled:opacity-20 transition-colors"><Undo2 className="w-3.5 h-3.5" /></button>
-              <button onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Y)"
-                className="p-1 text-gray-400 hover:text-gray-800 disabled:opacity-20 transition-colors"><Redo2 className="w-3.5 h-3.5" /></button>
+              <button onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)" aria-label="Urungkan perubahan terakhir"
+                className="w-11 h-11 -my-3 flex items-center justify-center text-gray-500 hover:text-gray-900 disabled:opacity-20 transition-colors"><Undo2 className="w-3.5 h-3.5" /></button>
+              <button onClick={redo} disabled={!canRedo} title="Redo (Ctrl+Y)" aria-label="Ulangi perubahan yang diurungkan"
+                className="w-11 h-11 -my-3 flex items-center justify-center text-gray-500 hover:text-gray-900 disabled:opacity-20 transition-colors"><Redo2 className="w-3.5 h-3.5" /></button>
             </div>
           </div>
 
           {hasPendingDraft && (
-            <div className="flex items-start gap-2 px-2.5 py-2 rounded-lg bg-indigo-50 border border-indigo-100">
+            <div className={`items-start gap-2 px-2.5 py-2 rounded-lg bg-indigo-50 border border-indigo-100 ${lembar === 'ringkas' ? 'hidden lg:flex' : 'flex'}`}>
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] font-semibold text-indigo-700 leading-tight">
                   Perubahan belum terbit
@@ -726,7 +838,8 @@ export default function TemplateEditor({
               <button
                 onClick={() => setConfirmDiscard(true)}
                 title="Buang draf, kembali ke versi terbit"
-                className="p-1 text-indigo-400 hover:text-indigo-700 transition-colors shrink-0"
+                aria-label="Buang draf, kembali ke versi terbit"
+                className="w-11 h-11 -my-2 -mr-2 flex items-center justify-center text-indigo-400 hover:text-indigo-700 transition-colors shrink-0"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
               </button>
@@ -736,7 +849,7 @@ export default function TemplateEditor({
           <button
             onClick={() => setShowPublish(true)}
             disabled={publishing}
-            className="w-full flex items-center justify-center gap-1.5 bg-gray-900 text-white text-xs font-semibold py-2.5 rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-colors"
+            className="w-full min-h-[44px] flex items-center justify-center gap-1.5 bg-gray-900 text-white text-xs font-semibold py-2.5 rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-colors"
           >
             <Rocket className="w-3.5 h-3.5" />
             {record.status === 'active' ? 'Terbitkan perubahan' : 'Terbitkan template'}
@@ -744,7 +857,14 @@ export default function TemplateEditor({
         </div>
       </div>
 
-      <EditorPreview />
+      {/* Ruang bawah menyesuaikan tinggi lembar, supaya pratinjau tidak
+          tertutup lembar kontrol di layar sempit. */}
+      <div
+        className="flex-1 min-h-0 flex lg:contents"
+        style={{ paddingBottom: lembar === 'penuh' ? '88dvh' : lembar === 'separuh' ? '56dvh' : '116px' }}
+      >
+        <EditorPreview />
+      </div>
 
 
 
@@ -757,7 +877,9 @@ export default function TemplateEditor({
                 <Rocket className="w-4 h-4 text-gray-900" />
                 <h3 className="font-bold text-gray-900 text-sm">Terbitkan template</h3>
               </div>
-              <button onClick={() => setShowPublish(false)} disabled={publishing} className="text-gray-400 hover:text-gray-700">
+              <button onClick={() => setShowPublish(false)} disabled={publishing}
+                aria-label="Tutup" title="Tutup"
+                className="text-gray-400 hover:text-gray-700 inline-flex items-center justify-center -mr-2 sentuh:w-11 sentuh:h-11">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -774,10 +896,29 @@ export default function TemplateEditor({
                   <span className="font-semibold text-gray-800">{sections.filter(s => s.enabled).length}</span>
                 </div>
                 <div className="flex justify-between gap-4">
+                  <span className="text-gray-400">Dekorasi terpasang</span>
+                  <span className="font-semibold text-gray-800">{dekorDraf}</span>
+                </div>
+                <div className="flex justify-between gap-4">
                   <span className="text-gray-400">Undangan memakai tema ini</span>
                   <span className="font-semibold text-gray-800">{record.usage_count}</span>
                 </div>
               </div>
+
+              {/* Peringatan kehilangan dekorasi.
+                  Draf dan versi terbit adalah dua salinan terpisah, dan draf
+                  lama bisa saja dibuat sebelum dekorasinya dipasang. Tanpa
+                  perbandingan ini, menekan Terbitkan menghapus hiasan yang
+                  sudah tampil di undangan orang tanpa satu pun tanda. Keadaan
+                  itu memang ada di produksi: satu tema menyimpan dekorasi di
+                  versi terbitnya sementara drafnya nol. */}
+              {dekorHilang > 0 && (
+                <p className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 leading-relaxed">
+                  Versi yang sekarang terbit memuat {dekorTerbit} dekorasi, sedangkan draf ini
+                  memuat {dekorDraf}. Menerbitkan akan menghapus {dekorHilang} dekorasi dari
+                  undangan yang sudah tampil. Batalkan dulu kalau itu bukan yang kamu mau.
+                </p>
+              )}
 
               {record.usage_count > 0 && (
                 <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 leading-relaxed">
@@ -790,7 +931,7 @@ export default function TemplateEditor({
               <button
                 onClick={() => publish('active')}
                 disabled={publishing}
-                className="w-full py-2.5 text-sm font-semibold bg-gray-900 text-white rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                className="w-full py-2.5 sentuh:min-h-[44px] text-sm font-semibold bg-gray-900 text-white rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
               >
                 {publishing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Rocket className="w-3.5 h-3.5" />}
                 Terbitkan &amp; tampilkan di galeri
@@ -798,14 +939,14 @@ export default function TemplateEditor({
               <button
                 onClick={() => publish('draft')}
                 disabled={publishing}
-                className="w-full py-2.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                className="w-full py-2.5 sentuh:min-h-[44px] text-sm font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 transition-colors"
               >
                 Simpan sebagai versi terbit, tetap draft
               </button>
               <button
                 onClick={() => setShowPublish(false)}
                 disabled={publishing}
-                className="w-full py-2 text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors"
+                className="w-full py-2 sentuh:min-h-[44px] text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors"
               >
                 Batal
               </button>

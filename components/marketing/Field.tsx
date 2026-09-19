@@ -88,7 +88,9 @@ export const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(
             type="button"
             onClick={() => setShow(v => !v)}
             aria-label={show ? 'Sembunyikan password' : 'Tampilkan password'}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-concrete hover:text-graphite focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 rounded"
+            // Area sentuh 44x44 lewat padding negatif: ikonnya tetap kecil,
+            // yang membesar hanya wilayah yang bisa ditekan jempol (R-03).
+            className="absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-concrete hover:text-graphite focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 rounded"
           >
             <EyeIcon open={show} />
           </button>

@@ -7,6 +7,7 @@ import { getComponentStyle, btnStyle, cardRadius, inputBorderStyle } from '@/lib
 import { inputCls } from '../parts/fields'
 import { HEADING_FONTS, BODY_FONTS } from '../parts/constants'
 import { useEditor } from '../EditorContext'
+import { FONT_PAIRS } from '@/lib/font-pairs'
 
 /**
  * Tab "Tampilan" — warna, palet, tipografi, dan gaya komponen.
@@ -286,7 +287,7 @@ export default function AppearancePanel() {
         ] as const).map(pm => (
           <button key={pm.mode}
             onClick={() => { setPreviewMode(pm.mode); setPreviewKey(k => k + 1); setDecorPreviewKey(k => k + 1) }}
-            className={`flex-1 py-2 rounded-lg text-[10px] font-semibold transition-all ${
+            className={`flex-1 min-h-[44px] py-2 rounded-lg text-[10px] font-semibold transition-all ${
               previewMode === pm.mode
                 ? 'bg-indigo-50 border-2 border-indigo-500 text-indigo-700'
                 : 'bg-gray-50 border border-gray-200 text-gray-500 hover:border-gray-300'
@@ -341,7 +342,7 @@ export default function AppearancePanel() {
 
       {/*  Font Pairing  */}
       <details className="group">
-        <summary className="flex items-center justify-between cursor-pointer select-none py-1 list-none [&::-webkit-details-marker]:hidden">
+        <summary className="flex items-center justify-between gap-2 min-h-[44px] cursor-pointer select-none py-1 list-none [&::-webkit-details-marker]:hidden">
           <div>
             <p className="text-[10px] font-semibold text-gray-500">Pasangan Font</p>
             <p className="text-[9px] text-gray-400 mt-0.5">Kombinasi heading + body terkurasi   klik untuk buka</p>
@@ -349,24 +350,7 @@ export default function AppearancePanel() {
           <ChevronDown className="w-3.5 h-3.5 text-gray-400 transition-transform group-open:rotate-180 shrink-0" />
         </summary>
         <div className="grid grid-cols-1 gap-2 mt-3 mb-4">
-          {([
-            { heading: 'Geist', body: 'Geist',                name: 'Clean Swiss',   desc: 'Sans-serif monokromatik bersih' },
-            { heading: 'Cinzel',           body: 'Raleway',             name: 'Royal Formal',       desc: 'Romawi agung + modern ringan' },
-            { heading: 'Cormorant Garamond', body: 'Montserrat',        name: 'Refined Modern',     desc: 'Garamond halus + geometris tegas' },
-            { heading: 'Great Vibes',      body: 'Lato',                name: 'Romantic Script',    desc: 'Kaligrafi romantis + body netral' },
-            { heading: 'Bodoni Moda',      body: 'DM Sans',             name: 'High Fashion',       desc: 'Editorial mode + sans-serif kontemporer' },
-            { heading: 'Cinzel Decorative', body: 'EB Garamond',        name: 'Grand Luxury',       desc: 'Dekoratif megah + serif klasik' },
-            { heading: 'Alex Brush',       body: 'Cormorant Garamond',  name: 'Calligraphy Suite',  desc: 'Kaligrafi anggun + serif elegan' },
-            { heading: 'Italiana',         body: 'Spectral',            name: 'Italian Romance',    desc: 'Italia dramatis + serif hangat' },
-            { heading: 'Marcellus',        body: 'Lora',                name: 'Timeless Grace',     desc: 'Serif klasik + serif lembut' },
-            { heading: 'Prata',            body: 'Josefin Sans',        name: 'Chic Contrast',      desc: 'Didone tajam + sans geometris' },
-            { heading: 'Sacramento',       body: 'Work Sans',           name: 'Garden Party',       desc: 'Script kasual elegan + sans modern' },
-            { heading: 'Allura',           body: 'Crimson Text',        name: 'Dreamy Vintage',     desc: 'Script bermimpi + serif klasik' },
-            { heading: 'Gilda Display',    body: 'Nunito',              name: 'Art Deco',           desc: 'Display 1920-an + sans-serif lunak' },
-            { heading: 'Tenor Sans',       body: 'Gentium Book Plus',   name: 'Understated Luxe',   desc: 'Sans elegan + serif sastra' },
-            { heading: 'Cormorant SC',     body: 'Raleway',             name: 'Monumental',         desc: 'Small caps formal + sans ringan' },
-            { heading: 'Philosopher',      body: 'Source Serif 4',      name: 'Intellectual',       desc: 'Unik intelektual + serif modern' },
-          ] as const).map(pair => {
+          {FONT_PAIRS.map(pair => {
             const active = cfg.meta.font.heading === pair.heading && cfg.meta.font.body === pair.body
             return (
               <button key={pair.name} type="button"
@@ -427,7 +411,7 @@ export default function AppearancePanel() {
               <p className="text-[10px] font-semibold text-gray-600">Font Judul</p>
               <span className="text-[10px] italic" style={{ fontFamily: `'${cfg.meta.font.heading}', serif`, color: _a }}>{cfg.meta.font.heading}</span>
             </div>
-            <select value={cfg.meta.font.heading} onChange={e => { updateFont('heading', e.target.value); setPreviewKey(k => k + 1); setDecorPreviewKey(k => k + 1) }} className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white">
+            <select value={cfg.meta.font.heading} onChange={e => { updateFont('heading', e.target.value); setPreviewKey(k => k + 1); setDecorPreviewKey(k => k + 1) }} className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 sentuh:min-h-[44px] focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white">
               {(cfg.meta.font.custom_fonts ?? []).map(f => <option key={`c-${f.name}`} value={f.name}>★ {f.name}</option>)}
               {HEADING_FONTS.map(f => <option key={f} value={f}>{f}</option>)}
             </select>
@@ -447,7 +431,8 @@ export default function AppearancePanel() {
               </div>
               {(cfg.meta.font.heading_scale ?? 1.0) !== 1.0 && (
                 <button onClick={() => updateMeta({ font: { ...cfg.meta.font, heading_scale: 1.0 } })}
-                  className="text-[9px] text-gray-400 hover:text-indigo-500 shrink-0">↺</button>
+                  title="Kembalikan ukuran judul ke 100%" aria-label="Kembalikan ukuran judul ke 100 persen"
+                  className="w-11 h-11 -my-3 -mr-2 flex items-center justify-center text-xs text-gray-500 hover:text-indigo-600 shrink-0">↺</button>
               )}
             </div>
             <div className="flex items-center gap-2">
@@ -499,7 +484,7 @@ export default function AppearancePanel() {
               <p className="text-[10px] font-semibold text-gray-600">Font Teks</p>
               <span className="text-[10px]" style={{ fontFamily: `'${cfg.meta.font.body}', sans-serif`, color: '#666' }}>{cfg.meta.font.body}</span>
             </div>
-            <select value={cfg.meta.font.body} onChange={e => { updateFont('body', e.target.value); setPreviewKey(k => k + 1); setDecorPreviewKey(k => k + 1) }} className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white">
+            <select value={cfg.meta.font.body} onChange={e => { updateFont('body', e.target.value); setPreviewKey(k => k + 1); setDecorPreviewKey(k => k + 1) }} className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 sentuh:min-h-[44px] focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white">
               {(cfg.meta.font.custom_fonts ?? []).map(f => <option key={`c-${f.name}`} value={f.name}>★ {f.name}</option>)}
               {BODY_FONTS.map(f => <option key={f} value={f}>{f}</option>)}
             </select>
@@ -519,7 +504,8 @@ export default function AppearancePanel() {
               </div>
               {(cfg.meta.font.body_scale ?? 1.0) !== 1.0 && (
                 <button onClick={() => updateMeta({ font: { ...cfg.meta.font, body_scale: 1.0 } })}
-                  className="text-[9px] text-gray-400 hover:text-indigo-500 shrink-0">↺</button>
+                  title="Kembalikan ukuran teks isi ke 100%" aria-label="Kembalikan ukuran teks isi ke 100 persen"
+                  className="w-11 h-11 -my-3 -mr-2 flex items-center justify-center text-xs text-gray-500 hover:text-indigo-600 shrink-0">↺</button>
               )}
             </div>
             <div className="flex items-center gap-2">
@@ -627,7 +613,7 @@ export default function AppearancePanel() {
                     input.value = ''
                     toast.success(`Font "${name}" ditambahkan!`)
                   }}
-                  className="px-3 py-2 bg-indigo-600 text-white text-[10px] font-semibold rounded-lg hover:bg-indigo-700 transition-colors shrink-0"
+                  className="px-4 min-h-[44px] bg-indigo-600 text-white text-[11px] font-semibold rounded-lg hover:bg-indigo-700 transition-colors shrink-0"
                 >
                   + Tambah
                 </button>

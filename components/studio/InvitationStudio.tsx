@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import { useParamUrl } from '@/lib/use-param-url'
+import { temaEfektif } from '@/lib/effective-template'
 import toast from 'react-hot-toast'
 import dynamic from 'next/dynamic'
 import { Reorder, useDragControls, motion, AnimatePresence } from 'framer-motion'
@@ -8,14 +10,16 @@ import {
   CheckSquare, MessageSquare, BookOpen, Eye, X, Loader2, Check, RefreshCw,
   User, Calendar, Sparkles, Music, Quote, Image, Gift, FileText,
   Maximize2, ExternalLink, Lock, Video, Radio, Instagram, QrCode, ShoppingBag,
-  GripVertical, ArrowUpDown, Palette,
+  GripVertical, ArrowUpDown, Palette, Type,
 } from 'lucide-react'
-import type { Invitation, NewInvitationData, TemplateRecord, OpeningType, TierFeatures } from '@/lib/types'
+import type { Invitation, NewInvitationData, TemplateRecord, OpeningType, TierFeatures, PriceTier } from '@/lib/types'
 import type { PackageTier } from '@/lib/packages'
 import { calculateCompleteness } from '@/lib/studio-progress'
 import { EASE } from '@/lib/motion'
 import { usePackageGating } from '@/hooks/usePackageGating'
+import { useInvitationUrl } from '@/lib/use-invitation-url'
 import GalleryManager from '@/components/dashboard/GalleryManager'
+import ShareCardButton from '@/components/dashboard/ShareCardButton'
 import LockedOverlay from './ui/LockedOverlay'
 
 const InvitationRenderer = dynamic(() => import('@/components/renderer/InvitationRenderer'), { ssr: false })
@@ -34,6 +38,9 @@ import IGStoryForm from './forms/IGStoryForm'
 import QRCodeForm from './forms/QRCodeForm'
 import GiftRegistryForm from './forms/GiftRegistryForm'
 import ColorPaletteForm from './forms/ColorPaletteForm'
+import TypographyForm from './forms/TypographyForm'
+import DecorationForm from './forms/DecorationForm'
+import SectionColorSync from './forms/SectionColorSync'
 import InfoCard from './ui/InfoCard'
 import FormField from './ui/FormField'
 import { StudioInput, StudioTextarea } from './ui/StudioInput'
@@ -45,6 +52,10 @@ interface Props {
   template: TemplateRecord
   onSaved: (inv: Invitation) => void
   isAdmin?: boolean
+  /** Dari server component (lihat lib/tiers.ts, SERVER-ONLY). Opsional
+   *  supaya pemanggil yang belum sempat dikirimi prop ini tidak crash,
+   *  usePackageGating dan GalleryManager sama sama punya fallback sendiri. */
+  priceTiers?: PriceTier[]
 }
 
 function initData(inv: Invitation): NewInvitationData {
@@ -66,16 +77,41 @@ function initData(inv: Invitation): NewInvitationData {
     groom_bio: d.groom_bio ?? '',
     bride_bio: d.bride_bio ?? '',
     couple_photo_url: d.couple_photo_url ?? '',
-    primary_color: d.primary_color ?? '#2c4a34',
-    accent_color: d.accent_color ?? '#c9a961',
-    text_color: d.text_color ?? '#1a1a1a',
-    background_color: d.background_color ?? '#fefdf8',
-    opening_type: d.opening_type ?? 'fade-reveal',
-    opening_greeting: d.opening_greeting ?? 'Assalamualaikum Warahmatullahi Wabarakatuh',
-    opening_subtitle: d.opening_subtitle ?? 'Tanpa mengurangi rasa hormat, kami mengundang Bapak/Ibu/Saudara/i untuk menghadiri acara pernikahan kami.',
-    opening_groom_name: d.opening_groom_name ?? '',
-    opening_bride_name: d.opening_bride_name ?? '',
-    opening_name_gap: d.opening_name_gap,
+    /**
+     * Kosong, BUKAN warna bawaan yang ditanam di sini.
+     *
+     * Sebelumnya empat baris ini mengisi #2c4a34 hijau dan #c9a961 emas
+     * untuk undangan mana pun. Selama warna pembeli tidak pernah dibaca
+     * siapa pun, itu tidak terlihat. Sejak lib/effective-template.ts
+     * membacanya (commit 0e5ac5c), nilai tanam ini menimpa palet tema yang
+     * dibeli: Rose Garden yang marun, Midnight Luxe yang hitam, dan
+     * Javanese Gold yang hijau tua ketiganya berubah jadi satu palet hijau
+     * emas yang sama begitu studio dibuka.
+     *
+     * Kosong berarti "pembeli belum memilih", dan temaEfektif membiarkan
+     * warna tema apa adanya. Yang ditampilkan di layar Tema Warna tetap
+     * warna tema, diambil dari template saat merender formnya.
+     */
+    primary_color: d.primary_color ?? '',
+    accent_color: d.accent_color ?? '',
+    text_color: d.text_color ?? '',
+    background_color: d.background_color ?? '',
+    /**
+     * Kosong juga, sebab alasannya sama dengan warna di atas.
+     *
+     * Nilai tanamnya dulu 'fade-reveal' dan dua kalimat sapaan. Rose Garden
+     * dirancang membuka dengan 'flower-bloom' dan Midnight Luxe dengan
+     * 'curtain', jadi membuka studio langsung memaksa keduanya jadi
+     * 'fade-reveal'. Sapaan temanya ("The Wedding of", "You are cordially
+     * invited") juga langsung tertimpa.
+     *
+     * Kalau nanti diputuskan bahwa sapaan Assalamualaikum memang pantas jadi
+     * bawaan produk, tempatnya di konfigurasi tema, yang bisa dilihat dan
+     * diubah admin, bukan di sini.
+     */
+    opening_type: d.opening_type,
+    opening_greeting: d.opening_greeting ?? '',
+    opening_subtitle: d.opening_subtitle ?? '',
     music_url: d.music_url ?? '',
     music_title: d.music_title ?? '',
     quote_arabic: d.quote_arabic ?? '',
@@ -138,6 +174,14 @@ function buildNavGroups(
       label: 'Tampilan',
       rawItems: [
         item('warna', 'Tema Warna', Palette, 'Tampilan'),
+        // Tanpa kunci paket: warna dan huruf adalah yang membuat undangan
+        // terasa milik pembeli, dan itu satu satunya sumbu yang bisa kita
+        // menangkan. Menguncinya di paket termahal membuang keunggulan
+        // sendiri di depan pembeli yang sedang membandingkan.
+        item('huruf', 'Huruf', Type, 'Tampilan'),
+        // Kunci paketnya 'dekorasi' -> features.decoration_editing, yang
+        // sudah ada di peta gating dan sudah ditegakkan API.
+        item('hiasan', 'Hiasan', Sparkles, 'Tampilan', 'dekorasi'),
         item('opening', 'Pembuka', Sparkles, 'Tampilan'),
         item('loading', 'Loading', Loader2, 'Tampilan'),
       ],
@@ -250,18 +294,29 @@ function StaticSectionItem({ section, active, onClick }: { section: NavItem; act
   )
 }
 
-const SECTION_TYPE_FEATURE: Record<string, keyof TierFeatures> = {
-  hero: 'hero', profiles: 'profiles', events: 'events', quote: 'quote',
-  countdown: 'countdown', gallery: 'gallery', rsvp: 'rsvp', wishes: 'wishes',
-  story: 'story', video: 'video', gift: 'gift', 'gift-registry': 'gift_registry',
-  livestream: 'livestream', 'ig-story': 'ig_story', qrcode: 'qrcode', closing: 'closing',
-}
-
-export default function InvitationStudio({ invitation, template, onSaved, isAdmin }: Props) {
+export default function InvitationStudio({ invitation, template, onSaved, isAdmin, priceTiers }: Props) {
   const [data, setData] = useState<NewInvitationData>(() => initData(invitation))
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [showPreview, setShowPreview] = useState(false)
-  const [activeSection, setActiveSection] = useState<string>('info')
+  /**
+   * Bagian yang sedang dibuka ikut ke URL (`?bagian=galeri`).
+   *
+   * Studio ini adalah layar yang paling lama ditatap pelanggan. Tanpa alamat,
+   * tombol kembali peramban keluar dari studio sekaligus, dan tautan bantuan
+   * tidak bisa menunjuk langsung ke bagian yang sedang dibicarakan.
+   */
+  /**
+   * Seksi yang sedang dihias, dilaporkan balik oleh layar Hiasan.
+   *
+   * Tanpa ini pratinjau tetap berhenti di sampul, karena nav item 'hiasan'
+   * tidak punya padanan tipe seksi. Pembeli memasang ornamen di bagian Hero
+   * lalu tidak melihat apa apa, persis keluhan yang sama di sisi admin.
+   */
+  const [seksiHias, setSeksiHias] = useState<string | null>(null)
+
+  const [bagianUrl, setBagianUrl] = useParamUrl('bagian', 'info')
+  const activeSection = bagianUrl ?? 'info'
+  const setActiveSection = (id: string) => setBagianUrl(id)
   const [previewKey, setPreviewKey] = useState(0)
   const [showFullscreen, setShowFullscreen] = useState(false)
   const [reorderMode, setReorderMode] = useState(false)
@@ -277,7 +332,8 @@ export default function InvitationStudio({ invitation, template, onSaved, isAdmi
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const completeness = calculateCompleteness(data)
-  const gating = usePackageGating(isAdmin ? 'eksklusif' : (invitation as unknown as Record<string, unknown>).package_tier as PackageTier | undefined)
+  const gating = usePackageGating(isAdmin ? 'eksklusif' : (invitation as unknown as Record<string, unknown>).package_tier as PackageTier | undefined, priceTiers)
+  const alamatUndangan = useInvitationUrl(invitation.slug)
 
   const { groups: NAV_GROUPS, sections: SECTIONS } = useMemo(() => buildNavGroups(gating, template.config.sections), [gating, template.config.sections])
 
@@ -292,27 +348,20 @@ export default function InvitationStudio({ invitation, template, onSaved, isAdmi
       .filter((s): s is NavItem => s !== undefined)
   }, [sectionOrder, SECTIONS])
 
-  const previewTemplate = useMemo<TemplateRecord>(() => ({
-    ...template,
-    config: {
-      ...template.config,
-      opening: {
-        ...template.config.opening,
-        type: (data.opening_type || template.config.opening.type) as OpeningType,
-        subtitle: data.opening_greeting || template.config.opening.subtitle,
-        invitation_text: data.opening_subtitle || template.config.opening.invitation_text,
-      },
-      loading: {
-        ...template.config.loading,
-        ...(data.loading_config ?? {}),
-      },
-      sections: template.config.sections.filter(s => {
-        const featureKey = SECTION_TYPE_FEATURE[s.type]
-        if (!featureKey) return true
-        return !!gating.features[featureKey]
-      }),
-    },
-  }), [template, data.opening_type, data.opening_greeting, data.opening_subtitle, data.loading_config, gating.features])
+  /**
+   * Tema yang dipakai pratinjau, lewat jalur yang SAMA PERSIS dengan halaman
+   * tamu. Tidak ada lagi penggabungan tambahan di sini.
+   *
+   * Dulu tiga hal digabung di sini dan hanya di sini: gaya pembuka, layar
+   * loading, dan penyaringan seksi per paket. Dua yang pertama membuat
+   * pratinjau memperlihatkan sesuatu yang tidak pernah sampai ke tamu. Yang
+   * ketiga kebalikannya: pratinjau menyembunyikan seksi yang justru dirender
+   * di halaman tamu. Ketiganya sekarang di temaEfektif.
+   */
+  const previewTemplate = useMemo<TemplateRecord>(
+    () => temaEfektif(template, data, gating.features as TierFeatures),
+    [template, data, gating.features],
+  )
 
   useEffect(() => {
     setPreviewKey(k => k + 1)
@@ -384,18 +433,25 @@ export default function InvitationStudio({ invitation, template, onSaved, isAdmi
         />
       )
       case 'opening': return (
+        /* Titik awalnya gaya pembuka tema yang dibeli, bukan 'fade-reveal'
+           untuk semua. Dua teks sapaan juga: kosong berarti ikut tema, dan
+           teks tema itulah yang muncul sebagai placeholder. */
         <OpeningForm
-          openingType={(data.opening_type as OpeningType) || 'fade-reveal'}
+          openingType={(data.opening_type as OpeningType) || template.config.opening.type}
           openingGreeting={data.opening_greeting || ''} openingSubtitle={data.opening_subtitle || ''}
-          openingGroomName={data.opening_groom_name || ''} openingBrideName={data.opening_bride_name || ''}
+          greetingTema={template.config.opening.subtitle ?? ''}
+          subtitleTema={template.config.opening.invitation_text ?? ''}
           groomName={data.groom_name} brideName={data.bride_name}
-          nameGap={data.opening_name_gap ?? template.config.opening.couple_name_gap ?? 3}
           onOpeningTypeChange={(val) => updateData({ opening_type: val })}
           onOpeningGreetingChange={(val) => updateData({ opening_greeting: val })}
           onOpeningSubtitleChange={(val) => updateData({ opening_subtitle: val })}
-          onOpeningGroomNameChange={(val) => updateData({ opening_groom_name: val })}
-          onOpeningBrideNameChange={(val) => updateData({ opening_bride_name: val })}
-          onNameGapChange={(val) => updateData({ opening_name_gap: val })}
+          semuaGaya={gating.features.opening_styles === 'all'}
+          /* getRequiredTier() tidak dipakai di sini: `opening_styles` bernilai
+             'basic' atau 'all', bukan boolean, jadi pemeriksaan truthy di
+             sana akan menganggap 'basic' sudah membuka semuanya. */
+          paketPembuka={[...(priceTiers ?? [])]
+            .sort((a, b) => a.price - b.price)
+            .find(t => t.features?.opening_styles === 'all')?.label}
         />
       )
       case 'loading': return (
@@ -405,11 +461,19 @@ export default function InvitationStudio({ invitation, template, onSaved, isAdmi
         />
       )
       case 'warna': return (
+        <>
+        {/* Titik awalnya warna tema yang dibeli, bukan hijau emas yang sama
+            untuk semua. Selama pembeli belum mengubah apa apa, yang tampil
+            di layar ini memang yang tampil di undangannya.
+            background boleh tidak ada di tema lama, jadi cadangan terakhirnya
+            putih netral, bukan warna merek karangan. */}
         <ColorPaletteForm
-          primaryColor={data.primary_color ?? '#2c4a34'}
-          accentColor={data.accent_color ?? '#c9a961'}
-          textColor={data.text_color ?? '#1a1a1a'}
-          backgroundColor={data.background_color ?? '#fefdf8'}
+          primaryColor={data.primary_color || template.config.meta.color_scheme.primary}
+          accentColor={data.accent_color || template.config.meta.color_scheme.accent}
+          textColor={data.text_color || template.config.meta.color_scheme.text}
+          backgroundColor={data.background_color || template.config.meta.color_scheme.background || '#ffffff'}
+          temaId={template.id}
+          temaWarna={template.config.meta.color_scheme}
           onPrimaryColorChange={(color) => updateData({ primary_color: color })}
           onAccentColorChange={(color) => updateData({ accent_color: color })}
           onTextColorChange={(color) => updateData({ text_color: color })}
@@ -421,12 +485,50 @@ export default function InvitationStudio({ invitation, template, onSaved, isAdmi
             background_color: colors.background,
           })}
         />
+        {/* Latar tiap seksi disimpan terpisah dari meta.color_scheme, jadi
+            mengganti warna primer saja tidak menyentuhnya. Diserahkan ke
+            pembeli lewat tombol, bukan disamakan diam diam. */}
+        {/* Daftar seksi diambil dari previewTemplate, bukan dari tema mentah:
+            sesudah penyaringan per paket, seksi yang tidak dibeli tidak
+            dirender di undangan, jadi menawarkannya di sini berarti pembeli
+            menghias dan menyamakan warna sesuatu yang tidak ada. */}
+        <SectionColorSync
+          sections={previewTemplate.config.sections}
+          data={data}
+          onUpdate={updateData}
+          warna={data.primary_color || template.config.meta.color_scheme.primary}
+        />
+        </>
+      )
+      case 'hiasan': return (
+        <DecorationForm
+          sections={previewTemplate.config.sections}
+          data={data}
+          onUpdate={updateData}
+          maxAset={gating.maxDecorationAssets}
+          onSectionChange={setSeksiHias}
+          warnaAksen={data.accent_color || template.config.meta.color_scheme.accent}
+          warnaLatar={data.primary_color || template.config.meta.color_scheme.primary}
+        />
+      )
+      case 'huruf': return (
+        <TypographyForm
+          headingTema={template.config.meta.font.heading}
+          bodyTema={template.config.meta.font.body}
+          heading={data.font_heading}
+          body={data.font_body}
+          onChange={(patch) => updateData(patch)}
+          warnaLatar={data.primary_color || template.config.meta.color_scheme.primary}
+          warnaTeks={data.text_color || template.config.meta.color_scheme.text}
+        />
       )
       case 'musik': return (
         <MusicForm
           musicUrl={data.music_url || ''} musicTitle={data.music_title || ''}
           onMusicUrlChange={(val) => updateData({ music_url: val })}
           onMusicTitleChange={(val) => updateData({ music_title: val })}
+          bolehUnggah={!!gating.features.custom_music}
+          paketPembuka={gating.getRequiredTier('musik')}
         />
       )
       case 'quote': return (
@@ -447,7 +549,7 @@ export default function InvitationStudio({ invitation, template, onSaved, isAdmi
           onChaptersChange={(chapters) => updateData({ story_chapters: chapters })}
         />
       )
-      case 'galeri': return <GalleryManager invitation={invitation} />
+      case 'galeri': return <GalleryManager invitation={invitation} priceTiers={priceTiers} />
       case 'hadiah': return (
         <GiftForm accounts={data.gift_accounts ?? []} onAccountsChange={(accounts) => updateData({ gift_accounts: accounts })} />
       )
@@ -506,13 +608,16 @@ export default function InvitationStudio({ invitation, template, onSaved, isAdmi
     // Section template yang cocok dengan nav item aktif (untuk kontrol Latar Belakang & Transisi).
     // Hanya nav item konten yang punya padanan section render; item level-template (warna/opening/loading) tidak.
     const appearanceSection = sectionType ? template.config.sections.find(s => s.type === sectionType) : undefined
+    const sedangMenghias = activeSection === 'hiasan' && !!seksiHias
     const previewPhase: 'opening' | 'loading' | 'main' =
       activeSection === 'loading' ? 'loading'
-      : sectionType ? 'main'
+      : sectionType || sedangMenghias ? 'main'
       : 'opening'
-    const previewScrollTo = sectionType
-      ? template.config.sections.find(s => s.type === sectionType)?.id
-      : undefined
+    const previewScrollTo = sedangMenghias
+      ? seksiHias ?? undefined
+      : sectionType
+        ? template.config.sections.find(s => s.type === sectionType)?.id
+        : undefined
 
     const renderPhone = (pw: number) => {
       const pad = 6
@@ -747,7 +852,7 @@ export default function InvitationStudio({ invitation, template, onSaved, isAdmi
                       section={appearanceSection}
                       data={data}
                       onUpdate={updateData}
-                      primaryColor={data.primary_color ?? '#2c4a34'}
+                      primaryColor={data.primary_color || template.config.meta.color_scheme.primary}
                     />
                   </div>
                 )}
@@ -776,6 +881,37 @@ export default function InvitationStudio({ invitation, template, onSaved, isAdmi
 
           <div className="flex-1 flex items-center justify-center overflow-hidden min-h-0 px-2 pb-2">
             {renderPhone(310)}
+          </div>
+
+          {/*
+            Kartu untuk status, di bawah preview.
+            Ditaruh di sini, bukan di daftar section kiri, karena ini bukan
+            sesuatu yang disunting: ini keluaran. Tempatnya berdampingan
+            dengan preview, yang juga keluaran.
+            Kartunya digambar dari state yang sedang disunting, jadi warna
+            dan huruf yang baru saja diganti langsung ikut, tanpa menunggu
+            simpan.
+          */}
+          <div className="shrink-0 border-t border-hairline px-3 py-2.5">
+            {invitation.is_published ? (
+              <ShareCardButton
+                data={debouncedData}
+                template={template}
+                alamat={alamatUndangan}
+                slug={invitation.slug}
+                gaya="terang"
+                penuh
+              />
+            ) : (
+              /* Tombolnya tidak dipasang mati (R-26): kartunya mencetak
+                 tautan undangan, dan sebelum diterbitkan tautan itu belum
+                 hidup. Yang ditampilkan alasannya, bukan tombol yang menipu. */
+              /* text-concrete, bukan text-ash: ash di atas ivory cuma 2,45:1,
+                 jauh di bawah ambang 4,5:1 (R-25). Terukur, bukan ditaksir. */
+              <p className="text-ui-xs text-concrete leading-relaxed text-center">
+                Kartu untuk status WhatsApp bisa dibuat sesudah undangan diterbitkan.
+              </p>
+            )}
           </div>
         </div>
 

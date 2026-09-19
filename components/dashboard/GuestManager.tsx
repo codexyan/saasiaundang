@@ -8,13 +8,16 @@ import {
   CheckCircle2, Clock, MessageSquare, Lock, Crown,
   Loader2,
 } from 'lucide-react'
-import type { Invitation, Guest } from '@/lib/types'
-import { getPackage, type PackageTier } from '@/lib/packages'
-import { getInvitationUrl } from '@/lib/utils'
+import type { Invitation, Guest, PriceTier } from '@/lib/types'
+import { resolveTierDisplay } from '@/lib/packages'
+import { useInvitationUrl } from '@/lib/use-invitation-url'
 import { Button } from '@/components/ui/Button'
 
 interface Props {
   invitation: Invitation
+  /** Dari server component (lib/tiers.ts, SERVER-ONLY). Opsional, fallback
+   *  ke data lama kalau belum dikirim. */
+  priceTiers?: PriceTier[]
 }
 
 interface GuestStats {
@@ -54,7 +57,7 @@ function withGuestName(baseUrl: string, guestName: string): string {
   return `${path}${separator}to=${encoded}${hash ? `#${hash}` : ''}`
 }
 
-export default function GuestManager({ invitation }: Props) {
+export default function GuestManager({ invitation, priceTiers }: Props) {
   const [contacts, setContacts] = useState<Guest[]>([])
   const [stats, setStats] = useState<GuestStats>({ total: 0, attending: 0, declined: 0, pending: 0 })
   const [loading, setLoading] = useState(true)
@@ -64,12 +67,11 @@ export default function GuestManager({ invitation }: Props) {
   const [showBlast, setShowBlast] = useState(false)
   const [newGuest, setNewGuest] = useState({ name: '', phone: '', group: '', note: '' })
 
-  const tier = (invitation.package_tier ?? 'popular') as PackageTier
-  const pkg = getPackage(tier)
-  const maxGuests = pkg.maxGuests
+  const { label: tierLabel, features } = resolveTierDisplay(priceTiers, invitation.package_tier ?? 'popular')
+  const maxGuests = features.max_guests
   const isAtLimit = maxGuests !== -1 && contacts.length >= maxGuests
 
-  const invUrl = getInvitationUrl(invitation.slug)
+  const invUrl = useInvitationUrl(invitation.slug)
 
   const defaultMessage = useCallback((name: string) => {
     const personalUrl = withGuestName(invUrl, name)
@@ -108,7 +110,7 @@ export default function GuestManager({ invitation }: Props) {
     if (!newGuest.name.trim()) { toast.error('Namanya belum diisi.'); return }
     if (!newGuest.phone.trim()) { toast.error('Nomor WhatsApp-nya belum diisi.'); return }
     if (newGuest.phone.replace(/\D/g, '').length < 9) { toast.error('Nomor WhatsApp-nya belum benar. Contoh: 08123456789'); return }
-    if (isAtLimit) { toast.error(`Batas ${maxGuests} tamu di paket ${pkg.name}`); return }
+    if (isAtLimit) { toast.error(`Batas ${maxGuests} tamu di paket ${tierLabel}`); return }
 
     const res = await fetch('/api/guests', {
       method: 'POST',

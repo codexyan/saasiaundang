@@ -135,11 +135,15 @@ render. Ref tidak memicu re-render, jadi status aktif/nonaktif tombol Undo/Redo
 bisa tertinggal dari keadaan sebenarnya sampai ada render lain yang kebetulan
 terjadi. Perlu dipindah ke state kalau mau benar.
 
-### Enumerasi pengguna saat registrasi
-`app/api/auth/register/route.ts:25` · Asal: **lama**
+### ~~Enumerasi pengguna saat registrasi~~ (gugur, route-nya sudah dihapus)
+`app/api/auth/register/route.ts:25` · Asal: **lama** · Ditutup 11 Sep 2026
 
 409 "Email sudah terdaftar" membedakan akun yang ada. Trade-off UX vs privasi.
 Mitigasi yang lebih tepat adalah rate limit, bukan menghilangkan pesannya.
+
+Gugur bersama route-nya: `/api/auth/register` dihapus di commit `eaa6778` dan
+halaman `/register` kini dialihkan permanen ke `/templates`, jadi tidak ada lagi
+endpoint pendaftaran publik yang bisa membalas "Email sudah terdaftar".
 
 ### custom-worker.ts tidak meneruskan export Durable Object
 `custom-worker.ts:31` · Asal: **baru**
@@ -155,12 +159,12 @@ kalau nanti caching dinyalakan.
 
 - `app/api/admin/users/route.ts:85` — `role` ditulis apa adanya tanpa validasi enum (route `[id]` sudah memvalidasi).
 - `app/api/user/upload/route.ts:14` — `ALLOWED_FOLDERS` memuat `'music'`, membiarkan pengguna biasa menulis ke namespace musik kurasi admin.
-- `app/api/auth/register/route.ts:12` — minimum password 6 karakter, tanpa cek komposisi maupun kebocoran.
+- ~~`app/api/auth/register/route.ts:12` — minimum password 6 karakter, tanpa cek komposisi maupun kebocoran.~~ Gugur 11 Sep 2026: route-nya dihapus di commit `eaa6778`.
 - `app/(app)/affiliate/page.tsx:301` — dashboard menampilkan `pendingBalance` mentah sebagai "Saldo tersedia", padahal API memakai `availableBalance`.
 - `lib/db.ts` — `paymentProofs.update()` kini hanya dipakai untuk MEMBATALKAN klaim saat efek samping gagal; jangan dipakai untuk approve (tidak punya guard `pending`).
 - `wrangler.jsonc:11` — `compatibility_date` 2026-07-18 lebih baru dari workerd yang terbundel di wrangler 4.112, jadi runtime lokal dan produksi bisa berbeda perilaku.
 - `next.config.mjs` — Next 16 akan mewajibkan `images.qualities`; saat ini muncul peringatan untuk quality 90 dan 100.
-- **Drift schema Prisma** — kolom `users.referral_code` ada di database tapi tidak dibuat lewat migration mana pun. Akibatnya `prisma migrate dev` menganggap perlu MERESET seluruh skema ("All data will be lost"). Jangan pernah jalankan `migrate dev` terhadap database produksi. Migration baru dibuat manual lalu didaftarkan dengan `prisma migrate resolve --applied`.
+- **Drift schema Prisma** — kolom `users.referral_code` ada di database tapi tidak dibuat lewat migration mana pun. Akibatnya `prisma migrate dev` menganggap perlu MERESET seluruh skema ("All data will be lost"). Jangan pernah jalankan `migrate dev` terhadap database produksi. Migration baru dibuat manual lalu didaftarkan dengan `prisma migrate resolve --applied`. **Update 11 Sep 2026:** tabel `user_referrals` ternyata sama kasusnya (juga tidak dibuat migrasi mana pun), dan keduanya kini tanpa pembaca maupun penulis di kode. Migrasi `20260911000000_drop_user_referral_program` menjatuhkan keduanya dengan `IF EXISTS` dan baru boleh diterapkan sesudah kode tanpa `referralCode` ter-deploy. Setelah itu dua objek ini tidak lagi menjadi drift, tapi ada tidaknya drift lain belum diperiksa ulang, jadi larangan `migrate dev` terhadap produksi tetap berlaku.
 
 ---
 

@@ -81,7 +81,7 @@ export default function NotFound() {
               Harga
             </Link>
             <span className="text-stone-700">•</span>
-            <a href="https://wa.me/628123456789" className="text-stone-400 hover:text-gold-400 transition-colors">
+            <a href="mailto:halo@iaundang.online" className="text-stone-400 hover:text-gold-400 transition-colors">
               Kontak
             </a>
           </div>

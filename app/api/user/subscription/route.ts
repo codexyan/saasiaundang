@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/session-server'
-import { subscriptions, daysRemaining, TRIAL_TIER, TRIAL_LIMITS } from '@/lib/subscription'
-import { PACKAGES, type PackageTier } from '@/lib/packages'
+import { subscriptions, daysRemaining } from '@/lib/subscription'
+import { resolveTier } from '@/lib/tiers'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,16 +13,21 @@ export async function GET() {
 
   const subs = await subscriptions.findByUser(session.userId)
 
-  const result = subs.map(sub => {
-    const isTrial = sub.tier === TRIAL_TIER
-    const pkg = isTrial ? null : PACKAGES[sub.tier as PackageTier]
+  // resolveTier() dibungkus cache() per request lewat settings.get(), jadi
+  // memanggilnya per langganan di sini tidak menambah query database.
+  //
+  // Cabang trial (tierName "Free Trial" dan field limits berisi TRIAL_LIMITS)
+  // dibuang bersama mesin trialnya. Tidak ada lagi yang membuat langganan
+  // trial, dan satu-satunya pemanggil endpoint ini, SubscriptionInfo, tidak
+  // pernah membaca field limits.
+  const result = await Promise.all(subs.map(async sub => {
+    const pkg = await resolveTier(sub.tier)
     return {
       ...sub,
-      tierName: isTrial ? 'Free Trial' : (pkg?.name ?? sub.tier),
+      tierName: pkg?.label ?? sub.tier,
       daysRemaining: daysRemaining(sub.expiresAt),
-      limits: isTrial ? TRIAL_LIMITS : undefined,
     }
-  })
+  }))
 
   return NextResponse.json({ subscriptions: result })
 }

@@ -12,13 +12,16 @@ import {
 } from 'lucide-react'
 import type { Invitation, NewInvitationData } from '@/lib/types'
 import { LEGACY_TEMPLATE_IDS as LTI } from '@/lib/types'
-import { getInvitationUrl } from '@/lib/utils'
+import { useInvitationUrl } from '@/lib/use-invitation-url'
+import ShareCardButton from './ShareCardButton'
 import toast from 'react-hot-toast'
 
 interface Props {
   invitation: Invitation
   onNavigate: (tab: string) => void
   onTogglePublish: () => void
+  /** Tema undangan ini, dipakai kartu berbagi supaya warnanya cocok. */
+  template?: import('@/lib/types').TemplateRecord | null
 }
 
 interface Stats {
@@ -115,7 +118,7 @@ function StatCard({ label, value, icon: Icon, color, loading, delay = 0 }: {
   )
 }
 
-export default function DashboardOverview({ invitation, onNavigate, onTogglePublish }: Props) {
+export default function DashboardOverview({ invitation, onNavigate, onTogglePublish, template }: Props) {
   const [stats, setStats] = useState<Stats | null>(null)
   const [copied, setCopied] = useState(false)
   const d = normalizeData(invitation)
@@ -132,7 +135,9 @@ export default function DashboardOverview({ invitation, onNavigate, onTogglePubl
   }, [invitation.id])
 
   const daysUntil = d.akadDate ? getDaysUntil(d.akadDate) : null
-  const invUrl = getInvitationUrl(invitation.slug)
+  // Hook, bukan pemanggilan langsung: alamat localhost baru dipasang
+  // sesudah hydration supaya render server dan klien tidak berbeda.
+  const invUrl = useInvitationUrl(invitation.slug)
 
   const checklist = useMemo(() => [
     {
@@ -234,6 +239,12 @@ export default function DashboardOverview({ invitation, onNavigate, onTogglePubl
                     {copied ? <CheckCircle2 size={13} /> : <Copy size={13} />}
                     {copied ? 'Sudah disalin!' : 'Salin Link'}
                   </button>
+                  <ShareCardButton
+                    data={invitation.data as unknown as import('@/lib/types').NewInvitationData}
+                    template={template ?? null}
+                    alamat={invUrl}
+                    slug={invitation.slug}
+                  />
                   <a href={`https://wa.me/?text=Yuk lihat undangan pernikahan kami! ${invUrl}`}
                     target="_blank" rel="noopener noreferrer"
                     className="flex items-center gap-1.5 bg-white text-emerald-700 text-xs font-bold px-4 py-2.5 rounded-xl transition-all hover:bg-emerald-50 shadow-lg shadow-black/10">

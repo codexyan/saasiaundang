@@ -52,8 +52,16 @@ const MIDNIGHT_LUXE: TemplateRecord = {
       type: 'curtain',
       duration_ms: 3500,
       show_opening: true,
-      subtitle: 'You are cordially invited',
-      button_text: 'Open Invitation',
+      /**
+       * Satu satunya tema yang sapaannya bukan salam Islam, dan itu
+       * disengaja. Dua tema lain membuka dengan Assalamualaikum karena itu
+       * yang dipakai sebagian besar undangan di Indonesia. Menyeragamkan
+       * ketiganya berarti pembeli non muslim harus mengganti sapaan dulu
+       * sebelum undangannya terasa milik mereka. Pembeli tetap bisa
+       * mengubahnya di layar Pembuka, dua duanya.
+       */
+      subtitle: 'Salam sejahtera untuk kita semua',
+      button_text: 'Buka Undangan',
       invitation_text: 'Anda diundang ke pernikahan',
       show_guest_name: true,
       cover_photo_url: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800&h=1200&fit=crop',

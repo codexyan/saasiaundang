@@ -1,11 +1,18 @@
 'use client'
 
-import { Check } from 'lucide-react'
+import { useState } from 'react'
+import { Check, Sparkles, MessageSquare, Heart, Type, Camera } from 'lucide-react'
 import ImageUploadField from '@/components/admin/ImageUploadField'
-import { Field, inputCls } from '../parts/fields'
+import { Field, inputCls, Sakelar } from '../parts/fields'
 import LoadingScreenPanel from '../parts/LoadingScreenPanel'
 import { OPENING_TYPES, OPENING_META } from '../parts/constants'
 import { useEditor } from '../EditorContext'
+import OpeningStylePicker from '../parts/OpeningStylePicker'
+
+/** Lima kelompok navigasi internal panel Opening, meniru pola `settingsSection`
+ *  di ArticlesTab.tsx (SettingsPanel). Cuma soal presentasi, tidak mengubah
+ *  data yang tersimpan di EditorContext. */
+type OpeningSection = 'gaya' | 'konten' | 'data' | 'tipografi' | 'foto'
 
 /**
  * Tab "Opening" — halaman sampul yang dilihat tamu sebelum undangan terbuka,
@@ -23,6 +30,18 @@ export default function OpeningPanel() {
   // mengaturnya dari mana pun.
   const showOpening = cfg.opening.show_opening !== false
 
+  // Navigasi sub bagian, sama persis mekanismenya dengan NAV di
+  // ArticlesTab.tsx: array of { id, icon, label }, active state lewat
+  // perbandingan langsung, klik memanggil setter.
+  const [openingSection, setOpeningSection] = useState<OpeningSection>('gaya')
+  const OPENING_NAV: { id: OpeningSection; icon: typeof Sparkles; label: string }[] = [
+    { id: 'gaya', icon: Sparkles, label: 'Gaya & Efek' },
+    { id: 'konten', icon: MessageSquare, label: 'Konten' },
+    { id: 'data', icon: Heart, label: 'Data Mempelai' },
+    { id: 'tipografi', icon: Type, label: 'Tipografi & Layout' },
+    { id: 'foto', icon: Camera, label: 'Foto & Transisi' },
+  ]
+
   const openingToggle = (
     <div className="flex items-center justify-between p-4 rounded-xl border border-gray-200 bg-white">
       <div className="min-w-0 pr-3">
@@ -33,13 +52,11 @@ export default function OpeningPanel() {
             : 'Dimatikan — tamu langsung masuk ke isi undangan'}
         </p>
       </div>
-      <button
-        onClick={() => { updateOpening({ show_opening: !showOpening }); setPreviewMode(showOpening ? 'invitation' : 'opening'); setDecorPreviewKey(k => k + 1) }}
-        aria-label={showOpening ? 'Matikan halaman sampul' : 'Nyalakan halaman sampul'}
-        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${showOpening ? 'bg-indigo-600' : 'bg-gray-200'}`}
-      >
-        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${showOpening ? 'translate-x-6' : 'translate-x-1'}`} />
-      </button>
+      <Sakelar
+        nyala={showOpening}
+        onUbah={() => { updateOpening({ show_opening: !showOpening }); setPreviewMode(showOpening ? 'invitation' : 'opening'); setDecorPreviewKey(k => k + 1) }}
+        label="Halaman sampul"
+      />
     </div>
   )
 
@@ -65,6 +82,33 @@ export default function OpeningPanel() {
 
       {openingToggle}
 
+      {/* Kerangka navigasi sub bagian (Phase 2). Sidebar dipersempit ke w-32
+          dibanding w-48 di ArticlesTab karena panel ini hidup di kolom
+          sempit editor, bukan halaman admin penuh — mekanismenya sama
+          persis, cuma lebar yang disesuaikan ke konteks.
+          Isi di bawah ini MASIH menampilkan kedelapan blok tanpa filter;
+          pemindahan konten ke tiap section id di atas terjadi di Phase 3. */}
+      {/* Kolom di layar lebar, baris yang bisa digeser di layar sempit.
+          Sidebar 128 piksel memakan sepertiga lebar HP, dan sisanya tidak
+          cukup untuk kontrol di sebelahnya. */}
+      <div className="flex flex-col lg:flex-row gap-3">
+        <div className="lg:w-32 lg:shrink-0 flex lg:block gap-1 lg:gap-0 lg:space-y-0.5 overflow-x-auto scrollbar-hide -mx-1 px-1 lg:mx-0 lg:px-0">
+          {OPENING_NAV.map(n => (
+            <button key={n.id} type="button" onClick={() => setOpeningSection(n.id)}
+              className={`shrink-0 lg:w-full flex items-center gap-1.5 px-2.5 py-2 sentuh:min-h-[44px] rounded-lg text-left text-[10px] font-semibold transition-colors ${
+                openingSection === n.id
+                  ? 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200 lg:ring-0'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50 bg-gray-50 lg:bg-transparent'
+              }`}
+            >
+              <n.icon className="w-3.5 h-3.5 shrink-0" />
+              <span className="leading-tight whitespace-nowrap lg:whitespace-normal">{n.label}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="flex-1 min-w-0 space-y-5">
+
       {/*  Pilih Gaya Opening  */}
       <div>
         <p className="text-[10px] font-semibold text-gray-500 mb-1">
@@ -73,32 +117,7 @@ export default function OpeningPanel() {
         <p className="text-[9px] text-gray-400 mb-3">
           Animasi saat tamu pertama kali membuka undangan
         </p>
-        <div className="grid grid-cols-3 gap-1.5">
-          {OPENING_TYPES.map(ot => {
-            const m = OPENING_META[ot]
-            const active = cfg.opening.type === ot
-            return (
-              <button key={ot} type="button" title={m?.desc}
-                onClick={() => { updateOpening({ type: ot }); setPreviewMode('opening'); setDecorPreviewKey(k => k + 1) }}
-                className={`relative p-2.5 rounded-xl text-center transition-all ${
-                  active
-                    ? 'bg-indigo-50 border-2 border-indigo-500 ring-1 ring-indigo-500/20'
-                    : 'bg-gray-50 border border-gray-200 hover:border-gray-300 hover:bg-gray-100'
-                }`}
-              >
-                <span className="text-lg block mb-0.5">{m?.icon}</span>
-                <p className={`text-[10px] font-semibold leading-tight ${active ? 'text-indigo-700' : 'text-gray-600'}`}>
-                  {m?.label ?? ot}
-                </p>
-                {active && (
-                  <div className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-indigo-500 flex items-center justify-center">
-                    <Check className="w-2 h-2 text-white" />
-                  </div>
-                )}
-              </button>
-            )
-          })}
-        </div>
+        <OpeningStylePicker />
       </div>
 
       {/* Atribut khusus Fade Reveal. Ditampilkan bersyarat — sama seperti
@@ -169,7 +188,7 @@ export default function OpeningPanel() {
                           if (p.key === 'custom') updateOpening({ invitation_text: '' })
                           else updateOpening({ invitation_text: p.text })
                         }}
-                        className={`px-2.5 py-1.5 rounded-xl text-[10px] font-semibold transition-all border ${
+                        className={`px-2.5 py-1.5 sentuh:min-h-[44px] rounded-xl text-[10px] font-semibold transition-all border ${
                           active
                             ? 'bg-indigo-600 text-white border-indigo-600'
                             : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-indigo-300 hover:text-indigo-600'
@@ -209,16 +228,12 @@ export default function OpeningPanel() {
               <p className="text-xs font-semibold text-gray-500">Tampilkan Nama Tamu</p>
               <p className="text-[10px] text-gray-400">Dari URL ?to=nama-tamu</p>
             </div>
-            <button
-              onClick={() => updateOpening({ show_guest_name: cfg.opening.show_guest_name === false ? true : false })}
-              className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
-                cfg.opening.show_guest_name !== false ? 'bg-indigo-600' : 'bg-gray-200'
-              }`}
-            >
-              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
-                cfg.opening.show_guest_name !== false ? 'translate-x-[18px]' : 'translate-x-0.5'
-              }`} />
-            </button>
+            <Sakelar
+              ukuran="kecil"
+              nyala={cfg.opening.show_guest_name !== false}
+              onUbah={() => updateOpening({ show_guest_name: cfg.opening.show_guest_name === false ? true : false })}
+              label="Tampilkan nama tamu"
+            />
           </div>
 
           {/* Preview nama tamu (hanya di preview cover) */}
@@ -393,7 +408,7 @@ export default function OpeningPanel() {
                 return (
                   <button key={opt.key} type="button"
                     onClick={() => updateOpening({ couple_name_text_transform: opt.key, couple_name_uppercase: opt.key === 'uppercase' })}
-                    className={`px-2 py-2 rounded-xl text-center transition-all border ${
+                    className={`px-2 py-2 sentuh:min-h-[44px] rounded-xl text-center transition-all border ${
                       active
                         ? 'bg-indigo-50 border-indigo-300 text-indigo-700 shadow-sm'
                         : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'
@@ -496,7 +511,7 @@ export default function OpeningPanel() {
                 return (
                   <button key={s.key} type="button"
                     onClick={() => updateOpening({ separator_style: s.key })}
-                    className={`px-2 py-2 rounded-xl text-[10px] font-semibold transition-all border text-center ${
+                    className={`px-2 py-2 sentuh:min-h-[44px] rounded-xl text-[10px] font-semibold transition-all border text-center ${
                       active
                         ? 'bg-indigo-600 text-white border-indigo-600'
                         : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-indigo-300 hover:text-indigo-600'
@@ -513,16 +528,12 @@ export default function OpeningPanel() {
               <p className="text-xs font-semibold text-gray-500">Pembatas Atas</p>
               <p className="text-[10px] text-gray-400">Garis ornamen setelah salam pembuka</p>
             </div>
-            <button
-              onClick={() => updateOpening({ show_top_separator: cfg.opening.show_top_separator === false ? true : false })}
-              className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
-                cfg.opening.show_top_separator !== false ? 'bg-indigo-600' : 'bg-gray-200'
-              }`}
-            >
-              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
-                cfg.opening.show_top_separator !== false ? 'translate-x-[18px]' : 'translate-x-0.5'
-              }`} />
-            </button>
+            <Sakelar
+              ukuran="kecil"
+              nyala={cfg.opening.show_top_separator !== false}
+              onUbah={() => updateOpening({ show_top_separator: cfg.opening.show_top_separator === false ? true : false })}
+              label="Pembatas atas"
+            />
           </div>
 
           <div className="flex items-center justify-between py-1">
@@ -530,16 +541,12 @@ export default function OpeningPanel() {
               <p className="text-xs font-semibold text-gray-500">Pembatas Bawah</p>
               <p className="text-[10px] text-gray-400">Ornamen diamond sebelum nama pasangan</p>
             </div>
-            <button
-              onClick={() => updateOpening({ show_bottom_separator: cfg.opening.show_bottom_separator === false ? true : false })}
-              className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
-                cfg.opening.show_bottom_separator !== false ? 'bg-indigo-600' : 'bg-gray-200'
-              }`}
-            >
-              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
-                cfg.opening.show_bottom_separator !== false ? 'translate-x-[18px]' : 'translate-x-0.5'
-              }`} />
-            </button>
+            <Sakelar
+              ukuran="kecil"
+              nyala={cfg.opening.show_bottom_separator !== false}
+              onUbah={() => updateOpening({ show_bottom_separator: cfg.opening.show_bottom_separator === false ? true : false })}
+              label="Pembatas bawah"
+            />
           </div>
 
           <Field label="Gaya Penghubung Nama">
@@ -557,7 +564,7 @@ export default function OpeningPanel() {
                 return (
                   <button key={s.key} type="button"
                     onClick={() => updateOpening({ couple_name_connector: s.key })}
-                    className={`px-2 py-2 rounded-xl text-[10px] font-semibold transition-all border text-center ${
+                    className={`px-2 py-2 sentuh:min-h-[44px] rounded-xl text-[10px] font-semibold transition-all border text-center ${
                       active
                         ? 'bg-indigo-50 border-indigo-300 text-indigo-700 shadow-sm'
                         : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'
@@ -580,22 +587,6 @@ export default function OpeningPanel() {
                 <input type="number" min={14} max={40} step={1}
                   value={cfg.opening.couple_name_connector_size ?? 26}
                   onChange={e => { const v = Number(e.target.value); if (v >= 14 && v <= 40) updateOpening({ couple_name_connector_size: v }) }}
-                  className="w-14 px-1 py-0.5 text-[10px] text-center border border-gray-200 rounded-md focus:border-indigo-400 focus:outline-none font-mono" />
-                <span className="text-[8px] text-gray-400">px</span>
-              </div>
-            </div>
-          </Field>
-
-          <Field label="Jarak Nama (px)">
-            <div className="flex items-center gap-2">
-              <input type="range" min={0} max={24} step={1}
-                value={cfg.opening.couple_name_gap ?? 3}
-                onChange={e => updateOpening({ couple_name_gap: Number(e.target.value) })}
-                className="flex-1 accent-indigo-600 h-1.5" />
-              <div className="flex items-center gap-0.5 shrink-0">
-                <input type="number" min={0} max={24} step={1}
-                  value={cfg.opening.couple_name_gap ?? 3}
-                  onChange={e => { const v = Number(e.target.value); if (v >= 0 && v <= 24) updateOpening({ couple_name_gap: v }) }}
                   className="w-14 px-1 py-0.5 text-[10px] text-center border border-gray-200 rounded-md focus:border-indigo-400 focus:outline-none font-mono" />
                 <span className="text-[8px] text-gray-400">px</span>
               </div>
@@ -692,7 +683,7 @@ export default function OpeningPanel() {
                   />
                   {cfg.opening.cover_gradient_color && (
                     <button onClick={() => updateOpening({ cover_gradient_color: undefined })}
-                      className="text-gray-300 hover:text-gray-600 text-xs shrink-0" title="Reset ke primer">
+                      className="w-11 h-11 -my-3 -mr-2 flex items-center justify-center text-gray-300 hover:text-gray-600 text-xs shrink-0" title="Reset ke primer" aria-label="Kembalikan warna gradasi ke warna primer">
                       ↺
                     </button>
                   )}
@@ -933,6 +924,9 @@ export default function OpeningPanel() {
         setPreviewMode={setPreviewMode}
         setPreviewKey={setPreviewKey}
       />
+
+        </div>
+      </div>
 
     </div>
   )

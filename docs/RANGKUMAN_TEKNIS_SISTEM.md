@@ -3,6 +3,18 @@
 > Dokumen audit arsitektur. Disusun langsung dari codebase pada branch
 > `feat/cloudflare-migration` (commit `47b58f8`), 17 Agustus 2026.
 > Semua angka dan nama file di bawah diverifikasi dari sumbernya, bukan dari ingatan.
+>
+> **Status 11 Sep 2026:** isi di bawah tetap potret commit `47b58f8` dan tidak
+> ditulis ulang. Sejak itu branch `tier-unification` menghapus jalur undangan
+> gratis (`GET`/`POST /api/invitations`, `/api/invitations/check-slug`,
+> `lib/slug-generator.ts`), trial 7 hari beserta masa tenggangnya, pendaftaran
+> mandiri (`/api/auth/register` dihapus, `/register` dialihkan ke `/templates`),
+> dan program referral pengguna (kolom `users.referral_code` dan tabel
+> `user_referrals` dijatuhkan lewat migrasi
+> `20260911000000_drop_user_referral_program`). Undangan dan langganan baru
+> dibuat `provisionPaidOrder()` saat pesanan dibayar. Perubahan lain sejak 18 Agu
+> 2026, misalnya tabel `payment_proofs`, A/B testing, dan feedback yang
+> dijatuhkan, juga belum tercermin di sini.
 
 **Ringkasan satu kalimat:** platform SaaS undangan pernikahan digital multi-tenant
 berbasis subdomain (`nama-pasangan.iaundang.online`), berjalan penuh di Cloudflare

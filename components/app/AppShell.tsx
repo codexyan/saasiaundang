@@ -12,6 +12,7 @@ import {
   Megaphone,
   Shield,
 } from 'lucide-react'
+import { useSession } from '@/components/ui/SessionProvider'
 
 type Role = 'admin' | 'content_writer' | 'affiliate' | 'user'
 
@@ -52,23 +53,12 @@ const navItems: NavItem[] = [
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const [role, setRole] = useState<Role | null>(null)
-  const [email, setEmail] = useState('')
+  const { user } = useSession()
+  const role = (user?.role as Role | undefined) ?? null
+  const email = user?.email ?? ''
   const [mobileOpen, setMobileOpen] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
   const [needsRevisionCount, setNeedsRevisionCount] = useState(0)
-
-  useEffect(() => {
-    fetch('/api/auth/me')
-      .then((res) => (res.ok ? res.json() : Promise.reject()))
-      .then((data) => {
-        setRole(data.role ?? 'user')
-        setEmail(data.email ?? '')
-      })
-      .catch(() => {
-        // not authenticated   layout will handle redirect
-      })
-  }, [])
 
   // Badge on "Artikel Saya" for revision requests the writer hasn't seen yet.
   useEffect(() => {

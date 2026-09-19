@@ -11,6 +11,7 @@
  */
 import { useState } from 'react'
 import { X, Trash2 } from 'lucide-react'
+import { resolveAssetUrl } from '@/lib/built-in-assets'
 
 //  Decoration Layer List 
 
@@ -71,7 +72,7 @@ export default function DecorationLayerList({
 
       {/*  Header  */}
       <div className="flex items-center gap-2.5 px-3 py-2.5 bg-gradient-to-r from-indigo-50 to-violet-50 border-b border-gray-100">
-        <img src={asset.url} alt="" className="w-9 h-9 object-contain rounded-lg border border-indigo-200 bg-white p-0.5 shrink-0" />
+        <img src={resolveAssetUrl(asset.url)} alt="" className="w-9 h-9 object-contain rounded-lg border border-indigo-200 bg-white p-0.5 shrink-0" />
         <div className="flex-1 min-w-0">
           <input
             type="text" value={asset.label ?? ''} placeholder="Nama aset..."
@@ -101,7 +102,7 @@ export default function DecorationLayerList({
         <QBtn label="Flip V" onClick={() => up(asset.id, { flip_v: !asset.flip_v })} icon="↕" active={asset.flip_v} />
         <div className="flex-1" />
         <button onClick={() => { onUpdate(assets.filter(a => a.id !== asset.id)); onFocusChange?.(null) }}
-          className="p-1 text-gray-300 hover:text-red-500 rounded transition-colors" title="Hapus">
+          className="p-1 text-gray-500 hover:text-red-600 rounded transition-colors inline-flex items-center justify-center sentuh:w-11 sentuh:h-11" title="Hapus" aria-label="Hapus dekorasi ini">
           <Trash2 className="w-3 h-3" />
         </button>
       </div>
@@ -288,8 +289,9 @@ function NumField({ label, value, onChange, min, placeholder }: {
 function QBtn({ label, onClick, icon, active }: { label: string; onClick: () => void; icon: string; active?: boolean }) {
   return (
     <button onClick={onClick} title={label}
-      className={`w-6 h-6 text-xs font-bold rounded-md border transition-colors flex items-center justify-center ${
-        active ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-400 border-gray-200 hover:border-indigo-300 hover:text-indigo-600'
+      aria-label={label}
+      className={`w-6 h-6 sentuh:w-11 sentuh:h-11 text-xs font-bold rounded-md border transition-colors flex items-center justify-center ${
+        active ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-500 border-gray-300 hover:border-indigo-300 hover:text-indigo-600'
       }`}>
       {icon}
     </button>

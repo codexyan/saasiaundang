@@ -17,7 +17,9 @@ const VARIANTS: Record<Variant, string> = {
 }
 
 const SIZES: Record<Size, string> = {
-  sm: 'text-button-sm px-4 py-2 gap-1.5 min-h-[36px]',
+  // 44px, bukan 36. Ukuran sm tetap terlihat kecil karena padding dan ukuran
+  // hurufnya, tapi area sentuhnya memenuhi batas minimum jempol (R-03).
+  sm: 'text-button-sm px-4 py-2 gap-1.5 min-h-[44px]',
   md: 'text-button-base px-6 py-3 gap-2 min-h-[44px]',
   lg: 'text-button-lg px-7 py-3.5 gap-2.5 min-h-[48px]',
 }

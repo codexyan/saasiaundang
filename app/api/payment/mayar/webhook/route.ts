@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { notifyUser } from '@/lib/notifications'
 import { runAfterResponse } from '@/lib/after-response'
 import { provisionPaidOrder } from '@/lib/provision-order'
+import { passwordTokenUrl, validityLabel, PASSWORD_TOKEN_PURPOSE } from '@/lib/password-token'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,11 +22,39 @@ export async function POST(req: NextRequest) {
     const isValid = (await verifyMayarWebhook(token)) || (await verifyMayarWebhook(body.token))
     if (!isValid) {
       console.warn('Mayar webhook: invalid token')
-      return NextResponse.json({ error: 'Sesi kamu sudah berakhir. Silakan masuk lagi ya.' }, { status: 401 })
+      // Pemanggilnya mesin, bukan pembeli. Pesan "sesi berakhir" yang dulu
+      // dipakai di sini menyesatkan saat membaca log uji integrasi.
+      return NextResponse.json({ error: 'Token webhook tidak cocok' }, { status: 401 })
     }
 
-    const eventType = body?.event?.received
+    // Bentuk `event` dari Mayar tidak pernah dipastikan: dokumentasi mereka
+    // menulis parameternya "event.received | String", yang bisa dibaca sebagai
+    // objek { received } maupun sebagai satu field string. Dulu di sini hanya
+    // bentuk objek yang dikenali, jadi kalau Mayar mengirim
+    // "event": "payment.received" SETIAP pembayaran dilewati dengan balasan
+    // 200 — tanpa error, tanpa log, dan pesanannya diam di pending selamanya.
+    // Nol pesanan pernah lewat Mayar, jadi ini memang belum pernah terlihat.
+    const rawEvent: unknown = body.event
+    const eventType =
+      typeof rawEvent === 'string'
+        ? rawEvent
+        : rawEvent && typeof rawEvent === 'object'
+          ? (rawEvent as { received?: unknown }).received
+          : undefined
+
+    if (typeof eventType !== 'string') {
+      // Bentuk yang tidak dikenal dicatat lengkap dengan kunci payload, supaya
+      // satu uji kirim dari dashboard Mayar cukup untuk memastikan bentuk
+      // aslinya tanpa menebak lagi.
+      console.warn(
+        `Mayar webhook: bentuk event tidak dikenal (typeof=${typeof rawEvent}). ` +
+        `Kunci payload: ${Object.keys(body).join(', ')}`
+      )
+      return NextResponse.json({ ok: true, skipped: true, reason: 'unknown-event-shape' })
+    }
+
     if (eventType !== 'payment.received') {
+      console.log(`Mayar webhook: event ${eventType} dilewati`)
       return NextResponse.json({ ok: true, skipped: true })
     }
 
@@ -95,12 +124,17 @@ export async function POST(req: NextRequest) {
         orderNumber: order.orderNumber,
         email: customerEmail || order.email,
         name: customerName || `${order.groomName} & ${order.brideName}`,
-        // Pada jalur Mayar tidak ada admin yang meneruskan kredensial secara
-        // manual, jadi akun yang BARU dibuat harus menerima passwordnya lewat
-        // email ini — kalau tidak, pelanggan sudah membayar tapi tidak bisa masuk.
-        ...(outcome.plainPassword ? { password: outcome.plainPassword } : {}),
+        // Akun yang lahir dari pesanan ini menerima tautan buat password.
+        // Akun lama tidak menerima apa pun dan tetap memakai password lamanya.
+        ...(outcome.passwordSetupToken
+          ? {
+              setupUrl: passwordTokenUrl(outcome.passwordSetupToken),
+              setupValidity: validityLabel(PASSWORD_TOKEN_PURPOSE.purchase),
+            }
+          : {}),
         packageTier: order.packageTier,
         slug: order.subdomain,
+        invitationId: outcome.invitationId,
       }),
       `notifyUser(order_approved) order=${order.orderNumber}`
     )
@@ -108,7 +142,15 @@ export async function POST(req: NextRequest) {
     console.log(`Mayar webhook processed: order=${order.orderNumber} email=${order.email}`)
     return NextResponse.json({ ok: true })
   } catch (error) {
+    // Dibalas 500, bukan 200. Dulu kegagalan apa pun di sini, misalnya
+    // database putus di tengah provisionPaidOrder, dibalas 200 sehingga Mayar
+    // menganggap notifikasinya sukses dan tidak mengirim ulang: pembeli sudah
+    // membayar tapi pesanannya diam di pending sampai admin melihatnya.
+    // Mengirim ulang aman: provisionPaidOrder memakai ulang akun, undangan,
+    // langganan, dan komisi yang sudah tercatat, dan baru menandai pesanan
+    // approved di langkah terakhir. Cabang invalid-tier di atas sudah memakai
+    // 500 dengan alasan yang sama.
     console.error('Mayar webhook error:', error)
-    return NextResponse.json({ ok: false, error: 'Internal error' }, { status: 200 })
+    return NextResponse.json({ ok: false, error: 'Internal error' }, { status: 500 })
   }
 }

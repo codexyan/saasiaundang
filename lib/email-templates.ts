@@ -77,66 +77,46 @@ export function welcomeTemplate(d: EmailData): string {
   `)
 }
 
-export function trialStartedTemplate(d: EmailData): string {
-  return baseTemplate(`
-    <h2 style="margin:0 0 16px;color:#1a4a1a;">Masa Coba Gratis 7 Hari Dimulai</h2>
-    <p>Halo ${str(d.name, 'Kak')},</p>
-    <p>Undangan kalian sudah jadi dan bisa dilihat di <strong>${str(d.slug)}.${APP_DOMAIN}</strong>.</p>
-    <p>Selama 7 hari ke depan kalian bebas mencoba semua fiturnya. Kalau sudah cocok, tinggal aktifkan paketnya kapan saja.</p>
-    ${button(invitationUrl(d.slug), 'Lihat Undangan Kalian')}
-  `)
-}
-
-export function trialExpiringTemplate(d: EmailData): string {
-  return baseTemplate(`
-    <h2 style="margin:0 0 16px;color:#c9a961;">Masa Coba Gratis Segera Berakhir</h2>
-    <p>Halo ${str(d.name, 'Kak')},</p>
-    <p>Masa coba undangan kalian tinggal <strong>${str(d.daysLeft)} hari</strong> lagi.</p>
-    <p>Aktifkan paketnya sekarang supaya undangan tetap bisa dibuka tamu.</p>
-    ${button(`https://${APP_DOMAIN}/templates`, 'Aktifkan Paket')}
-  `)
-}
-
-export function trialExpiredTemplate(d: EmailData): string {
-  return baseTemplate(`
-    <h2 style="margin:0 0 16px;color:#1a4a1a;">Masa Coba Gratis Sudah Berakhir</h2>
-    <p>Halo ${str(d.name, 'Kak')},</p>
-    <p>Masa coba undangan kalian sudah habis. Tenang, semua isinya masih kami simpan selama 14 hari.</p>
-    <p>Aktifkan paketnya untuk menghidupkan undangan kalian lagi.</p>
-    ${button(`https://${APP_DOMAIN}/templates`, 'Aktifkan Undangan')}
-  `)
-}
-
 export function orderCreatedTemplate(d: EmailData): string {
   return baseTemplate(`
     <h2 style="margin:0 0 16px;color:#1a4a1a;">Pesanan Kalian Sudah Kami Terima</h2>
     <p>Halo ${str(d.name, 'Kak')},</p>
-    <p>Terima kasih! Pesanan dengan nomor <strong>${str(d.orderNumber)}</strong> sudah masuk.</p>
+    <p>Pesanan dengan nomor <strong>${str(d.orderNumber)}</strong> sudah masuk.</p>
     <p>Total yang perlu dibayar: <strong>Rp ${money(d.amount)}</strong></p>
-    <p>Silakan selesaikan pembayaran sesuai petunjuk, lalu undangan kalian langsung kami aktifkan.</p>
+    ${d.statusUrl ? button(str(d.statusUrl), 'Lihat status dan lanjutkan pembayaran') : ''}
+    <p>Begitu pembayarannya kami terima, kami kirim email berikutnya berisi langkah masuk ke akun kalian.</p>
   `)
 }
 
 export function orderApprovedTemplate(d: EmailData): string {
-  // Kredensial hanya disertakan untuk akun yang BARU dibuat (jalur pembayaran
-  // otomatis Mayar, di mana tidak ada admin yang meneruskannya manual). Akun
-  // yang sudah ada tetap memakai password lamanya dan tidak boleh dikirimi apa pun.
-  const credentials = d.password
+  // Dulu email ini mengirim password sebagai teks, menyebut undangannya sudah
+  // "aktif" dan "siap dibagikan", lalu menautkan alamat undangan itu. Padahal
+  // undangan dibuat dengan is_published false, jadi tombolnya menuju halaman
+  // yang belum bisa dibuka siapa pun — dan passwordnya hidup selamanya di inbox
+  // pembeli tanpa ada yang bisa menariknya kembali.
+  const langkahMasuk = d.setupUrl
     ? `
-    <div style="margin:20px 0;padding:16px;background:#f5f2ed;border:1px solid #e0d9cc;border-radius:8px;">
-      <p style="margin:0 0 8px;font-weight:600;color:#1a4a1a;">Ini data untuk masuk ke akun kalian</p>
-      <p style="margin:0 0 4px;">Email: <strong>${str(d.email)}</strong></p>
-      <p style="margin:0 0 12px;">Password: <strong>${str(d.password)}</strong></p>
-      <p style="margin:0;font-size:13px;color:#6b6b6b;">Sebaiknya ganti passwordnya setelah masuk pertama kali.</p>
-    </div>`
-    : ''
+    <p>Langkah berikutnya: buat password kalian sendiri. Tautannya berlaku ${str(d.setupValidity, '72 jam')}.</p>
+    ${button(str(d.setupUrl), 'Buat Password')}
+    <p style="font-size:13px;color:#6b6b6b;">Kalau tautannya sudah lewat masa berlaku, minta yang baru lewat halaman Lupa password.</p>`
+    : `
+    <p>Akun kalian yang sudah ada tetap memakai password yang lama.</p>
+    ${button(
+      d.invitationId
+        // Sesudah editor undangan punya alamat sendiri, tautan ini bisa
+        // membuka undangan yang benar langsung. Sebelumnya ia hanya sampai
+        // ke dashboard, dan pembeli harus mencari undangannya sendiri.
+        ? `https://${APP_DOMAIN}/dashboard?undangan=${encodeURIComponent(String(d.invitationId))}&tab=undangan`
+        : `https://${APP_DOMAIN}/login`,
+      'Buka Undangan Kalian',
+    )}`
 
   return baseTemplate(`
-    <h2 style="margin:0 0 16px;color:#1a4a1a;">Pembayaran Berhasil, Undangan Kalian Aktif!</h2>
+    <h2 style="margin:0 0 16px;color:#1a4a1a;">Pembayaran Kalian Sudah Kami Terima</h2>
     <p>Halo ${str(d.name, 'Kak')},</p>
-    <p>Pembayaran untuk pesanan <strong>${str(d.orderNumber)}</strong> sudah kami terima. Undangan kalian siap dibagikan ke tamu.</p>
-    ${credentials}
-    ${button(invitationUrl(d.slug), 'Lihat Undangan Kalian')}
+    <p>Pembayaran untuk pesanan <strong>${str(d.orderNumber)}</strong> sudah masuk, dan alamat <strong>${str(d.slug)}.${APP_DOMAIN}</strong> sudah kami kunci untuk kalian.</p>
+    ${langkahMasuk}
+    <p>Sesudah masuk, lengkapi isi undangannya lalu tekan publikasikan. Tamu baru bisa membukanya sesudah itu.</p>
   `)
 }
 
@@ -192,7 +172,7 @@ export function passwordResetTemplate(d: EmailData): string {
   return baseTemplate(`
     <h2 style="margin:0 0 16px;color:#1a4a1a;">Buat Password Baru</h2>
     <p>Halo ${str(d.name, 'Kak')},</p>
-    <p>Kami menerima permintaan untuk mengganti password kalian. Klik tombol di bawah untuk membuat password baru. Tautannya berlaku 1 jam.</p>
+    <p>Kami menerima permintaan untuk mengganti password kalian. Klik tombol di bawah untuk membuat password baru. Tautannya berlaku ${str(d.validityLabel, '1 jam')}.</p>
     ${button(str(d.resetLink, `https://${APP_DOMAIN}`), 'Buat Password Baru')}
     <p style="color:#a8a29e;font-size:12px;">Kalau kalian tidak merasa meminta ini, abaikan saja email ini. Password lama kalian tetap aman.</p>
   `)

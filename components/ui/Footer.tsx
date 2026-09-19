@@ -5,23 +5,19 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Instagram, Mail, MessageCircle } from 'lucide-react'
 import { Button } from '@/components/marketing/Button'
+import { useSession } from '@/components/ui/SessionProvider'
 
-const productLinks = [
-  { href: '/templates', label: 'Template' },
-  { href: '/#fitur', label: 'Fitur' },
-  { href: '/#harga', label: 'Harga' },
-  { href: '/demo/renderer?id=javanese-gold', label: 'Demo Live' },
-]
-
-const companyLinks = [
+const companyLinksDasar = [
   { href: '/#cara-kerja', label: 'Cara Kerja' },
   { href: '/#faq', label: 'FAQ' },
-  { href: '/blog', label: 'Blog' },
 ]
 
+// Nomor WhatsApp datang dari pengaturan admin lewat props, bukan ditulis mati.
+// Dulu `628123456789` dipajang di sini dan di blok kontak di bawah: nomor contoh
+// yang tidak dimiliki siapa pun, jadi setiap pengunjung yang menekannya mendarat
+// di ruang kosong.
 const socials = [
   { href: 'https://instagram.com/ia.undang', icon: Instagram, label: 'Instagram' },
-  { href: 'https://wa.me/628123456789', icon: MessageCircle, label: 'WhatsApp' },
 ]
 
 function FooterLinkGroup({ title, links }: { title: string; links: { href: string; label: string }[] }) {
@@ -44,16 +40,25 @@ function FooterLinkGroup({ title, links }: { title: string; links: { href: strin
   )
 }
 
-export default function Footer() {
+export default function Footer({ whatsapp, adaArtikel = false, demoHref }: {
+  whatsapp?: string
+  /** Tautan Blog hanya muncul kalau ada tulisan terbit (R-24). */
+  adaArtikel?: boolean
+  /** Tujuan demo mengikuti tema yang aktif, bukan id yang ditulis mati. */
+  demoHref?: string
+}) {
+  const productLinks = [
+    { href: '/templates', label: 'Template' },
+    { href: '/#fitur', label: 'Fitur' },
+    { href: '/#harga', label: 'Harga' },
+    ...(demoHref ? [{ href: demoHref, label: 'Coba Demo' }] : []),
+  ]
+  const companyLinks = adaArtikel
+    ? [...companyLinksDasar, { href: '/blog', label: 'Blog' }]
+    : companyLinksDasar
+  const waLink = whatsapp ? `https://wa.me/${whatsapp}` : null
   const currentYear = new Date().getFullYear()
-  const [user, setUser] = useState<{ email: string; role?: string } | null>(null)
-
-  useEffect(() => {
-    fetch('/api/auth/me')
-      .then((r) => r.json())
-      .then(({ user }) => setUser(user ?? null))
-      .catch(() => setUser(null))
-  }, [])
+  const { user } = useSession()
 
   const accountLinks = user
     ? [
@@ -88,17 +93,20 @@ export default function Footer() {
               />
             </Link>
             <p className="text-body-sm text-concrete leading-relaxed mb-5 max-w-[280px]">
-              Platform undangan digital premium. Personal untuk setiap tamu, elegan di setiap layar.
+              Undangan digital yang menyapa setiap tamu dengan namanya sendiri.
             </p>
             <div className="flex items-center gap-2">
-              {socials.map(({ href, icon: Icon, label }) => (
+              {[
+                ...socials,
+                ...(waLink ? [{ href: waLink, icon: MessageCircle, label: 'WhatsApp' }] : []),
+              ].map(({ href, icon: Icon, label }) => (
                 <a
                   key={href}
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={label}
-                  className="w-9 h-9 rounded-xl bg-chalk border border-hairline flex items-center justify-center text-concrete hover:text-forest hover:border-forest-light/40 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 focus-visible:ring-offset-2"
+                  className="w-11 h-11 rounded-xl bg-chalk border border-hairline flex items-center justify-center text-concrete hover:text-forest hover:border-forest-light/40 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest/40 focus-visible:ring-offset-2"
                 >
                   <Icon className="w-4 h-4" />
                 </a>
@@ -124,15 +132,17 @@ export default function Footer() {
                   halo@iaundang.online
                 </a>
               </li>
-              <li>
-                <a
-                  href="https://wa.me/628123456789"
-                  className="text-body-sm text-concrete hover:text-forest-deep transition-colors duration-200 flex items-center gap-2"
-                >
-                  <MessageCircle className="w-3.5 h-3.5 shrink-0" />
-                  WhatsApp
-                </a>
-              </li>
+              {waLink && (
+                <li>
+                  <a
+                    href={waLink}
+                    className="text-body-sm text-concrete hover:text-forest-deep transition-colors duration-200 flex items-center gap-2"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+                    WhatsApp
+                  </a>
+                </li>
+              )}
             </ul>
             <Button href="/templates" size="sm">
               Buat Undangan

@@ -9,6 +9,7 @@ import type { TemplateRecord } from '@/lib/types'
 import { BUILT_IN_TEMPLATE_IDS } from '@/lib/built-in-data'
 import StatusBadge from '@/components/admin/ui/StatusBadge'
 import TemplateThumb from './TemplateThumb'
+import { drafValid } from '@/lib/template-draft'
 
 export interface TemplateCardActions {
   onEditDesign: (rec: TemplateRecord) => void
@@ -33,7 +34,7 @@ function MenuItem({ icon: Icon, label, onClick, tone = 'default' }: {
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-2.5 px-3 py-2 text-[12px] font-medium text-left transition-colors ${
+      className={`w-full flex items-center gap-2.5 px-3 py-2 sentuh:min-h-[44px] text-[12px] font-medium text-left transition-colors ${
         tone === 'danger'
           ? 'text-red-600 hover:bg-red-50'
           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
@@ -66,9 +67,11 @@ export default function TemplateCard({
     }
   }, [menuOpen])
 
-  const working = record.draft_config ?? record.config
+  const working = drafValid(record.draft_config) ? record.draft_config : record.config
   const sectionCount = (working?.sections ?? []).filter(s => s.enabled).length
-  const hasPendingDraft = !!record.draft_config
+  // Lencana "Belum terbit" ikut bentuk draf, bukan sekadar kolomnya terisi.
+  // Draf kosong peninggalan versi lama dulu membuat lencana ini berbohong.
+  const hasPendingDraft = drafValid(record.draft_config)
   const isBuiltIn = (BUILT_IN_TEMPLATE_IDS as readonly string[]).includes(record.id)
   const inUse = record.usage_count > 0
 
@@ -114,7 +117,7 @@ export default function TemplateCard({
           onClick={() => setMenuOpen(o => !o)}
           aria-label={`Aksi untuk ${record.name}`}
           aria-expanded={menuOpen}
-          className="p-1.5 rounded-lg bg-white/85 text-gray-500 hover:text-gray-900 hover:bg-white backdrop-blur-sm shadow-sm transition-colors"
+          className="p-1.5 inline-flex items-center justify-center sentuh:w-11 sentuh:h-11 rounded-lg bg-white/85 text-gray-500 hover:text-gray-900 hover:bg-white backdrop-blur-sm shadow-sm transition-colors"
         >
           <MoreVertical className="w-3.5 h-3.5" />
         </button>
@@ -129,7 +132,7 @@ export default function TemplateCard({
               target="_blank"
               rel="noreferrer"
               onClick={() => setMenuOpen(false)}
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-[12px] font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+              className="w-full flex items-center gap-2.5 px-3 py-2 sentuh:min-h-[44px] text-[12px] font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
             >
               <ExternalLink className="w-3.5 h-3.5 shrink-0" /> Pratinjau seperti tamu
             </a>

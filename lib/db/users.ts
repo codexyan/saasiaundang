@@ -2,19 +2,30 @@ import { prisma } from '../prisma'
 
 //  TYPE EXPORTS
 
-export type UserRole = 'admin' | 'content_writer' | 'affiliate' | 'user'
+// Satu-satunya daftar role yang sah. Kolom users.role di skema berupa String
+// biasa, bukan enum, jadi database menerima nilai apa pun dan penjaganya hanya
+// kode. Dulu daftar ini cuma ditulis di PATCH /api/admin/users/[id], sementara
+// POST /api/admin/users menyimpan role apa pun yang dikirim, termasuk salah
+// ketik yang tidak cocok dengan satu pun pemeriksaan di lib/auth.ts.
+export const USER_ROLES = ['admin', 'content_writer', 'affiliate', 'user'] as const
 
+export type UserRole = (typeof USER_ROLES)[number]
+
+// Tanpa referral_code. Kolom itu dijatuhkan migrasi
+// 20260911000000_drop_user_referral_program bersama program referral pengguna
+// yang sudah dibuang. Jangan memilihnya lagi di query mana pun, termasuk
+// $queryRaw findByEmail di bawah: begitu migrasi diterapkan, query yang masih
+// memilihnya langsung gagal dan login ikut mati.
 export interface DbUser {
   id: string
   email: string
   password_hash: string
   role?: UserRole
-  referral_code?: string | null
   created_at: string
 }
 
-function mapUser(u: { id: string; email: string; passwordHash: string; role: string; referralCode: string | null; createdAt: Date }): DbUser {
-  return { id: u.id, email: u.email, password_hash: u.passwordHash, role: u.role as UserRole, referral_code: u.referralCode, created_at: u.createdAt.toISOString() }
+function mapUser(u: { id: string; email: string; passwordHash: string; role: string; createdAt: Date }): DbUser {
+  return { id: u.id, email: u.email, password_hash: u.passwordHash, role: u.role as UserRole, created_at: u.createdAt.toISOString() }
 }
 
 //  USERS
@@ -41,17 +52,15 @@ export const users = {
    */
   async findByEmail(email: string): Promise<DbUser | null> {
     const rows = await prisma.$queryRaw<{
-      id: string; email: string; password_hash: string; role: string
-      referral_code: string | null; created_at: Date
+      id: string; email: string; password_hash: string; role: string; created_at: Date
     }[]>`
-      SELECT id, email, password_hash, role, referral_code, created_at, NOW() AS uncached_marker
+      SELECT id, email, password_hash, role, created_at, NOW() AS uncached_marker
       FROM users WHERE email = ${email.toLowerCase()} LIMIT 1
     `
     if (rows.length === 0) return null
     const u = rows[0]
     return mapUser({
       id: u.id, email: u.email, passwordHash: u.password_hash, role: u.role,
-      referralCode: u.referral_code,
       createdAt: u.created_at instanceof Date ? u.created_at : new Date(u.created_at),
     })
   },
@@ -115,80 +124,32 @@ export const users = {
     `
     return rows.length > 0 ? Number(rows[0].session_epoch) : null
   },
+  /**
+   * Ganti role DAN cabut seluruh sesi lama dalam satu update.
+   *
+   * Role tidak dibaca ulang dari database pada setiap request: isAdmin,
+   * isWriter, dan isAffiliate (lib/auth.ts) membaca role yang tertanam di token
+   * JWT berumur 30 hari. Dulu fungsi ini hanya mengganti kolom role, jadi admin
+   * yang diturunkan menjadi user tetap lolos withAdminAuth (lib/route-guards.ts)
+   * dengan token lamanya sampai token itu kedaluwarsa. Sama halnya dengan
+   * content_writer dan affiliate yang dicabut.
+   *
+   * Menaikkan sessionEpoch membuat getSession() menolak token lama. User harus
+   * masuk lagi, dan login menanam role serta epoch terbaru ke token baru. Pada
+   * promosi (misalnya user menjadi content_writer) efeknya juga benar: user
+   * keluar sekali lalu langsung mendapat akses barunya, bukan tertahan di role
+   * lama sampai ia logout sendiri.
+   *
+   * Satu update, sama seperti updatePassword, supaya role tidak mungkin berganti
+   * tanpa sesinya ikut dicabut.
+   */
   async updateRole(id: string, role: UserRole): Promise<void> {
-    await prisma.user.update({ where: { id }, data: { role } })
-  },
-  async findByReferralCode(code: string): Promise<DbUser | null> {
-    const u = await prisma.user.findUnique({ where: { referralCode: code } })
-    return u ? mapUser(u) : null
-  },
-  async setReferralCode(id: string, code: string): Promise<void> {
-    await prisma.user.update({ where: { id }, data: { referralCode: code } })
-  },
-}
-
-// ─── USER REFERRALS ──────────────────────────────────────────
-
-export interface UserReferralRecord {
-  id: string
-  referrer_id: string
-  referred_id: string
-  order_id: string | null
-  status: 'pending' | 'completed' | 'rewarded'
-  reward_type: string
-  reward_value: number
-  claimed_at: string | null
-  created_at: string
-}
-
-export const userReferrals = {
-  async create(data: { referrer_id: string; referred_id: string; order_id?: string }): Promise<UserReferralRecord> {
-    const r = await prisma.userReferral.create({
-      data: {
-        referrerId: data.referrer_id,
-        referredId: data.referred_id,
-        orderId: data.order_id || null,
-        rewardType: 'discount',
-        rewardValue: 15000,
-      },
-    })
-    return mapUserReferral(r)
-  },
-
-  async findByReferrerId(referrerId: string): Promise<UserReferralRecord[]> {
-    const all = await prisma.userReferral.findMany({
-      where: { referrerId },
-      orderBy: { createdAt: 'desc' },
-    })
-    return all.map(mapUserReferral)
-  },
-
-  async countByReferrer(referrerId: string): Promise<{ total: number; completed: number; totalReward: number }> {
-    const all = await prisma.userReferral.findMany({
-      where: { referrerId },
-      select: { status: true, rewardValue: true },
-    })
-    return {
-      total: all.length,
-      completed: all.filter(r => r.status === 'completed' || r.status === 'rewarded').length,
-      totalReward: all.filter(r => r.status === 'rewarded').reduce((s, r) => s + r.rewardValue, 0),
-    }
-  },
-
-  async markCompleted(referrerId: string, referredId: string): Promise<void> {
-    await prisma.userReferral.updateMany({
-      where: { referrerId, referredId, status: 'pending' },
-      data: { status: 'completed' },
+    await prisma.user.update({
+      where: { id },
+      data: { role, sessionEpoch: { increment: 1 } },
     })
   },
-}
-
-function mapUserReferral(r: { id: string; referrerId: string; referredId: string; orderId: string | null; status: string; rewardType: string; rewardValue: number; claimedAt: Date | null; createdAt: Date }): UserReferralRecord {
-  return {
-    id: r.id, referrer_id: r.referrerId, referred_id: r.referredId,
-    order_id: r.orderId, status: r.status as UserReferralRecord['status'],
-    reward_type: r.rewardType, reward_value: r.rewardValue,
-    claimed_at: r.claimedAt?.toISOString() ?? null,
-    created_at: r.createdAt.toISOString(),
-  }
+  // findByReferralCode, setReferralCode, dan seluruh userReferrals dibuang
+  // bersama program referral pengguna, yang tidak pernah mencatat satu referral
+  // pun (lihat komentar di app/api/referral/route.ts).
 }

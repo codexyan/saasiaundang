@@ -58,6 +58,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       valid: true,
       email: resetToken.email,
+      // Menentukan kalimat di halaman: pembeli baru MEMBUAT password
+      // pertamanya, sedangkan pemilik akun lama MENGGANTI yang sudah ada.
+      purpose: resetToken.purpose,
     })
   } catch (error) {
     console.error('Token validation error:', error)

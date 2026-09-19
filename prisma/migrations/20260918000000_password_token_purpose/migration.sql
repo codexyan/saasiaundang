@@ -1,0 +1,15 @@
+-- Membedakan tautan buat password dari pembelian dengan tautan reset biasa.
+--
+-- Sebelum ini tabelnya hanya menyimpan token, email, dan masa berlaku, jadi
+-- tidak ada cara mengetahui sebuah tautan lahir dari Lupa password atau dari
+-- pembelian. Padahal keduanya berbeda masa berlaku (1 jam lawan 72 jam),
+-- berbeda kalimat di halaman dan email, dan hanya token 'reset' yang boleh
+-- dihapus saat pengguna meminta tautan reset baru.
+--
+-- Semua baris yang ada sekarang berasal dari Lupa password, jadi nilai bawaan
+-- 'reset' sudah benar untuk mereka. Kolomnya additive: kode lama yang belum
+-- mengenal kolom ini tetap berjalan.
+--
+-- URUTAN RILIS: jalankan SESUDAH deploy tier-unification dan sesudah migrasi
+-- 20260911000000_drop_user_referral_program, bukan digabung dengan keduanya.
+ALTER TABLE "password_reset_tokens" ADD COLUMN "purpose" TEXT NOT NULL DEFAULT 'reset';

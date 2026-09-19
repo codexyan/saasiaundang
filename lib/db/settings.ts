@@ -53,18 +53,39 @@ const DEFAULT_SETTINGS: AppSettings = {
   categories: BUILT_IN_CATEGORIES, colorPalettes: BUILT_IN_PALETTES,
   priceTiers: BUILT_IN_PRICE_TIERS, flashSales: [], coupons: [],
   deletedCategoryIds: [], deletedTierIds: [],
-  bankAccounts: [
-    { id: 'bca-1', bankName: 'BCA', accountNumber: '8730456192', accountName: 'PT Iaundang Digital', isActive: true, logoUrl: '' },
-    { id: 'bsi-1', bankName: 'BSI', accountNumber: '7210384756', accountName: 'PT Iaundang Digital', isActive: true, logoUrl: '' },
-  ],
+  // Kosong. Dulu di sini ada rekening BCA 8730456192 atas nama
+  // "PT Iaundang Digital" sebagai nilai bawaan, dan itu bukan rekening siapa
+  // pun yang menjalankan produk ini. Rekening diisi dari panel admin kalau
+  // suatu saat jalur transfer manual dihidupkan lagi.
+  bankAccounts: [],
   qrisImageUrl: '',
   paymentInstructions: 'Pastikan nominal transfer sesuai dengan total tagihan (termasuk kode unik) agar pembayaran dapat diverifikasi.\n\nLangkah pembayaran:\n1. Transfer ke salah satu rekening di atas sesuai nominal yang tertera\n2. Screenshot bukti transfer\n3. Klik tombol "Konfirmasi via WhatsApp" dan kirimkan bukti transfer\n4. Tim kami akan memverifikasi dalam 1×24 jam kerja\n5. Setelah diverifikasi, akun login akan dikirim via WhatsApp/email\n\nCatatan:\n• Pembayaran berlaku 1×24 jam sejak pesanan dibuat\n• Jika ada kendala, silakan hubungi admin via WhatsApp',
-  confirmationWhatsapp: '628123456789', siteName: 'iaundang', siteTagline: 'Digital Wedding Invitation',
+  confirmationWhatsapp: '', siteName: 'iaundang', siteTagline: 'Digital Wedding Invitation',
   logoHorizontalUrl: '/logos/logo-horizontal.png', logoVerticalUrl: '/logos/logo-vertical.png',
-  contactWhatsapp: '628123456789', contactEmail: 'halo@iaundang.online',
+  contactWhatsapp: '', contactEmail: 'halo@iaundang.online',
   socialInstagram: 'ia.undang', socialTwitter: 'iaundang', socialGithub: 'iaundang',
   appDomain: 'iaundang.online', demoSubdomain: 'demo',
   maintenanceMode: false,
+}
+
+/**
+ * Nomor contoh yang beredar di data lama.
+ *
+ * `628123456789` bukan milik siapa pun. Selama nilainya tersimpan, setiap
+ * tautan WhatsApp di beranda, halaman syarat, halaman privasi, dan halaman
+ * status pesanan menuju ruang kosong, dan pengunjung yang menekannya mengira
+ * layanannya tidak menjawab. Lebih baik tidak ada tombol sama sekali.
+ *
+ * Disaring saat DIBACA, bukan ditulis ulang di database: yang salah adalah
+ * memajangnya, bukan menyimpannya, dan kolom kosong di panel admin justru
+ * mengundang pemiliknya mengisi nomor yang benar.
+ */
+const NOMOR_CONTOH = new Set(['628123456789', '6281234567890', '08123456789'])
+
+function nomorWaSah(nomor?: string): string {
+  const bersih = (nomor ?? '').replace(/[^0-9]/g, '')
+  if (!bersih || NOMOR_CONTOH.has(bersih)) return ''
+  return bersih
 }
 
 export const settings = {
@@ -101,7 +122,16 @@ export const settings = {
       ...storedTiers.filter(t => !BUILT_IN_PRICE_TIERS.find(b => b.id === t.id) && !deletedTierIds.has(t.id)),
     ]
 
-    return { ...DEFAULT_SETTINGS, ...stored, categories, colorPalettes, priceTiers, deletedCategoryIds: stored.deletedCategoryIds ?? [], deletedTierIds: stored.deletedTierIds ?? [], flashSales: stored.flashSales ?? [], coupons: stored.coupons ?? [], bankAccounts: stored.bankAccounts ?? [] }
+    return {
+      ...DEFAULT_SETTINGS, ...stored, categories, colorPalettes, priceTiers,
+      confirmationWhatsapp: nomorWaSah(stored.confirmationWhatsapp),
+      contactWhatsapp: nomorWaSah(stored.contactWhatsapp),
+      deletedCategoryIds: stored.deletedCategoryIds ?? [],
+      deletedTierIds: stored.deletedTierIds ?? [],
+      flashSales: stored.flashSales ?? [],
+      coupons: stored.coupons ?? [],
+      bankAccounts: stored.bankAccounts ?? [],
+    }
   }),
   async save(data: AppSettings): Promise<void> {
     await prisma.appSetting.upsert({

@@ -16,8 +16,8 @@ const defaultSteps = [
     description: 'Pilih template yang kalian suka, masukkan nama pasangan, dan lihat hasilnya langsung. Tanpa registrasi, tanpa bayar.',
   },
   {
-    title: 'Bayar sekali, langsung aktif',
-    description: 'Sudah cocok? Pilih paket mulai Rp 79.000, sekali bayar, tanpa langganan. Transfer bank atau QRIS, aktif dalam 1x24 jam.',
+    title: 'Pesan dan bayar sekali',
+    description: 'Isi data pernikahan kalian, pilih paket, lalu bayar. Sekali bayar, tanpa biaya bulanan. Akun kalian dibuat otomatis begitu pembayarannya masuk.',
   },
   {
     title: 'Lengkapi & bagikan ke tamu',
@@ -25,7 +25,7 @@ const defaultSteps = [
   },
 ]
 
-const HIGHLIGHTS = ['Gratis, tanpa registrasi', 'Tanpa biaya bulanan', 'Setiap tamu dapat link unik']
+const HIGHLIGHTS = ['Demo gratis, tanpa daftar', 'Tanpa biaya bulanan', 'Setiap tamu dapat link unik']
 
 export default function HowItWorks({ steps: propSteps }: { steps?: { title: string; description: string }[] }) {
   const steps = (propSteps ?? defaultSteps).map((s, i) => ({
@@ -39,8 +39,8 @@ export default function HowItWorks({ steps: propSteps }: { steps?: { title: stri
       id="cara-kerja"
       tone="chalk"
       eyebrow="Cara Kerja"
-      title="Tiga langkah. Lima menit. Selesai."
-      lead="Tanpa skill desain, tanpa download aplikasi. Semua lewat browser."
+      title="Tiga langkah, semuanya lewat browser."
+      lead="Tanpa aplikasi yang perlu dipasang dan tanpa kemampuan desain. Lamanya tergantung seberapa lengkap isi yang kalian siapkan."
     >
       <div className="relative">
         {/* Garis proses — desktop: horizontal menghubungkan titik antar kolom */}
@@ -70,7 +70,7 @@ export default function HowItWorks({ steps: propSteps }: { steps?: { title: stri
                 {/* Titik pada garis — desktop */}
                 <span aria-hidden className="hidden md:block relative z-10 w-2.5 h-2.5 rounded-full bg-gold ring-4 ring-chalk mx-auto mb-7" />
 
-                <p aria-hidden className="font-display text-display-md text-forest-200 leading-none mb-3 md:mb-4">
+                <p aria-hidden className="font-display text-display-md text-forest-400 leading-none mb-3 md:mb-4">
                   0{i + 1}
                 </p>
 
@@ -104,7 +104,10 @@ export default function HowItWorks({ steps: propSteps }: { steps?: { title: stri
           Mulai buat undangan
           <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
         </Button>
-        <p className="text-body-xs text-concrete">Coba gratis, bayar saat siap publish.</p>
+        {/* Dulu "Coba gratis, bayar saat siap publish." Sekarang pembayaran
+            terjadi saat memesan, sebelum editor terbuka, dan yang gratis
+            adalah demo di galeri. */}
+        <p className="text-body-xs text-concrete">Coba gratis di demo, bayar saat memesan.</p>
       </motion.div>
     </SectionContainer>
   )

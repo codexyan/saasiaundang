@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
 import {
   Check, X, Copy, Loader2, Inbox, Search, Zap, Hand,
-  ExternalLink, KeyRound, Clock,
+  ExternalLink, Clock,
 } from 'lucide-react'
 import type { AdminOrder } from '@/components/admin/types'
 import ConfirmDialog from '@/components/admin/ui/ConfirmDialog'
@@ -55,7 +55,6 @@ export default function OrderQueue({ orders, view, onOrdersChange, appDomain }: 
   const [busyId, setBusyId] = useState<string | null>(null)
   const [pending, setPending] = useState<{ order: AdminOrder; action: 'approve' | 'reject' } | null>(null)
   const [notes, setNotes] = useState('')
-  const [credentials, setCredentials] = useState<{ order: AdminOrder; email: string; password: string } | null>(null)
 
   const method = (o: AdminOrder): 'mayar' | 'manual' =>
     (o.payment_method === 'mayar' ? 'mayar' : 'manual')
@@ -96,12 +95,13 @@ export default function OrderQueue({ orders, view, onOrdersChange, appDomain }: 
       setPending(null)
       setNotes('')
 
-      if (action === 'approve' && data.credentials) {
-        setCredentials({ order, ...data.credentials })
-      } else if (action === 'approve' && data.accountAlreadyExisted) {
-        toast.success('Pesanan disetujui — akunnya sudah ada sebelumnya, jadi tidak ada kata sandi baru.')
+      if (action === 'reject') {
+        toast.success('Pesanan ditolak')
+      } else if (data.passwordLinkSent) {
+        // Admin tidak lagi menerima, menyalin, atau meneruskan password.
+        toast.success('Pesanan disetujui. Tautan buat password sudah dikirim ke email pembeli.')
       } else {
-        toast.success(action === 'approve' ? 'Pesanan disetujui' : 'Pesanan ditolak')
+        toast.success('Pesanan disetujui. Akunnya sudah ada sebelumnya, jadi pembeli masuk dengan password lamanya.')
       }
     } finally { setBusyId(null) }
   }
@@ -111,26 +111,6 @@ export default function OrderQueue({ orders, view, onOrdersChange, appDomain }: 
     toast.success(`${label} disalin`)
   }
 
-  function waHandoff() {
-    if (!credentials) return
-    const o = credentials.order
-    const text = [
-      `Halo kak ${o.groom_nickname} & ${o.bride_nickname}! 🎉`,
-      '',
-      'Undangan digital kalian sudah aktif!',
-      '',
-      '🔑 Login:',
-      `Email: ${credentials.email}`,
-      `Password: ${credentials.password}`,
-      `Dashboard: ${window.location.origin}/login`,
-      '',
-      '🌐 Alamat undangan:',
-      `${o.subdomain}.${appDomain}`,
-      '',
-      'Silakan login dan lengkapi detail undangan. Terima kasih! 🙏',
-    ].join('\n')
-    window.open(`https://wa.me/${o.phone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`, '_blank')
-  }
 
   if (orders.length === 0) {
     return <EmptyState title="Belum ada pesanan" hint="Pesanan dari halaman /order akan muncul di sini." />
@@ -197,9 +177,11 @@ export default function OrderQueue({ orders, view, onOrdersChange, appDomain }: 
                   <p className="font-display text-lg font-bold text-gray-900 tabular-nums">
                     {formatRp(o.total_amount)}
                   </p>
-                  <p className="text-[10px] text-gray-400 tabular-nums">
-                    {formatRp(o.amount)} + {o.unique_code}
-                  </p>
+                  {o.unique_code > 0 && (
+                    <p className="text-[10px] text-gray-400 tabular-nums">
+                      {formatRp(o.amount)} + {o.unique_code} (kode unik, pesanan lama)
+                    </p>
+                  )}
                   <button
                     onClick={() => copy(String(o.total_amount), 'Nominal')}
                     className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-gray-500 hover:text-gray-900 transition-colors"
@@ -286,60 +268,10 @@ export default function OrderQueue({ orders, view, onOrdersChange, appDomain }: 
         onCancel={() => { setPending(null); setNotes('') }}
       />
 
-      {/* Kredensial hanya muncul SEKALI setelah approve — kata sandinya tidak
-          disimpan dalam bentuk terbaca, jadi kalau layar ini ditutup tanpa
-          diteruskan, satu-satunya jalan adalah reset password. */}
-      {credentials && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/45 backdrop-blur-sm px-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="px-6 pt-6 pb-4 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-                <KeyRound className="w-5 h-5 text-emerald-600" />
-              </div>
-              <h3 className="font-bold text-gray-900 text-base">Akun berhasil dibuat</h3>
-              <p className="text-sm text-gray-500 mt-1.5 leading-relaxed">
-                Kata sandi ini <strong>hanya ditampilkan sekali</strong>. Teruskan ke
-                pelanggan sebelum menutup jendela ini.
-              </p>
-            </div>
-            <div className="px-6 space-y-2">
-              <CredRow label="Email" value={credentials.email} onCopy={() => copy(credentials.email, 'Email')} />
-              <CredRow label="Kata sandi" value={credentials.password} onCopy={() => copy(credentials.password, 'Kata sandi')} mono />
-            </div>
-            <div className="px-6 py-5 space-y-2">
-              <button
-                onClick={waHandoff}
-                className="w-full py-2.5 text-sm font-semibold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition-colors"
-              >
-                Kirim lewat WhatsApp
-              </button>
-              <button
-                onClick={() => setCredentials(null)}
-                className="w-full py-2 text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                Sudah saya teruskan, tutup
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
 
-function CredRow({ label, value, onCopy, mono }: {
-  label: string; value: string; onCopy: () => void; mono?: boolean
-}) {
-  return (
-    <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 bg-gray-50">
-      <span className="text-[10px] font-semibold text-gray-400 w-20 shrink-0">{label}</span>
-      <span className={`flex-1 text-sm text-gray-900 truncate ${mono ? 'font-mono' : ''}`}>{value}</span>
-      <button onClick={onCopy} className="p-1.5 text-gray-400 hover:text-gray-900 rounded-lg hover:bg-white transition-colors shrink-0">
-        <Copy className="w-3.5 h-3.5" />
-      </button>
-    </div>
-  )
-}
 
 function EmptyState({ title, hint, tone }: { title: string; hint: string; tone?: 'ok' }) {
   return (

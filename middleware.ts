@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSessionFromRequest } from '@/lib/session'
 import { isAdmin, isWriter, isAffiliate } from '@/lib/auth'
+import { APP_DOMAIN, isMainSiteLabel } from '@/lib/subdomain'
 
 const PROTECTED_PATHS = ['/dashboard', '/admin', '/writer', '/affiliate']
-const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || 'iaundang.online'
 
 export async function middleware(req: NextRequest) {
   const hostname = req.headers.get('host') || ''
@@ -17,7 +17,11 @@ export async function middleware(req: NextRequest) {
     slug = host.split('.')[0]
   }
 
-  const isMainDomain = !slug || slug === 'www' || slug === APP_DOMAIN.split('.')[0]
+  // Label situs utama diambil dari lib/subdomain.ts, fungsi yang sama yang
+  // menolak alamat itu saat checkout. Dulu daftarnya hanya ditulis di sini,
+  // sehingga checkout tetap menjual `www` dan `iaundang` walau alamat itu tidak
+  // pernah diarahkan ke undangan.
+  const isMainDomain = !slug || isMainSiteLabel(slug)
 
   const pathname = req.nextUrl.pathname
   const isApiOrInternal = pathname.startsWith('/api') || pathname.startsWith('/_next')
@@ -38,7 +42,11 @@ export async function middleware(req: NextRequest) {
 
   if (!session) {
     const loginUrl = new URL('/login', req.url)
-    loginUrl.searchParams.set('redirect', req.nextUrl.pathname)
+    // Query ikut dibawa. Dulu hanya pathname, sehingga pembeli yang kembali
+    // dari halaman bayar Mayar ke /dashboard?payment=success tanpa sesi
+    // mendarat di halaman login tanpa jejak bahwa ia baru saja membayar, dan
+    // halaman login tidak bisa memberi tahu bahwa data masuknya sedang dikirim.
+    loginUrl.searchParams.set('redirect', req.nextUrl.pathname + req.nextUrl.search)
     return NextResponse.redirect(loginUrl)
   }
 

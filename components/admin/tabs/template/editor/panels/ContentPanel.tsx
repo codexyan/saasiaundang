@@ -1,19 +1,50 @@
 'use client'
 
+import { useMemo, useState } from 'react'
 import {
   ChevronUp, ChevronDown, Palette, Layers, Sparkles, Plus, Trash2,
-  GripVertical, Play, Check, Lock, Unlock, ImageIcon, Type,
+  GripVertical, Play, Check, Lock, Unlock, ImageIcon, Type, Search, X,
 } from 'lucide-react'
+import type { SectionConfig } from '@/lib/types'
 import ImageUploadField from '@/components/admin/ImageUploadField'
 import SectionBackgroundControl from '@/components/controls/SectionBackgroundControl'
 import SectionTransitionControl from '@/components/controls/SectionTransitionControl'
 import VariantThumb from '../parts/VariantThumb'
-import { SectionField, miniInput } from '../parts/fields'
+import { SectionField, miniInput, Sakelar, tombolIkon } from '../parts/fields'
 import {
   SECTION_TYPES, SECTION_VARIANTS, SECTION_LABELS, GIFT_LAB_BRANDS, makeGiftAccount,
   HEADING_FONTS, BODY_FONTS,
 } from '../parts/constants'
 import { useEditor } from '../EditorContext'
+
+/**
+ * Ringkasan satu baris tentang isi sebuah seksi.
+ *
+ * Keluhannya: enam belas baris yang semuanya terlihat sama pentingnya.
+ * Membedakannya dengan tebakan "mana yang sering dipakai" tidak bisa
+ * dipertanggungjawabkan, karena belum ada satu pun undangan yang dibuat,
+ * jadi tidak ada data pemakaian. Yang bisa dipertanggungjawabkan adalah
+ * FAKTA yang sudah ada di konfigurasi seksi itu sendiri: varian gaya yang
+ * dipilih, jenis latarnya, dan berapa hiasan yang menempel.
+ *
+ * Dengan itu baris yang berbeda memang terlihat berbeda, dan admin bisa
+ * melihat sekali pandang mana yang sudah digarap dan mana yang masih bawaan.
+ */
+function ringkasSeksi(s: SectionConfig): string {
+  const bagian: string[] = []
+
+  const varian = SECTION_VARIANTS[s.type]?.find(v => v.value === (s.style_variant ?? 'default'))
+  if (varian && (s.style_variant ?? 'default') !== 'default') bagian.push(varian.label)
+
+  const latar = s.background?.type
+  if (latar === 'image') bagian.push('latar foto')
+  else if (latar === 'video') bagian.push('latar video')
+
+  const hiasan = s.decoration_assets?.length ?? 0
+  if (hiasan > 0) bagian.push(`${hiasan} hiasan`)
+
+  return bagian.join(' · ')
+}
 
 /**
  * Tab "Konten" — daftar seksi undangan: urutan, aktif/nonaktif, varian gaya,
@@ -32,6 +63,21 @@ export default function ContentPanel() {
     withPreservedScroll,
   } = useEditor()
 
+  const [cari, setCari] = useState('')
+
+  /**
+   * Daftar seksi yang lolos pencarian.
+   *
+   * Dicocokkan ke label yang dilihat admin, bukan ke `type` di data: yang
+   * diketik orang adalah "galeri", bukan "gallery".
+   */
+  const tersaring = useMemo(() => {
+    const kata = cari.trim().toLowerCase()
+    if (!kata) return sections
+    return sections.filter(s =>
+      (SECTION_LABELS[s.type] ?? s.type).toLowerCase().includes(kata))
+  }, [sections, cari])
+
   return (
     <div className="space-y-2">
       {/* Section manager header */}
@@ -39,7 +85,7 @@ export default function ContentPanel() {
         <p className="text-xs text-gray-500">Atur section yang tampil, urutan, dan warna latar.</p>
         <button
           onClick={() => { setDragModeEnabled(!dragModeEnabled); if (dragModeEnabled) { setDraggingSectionId(null); setDragOverSectionId(null) } }}
-          className={`flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1.5 rounded-lg transition-all ${
+          className={`flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1.5 sentuh:min-h-[44px] rounded-lg transition-all ${
             dragModeEnabled
               ? 'bg-indigo-600 text-white shadow-sm'
               : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 border border-gray-200'
@@ -48,6 +94,30 @@ export default function ContentPanel() {
           <GripVertical className="w-3 h-3" />
           {dragModeEnabled ? 'Selesai' : 'Susun Urutan'}
         </button>
+      </div>
+
+      {/* Cari seksi.
+          Enam belas baris yang semuanya terlihat sama membuat mencari satu
+          seksi jadi menggulir dan memindai. Mengetik tiga huruf lebih cepat
+          daripada memindai enam belas kali. */}
+      <div className="relative">
+        <input
+          value={cari}
+          onChange={e => setCari(e.target.value)}
+          placeholder="Cari seksi..."
+          aria-label="Cari seksi"
+          className="w-full pl-8 pr-8 py-2 sentuh:min-h-[44px] text-[11px] bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200"
+        />
+        <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        {cari && (
+          <button
+            onClick={() => setCari('')}
+            aria-label="Hapus pencarian seksi"
+            className="absolute right-1 top-1/2 -translate-y-1/2 inline-flex items-center justify-center w-9 h-9 sentuh:w-11 sentuh:h-11 text-gray-500 hover:text-gray-800"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
 
       {/* Section count summary */}
@@ -63,7 +133,13 @@ export default function ContentPanel() {
         <span className="text-[10px] text-gray-300 ml-auto">{sections.length} total</span>
       </div>
 
-      {sections.map((s, idx) => (
+      {tersaring.length === 0 && (
+        <p className="px-3 py-6 text-center text-[11px] text-gray-400">
+          Tidak ada seksi yang cocok dengan &quot;{cari}&quot;.
+        </p>
+      )}
+
+      {tersaring.map((s, idx) => (
         <div
           key={s.id}
           draggable={dragModeEnabled && !lockedSectionIds.has(s.id)}
@@ -92,7 +168,7 @@ export default function ContentPanel() {
               <div className={`shrink-0 transition-colors ${
                 lockedSectionIds.has(s.id)
                   ? 'text-yellow-400 cursor-not-allowed'
-                  : 'cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500'
+                  : 'cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-700'
               }`}>
                 {lockedSectionIds.has(s.id)
                   ? <Lock className="w-3.5 h-3.5" />
@@ -125,11 +201,16 @@ export default function ContentPanel() {
             {/* Section label */}
             <button
               onClick={() => setExpandedSectionId(expandedSectionId === s.id ? null : s.id)}
-              className="flex-1 text-left min-w-0"
+              className="flex-1 text-left min-w-0 sentuh:min-h-[44px] py-0.5"
             >
               <span className={`text-[11px] font-semibold truncate block ${s.enabled ? 'text-gray-700' : 'text-gray-400'}`}>
                 {SECTION_LABELS[s.type] ?? s.type}
               </span>
+              {ringkasSeksi(s) && (
+                <span className="block text-[9px] text-gray-500 truncate mt-0.5">
+                  {ringkasSeksi(s)}
+                </span>
+              )}
             </button>
 
             {/* Reorder arrows + lock — only in drag mode */}
@@ -137,12 +218,14 @@ export default function ContentPanel() {
               <div className="flex items-center gap-0.5 shrink-0">
                 <button onClick={() => moveSection(s.id, 'up')}
                   disabled={idx === 0 || lockedSectionIds.has(s.id) || (idx > 0 && lockedSectionIds.has(sections[idx - 1].id))}
-                  className="p-0.5 text-gray-300 hover:text-gray-600 disabled:opacity-20 rounded">
+                  title="Naikkan urutan" aria-label="Naikkan urutan seksi"
+                  className={tombolIkon + ' p-0.5 text-gray-500 hover:text-gray-800 disabled:opacity-20'}>
                   <ChevronUp className="w-3 h-3" />
                 </button>
                 <button onClick={() => moveSection(s.id, 'down')}
                   disabled={idx === sections.length - 1 || lockedSectionIds.has(s.id) || (idx < sections.length - 1 && lockedSectionIds.has(sections[idx + 1].id))}
-                  className="p-0.5 text-gray-300 hover:text-gray-600 disabled:opacity-20 rounded">
+                  title="Turunkan urutan" aria-label="Turunkan urutan seksi"
+                  className={tombolIkon + ' p-0.5 text-gray-500 hover:text-gray-800 disabled:opacity-20'}>
                   <ChevronDown className="w-3 h-3" />
                 </button>
                 <button
@@ -151,8 +234,9 @@ export default function ContentPanel() {
                     next.has(s.id) ? next.delete(s.id) : next.add(s.id)
                     return next
                   })}
-                  className={`p-0.5 rounded transition-colors ${lockedSectionIds.has(s.id) ? 'text-yellow-500' : 'text-gray-300 hover:text-gray-500'}`}
-                  title={lockedSectionIds.has(s.id) ? 'Unlock posisi' : 'Lock posisi'}
+                  className={`${tombolIkon} p-0.5 ${lockedSectionIds.has(s.id) ? 'text-yellow-600' : 'text-gray-500 hover:text-gray-800'}`}
+                  title={lockedSectionIds.has(s.id) ? 'Buka kunci posisi' : 'Kunci posisi'}
+                  aria-label={lockedSectionIds.has(s.id) ? 'Buka kunci posisi seksi' : 'Kunci posisi seksi'}
                 >
                   {lockedSectionIds.has(s.id) ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
                 </button>
@@ -160,23 +244,21 @@ export default function ContentPanel() {
             )}
 
             {/* Visibility toggle switch */}
-            <button
-              onClick={() => updateSection(s.id, { enabled: !s.enabled })}
-              className={`shrink-0 relative w-8 h-[18px] rounded-full transition-colors ${
-                s.enabled ? 'bg-emerald-500' : 'bg-gray-200'
-              }`}
-              title={s.enabled ? 'Nonaktifkan' : 'Aktifkan'}
-            >
-              <span className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow-sm transition-transform ${
-                s.enabled ? 'left-[16px]' : 'left-[2px]'
-              }`} />
-            </button>
+            <Sakelar
+              ukuran="mini"
+              warna="emerald"
+              nyala={s.enabled}
+              onUbah={() => updateSection(s.id, { enabled: !s.enabled })}
+              label={`Tampilkan seksi ${SECTION_LABELS[s.type] ?? s.type} di undangan`}
+            />
 
             {/* Expand/collapse */}
             <button
               onClick={() => setExpandedSectionId(expandedSectionId === s.id ? null : s.id)}
-              className={`shrink-0 p-1 rounded-lg transition-all ${
-                expandedSectionId === s.id ? 'text-indigo-500 bg-indigo-100' : 'text-gray-300 hover:text-gray-500'
+              aria-expanded={expandedSectionId === s.id}
+              aria-label={expandedSectionId === s.id ? 'Tutup pengaturan seksi' : 'Buka pengaturan seksi'}
+              className={`${tombolIkon} shrink-0 p-1 ${
+                expandedSectionId === s.id ? 'text-indigo-600 bg-indigo-100' : 'text-gray-500 hover:text-gray-800'
               }`}
             >
               <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${expandedSectionId === s.id ? 'rotate-180' : ''}`} />
@@ -185,7 +267,9 @@ export default function ContentPanel() {
             {/* Delete */}
             {s.type !== 'hero' && (
               <button onClick={() => removeSection(s.id)}
-                className="shrink-0 p-1 text-gray-200 hover:text-red-400 rounded-lg transition-colors">
+                title="Hapus seksi"
+                aria-label={`Hapus seksi ${SECTION_LABELS[s.type] ?? s.type}`}
+                className={tombolIkon + ' shrink-0 p-1 text-gray-500 hover:text-red-600'}>
                 <Trash2 className="w-3 h-3" />
               </button>
             )}

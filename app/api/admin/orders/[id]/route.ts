@@ -4,6 +4,7 @@ import { orders } from '@/lib/db'
 import { notifyUser } from '@/lib/notifications'
 import { runAfterResponse } from '@/lib/after-response'
 import { provisionPaidOrder } from '@/lib/provision-order'
+import { passwordTokenUrl, validityLabel, PASSWORD_TOKEN_PURPOSE } from '@/lib/password-token'
 import { readJsonBody } from '@/lib/request-body'
 
 export const dynamic = 'force-dynamic'
@@ -58,23 +59,30 @@ export const PATCH = withAdminAuth<{ params: Promise<{ id: string }> }>(async (r
         notifyUser('order_approved', order.email, {
           orderNumber: order.order_number,
           slug: outcome.slug,
+          invitationId: outcome.invitationId,
           email: order.email,
           tierName: outcome.tierName,
           expiresAt: outcome.expiresAt.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+          // Jalur yang sama persis dengan webhook: pembeli membuat sendiri
+          // passwordnya lewat email. Admin tidak lagi menjadi perantara.
+          ...(outcome.passwordSetupToken
+            ? {
+                setupUrl: passwordTokenUrl(outcome.passwordSetupToken),
+                setupValidity: validityLabel(PASSWORD_TOKEN_PURPOSE.purchase),
+              }
+            : {}),
         }),
         `notifyUser(order_approved) order=${order.order_number}`
       )
 
       return NextResponse.json({
         success: true,
-        // Password hanya ada kalau akunnya memang BARU dibuat. Dulu selalu
-        // dikirim: kalau emailnya sudah punya akun, password baru digenerate
-        // tapi tidak pernah disimpan — admin meneruskan kredensial yang tidak
-        // bisa dipakai login.
-        credentials: outcome.plainPassword
-          ? { email: order.email, password: outcome.plainPassword }
-          : null,
-        accountAlreadyExisted: outcome.plainPassword === null,
+        // Admin tidak lagi menerima password pembeli. Dulu password akun baru
+        // dikirim balik ke layar admin untuk diteruskan lewat WhatsApp, dan
+        // untuk akun lama dikirim password yang bahkan tidak pernah disimpan,
+        // jadi tidak bisa dipakai masuk.
+        passwordLinkSent: outcome.passwordSetupToken !== null,
+        accountAlreadyExisted: outcome.passwordSetupToken === null,
         invitation_id: outcome.invitationId,
         slug: outcome.slug,
         subscription_id: outcome.subscriptionId,

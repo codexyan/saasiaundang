@@ -43,10 +43,10 @@ export interface LandingPageSettings {
 
 const DEFAULT_LANDING: LandingPageSettings = {
   hero: {
-    headline: 'Undangan digital yang terasa personal sejak tamu membukanya',
-    subheadline: 'Begitu tamu membuka undangan kalian, musik mengalir lembut dan nama mereka tersapa satu per satu. Kesan hangat yang terasa sejak detik pertama, tanpa perlu memasang aplikasi apa pun.',
-    ctaPrimary: 'Mulai Buat Undangan',
-    ctaSecondary: 'Lihat Demo',
+    headline: 'Tamu buka undangannya, namanya sudah ada di sana.',
+    subheadline: 'Masukkan nama kalian berdua, lihat hasilnya sekarang juga. Gratis, tanpa daftar.',
+    ctaPrimary: 'Coba dengan nama kalian',
+    ctaSecondary: 'Lihat semua tema',
     socialProofCount: '',
     socialProofRating: '',
   },
@@ -83,28 +83,28 @@ const DEFAULT_LANDING: LandingPageSettings = {
       { value: 'Tanpa Aplikasi', label: 'Langsung terbuka di HP' },
     ],
   },
+  // Kosong, dan harus tetap kosong sampai ada pembeli sungguhan yang bersedia
+  // dikutip. Dulu di sini ada empat testimoni lengkap dengan nama pasangan,
+  // bulan, dan kutipan, yang semuanya karangan (R-18). Nol pembeli berarti nol
+  // testimoni, dan section testimoni di halaman depan memang tidak menampilkan
+  // data ini.
   testimonials: {
-    items: [
-      { names: 'Rizky & Aulia', date: 'Maret 2026', template: 'Modern', quote: 'Tamunya banyak yang nanya "link undangannya keren banget, pakai apa?". Langsung kami rekomendasiin iaundang. Bikinnya cepat banget, kurang dari 30 menit sudah jadi.', initial: 'RA', color: '#2c4a34' },
-      { names: 'Dimas & Nadia', date: 'Februari 2026', template: 'Casual', quote: 'Kami berdua kerja penuh waktu dan tidak ada waktu ngurusin undangan fisik. iaundang jadi jalan keluarnya: gampang, cantik, dan tamu bisa konfirmasi kehadiran langsung dari HP mereka.', initial: 'DN', color: '#9a7d3f' },
-      { names: 'Fajar & Syifa', date: 'April 2026', template: 'Traditional', quote: 'Yang paling suka fitur nama tamu personalnya. Tamu merasa diperhatikan karena nama mereka muncul langsung di undangan. Banyak yang WA bilang terkesan.', initial: 'FS', color: '#4a6355' },
-      { names: 'Hendra & Mita', date: 'Januari 2026', template: 'Modern', quote: 'Harga segini sudah dapat semua fitur lengkap, tidak ada tambahan biaya. Undangan kami masih bisa dibuka 6 bulan setelah nikah untuk kenangan.', initial: 'HM', color: '#5d7a6a' },
-    ],
+    items: [],
   },
   faq: {
     items: [
-      { q: 'Bisa dilihat dulu hasilnya sebelum bayar?', a: 'Bisa. Pilih gaya yang kalian suka, masukkan nama kalian berdua, dan lihat sendiri hasilnya. Bayar hanya kalau sudah benar-benar cocok dan siap dibagikan ke tamu.' },
+      { q: 'Bisa dilihat dulu hasilnya sebelum bayar?', a: 'Bisa. Di halaman demo kalian memasukkan nama sendiri dan langsung melihat hasilnya, gratis dan tanpa daftar. Untuk mengisi undangan sungguhan dan membagikannya ke tamu, pesanannya dibayar lebih dulu.' },
       { q: 'Tamu perlu download atau install sesuatu?', a: 'Tidak perlu sama sekali. Tamu cukup menyentuh tautan yang kalian kirim lewat WhatsApp, dan undangan langsung terbuka di HP mereka.' },
-      { q: 'Berapa lama undangan bisa diakses setelah bayar?', a: '6 bulan penuh sejak tanggal pembelian. Lebih dari cukup untuk sebelum hari H, saat hari H, dan beberapa bulan setelahnya.' },
+      { q: 'Berapa lama undangan bisa diakses setelah bayar?', a: 'Sesuai paket yang kalian pilih. Masa aktifnya tertera di halaman harga.' },
       { q: 'Bisa ganti foto atau detail acara setelah dibagikan?', a: 'Bisa, kapan saja dan sebanyak yang kalian mau. Ubah info acara, ganti foto, ganti musik, bahkan ganti gaya tampilan tanpa biaya tambahan.' },
       { q: 'Bagaimana cara tamu menerima undangan?', a: 'Setelah undangan kalian aktif, kalian dapat alamat sendiri seperti ikhwal-fani.iaundang.online. Tinggal salin dan kirim ke tamu lewat WhatsApp atau media apa pun.' },
-      { q: 'Kalau ada yang membingungkan, ada yang bisa dihubungi?', a: 'Tentu. Hubungi kami lewat WhatsApp dan kami akan bantu dengan senang hati. Kami balas dalam 1 hari kerja.' },
+      { q: 'Kalau ada yang membingungkan, ada yang bisa dihubungi?', a: 'Tentu. Hubungi kami lewat WhatsApp dan pesan kalian dijawab langsung oleh orang yang membangun iaundang.' },
     ],
   },
   howItWorks: {
     steps: [
-      { title: 'Coba dulu, gratis', description: 'Tanpa daftar, tanpa bayar. Pilih template, masukkan nama, dan lihat hasilnya langsung.' },
-      { title: 'Bayar sekali', description: 'Rp 149.000 untuk 6 bulan penuh. Tidak ada biaya tambahan atau langganan.' },
+      { title: 'Lihat dulu dengan nama kalian', description: 'Tanpa daftar, tanpa bayar. Pilih tema, masukkan nama, dan lihat hasilnya langsung.' },
+      { title: 'Pesan dan bayar sekali', description: 'Harga dan masa aktif tiap paket ada di halaman harga. Sekali bayar, tanpa biaya bulanan.' },
       { title: 'Isi detail & bagikan', description: 'Lengkapi detail acara, masukkan foto, pilih musik. Siap dalam kurang dari 30 menit.' },
     ],
   },
@@ -146,15 +146,20 @@ export interface LandingSectionConfig {
   order: number
 }
 
+// Urutan angkanya sengaja tidak dirapatkan. Nomor yang sama sudah tersimpan di
+// database untuk halaman yang sedang hidup, jadi membuang tiga section tanpa
+// menggeser sisanya membuat urutan barunya berlaku tanpa perlu menyusun ulang
+// apa pun dari panel admin.
+//
+// Yang dibuang 18 Sep 2026: Trust Bar (tidak ada logo atau angka nyata untuk
+// dipajang), Testimoni (nol pembeli berarti nol testimoni, R-18), dan Blog di
+// beranda (halaman /blog sendiri tetap ada dan tetap ditautkan).
 const DEFAULT_SECTIONS: LandingSectionConfig[] = [
   { id: 'hero', label: 'Hero', visible: true, order: 0 },
-  { id: 'trustBar', label: 'Trust Bar', visible: true, order: 1 },
   { id: 'templatePreview', label: 'Template Preview', visible: true, order: 2 },
-  { id: 'featureShowcase', label: 'Fitur Unggulan', visible: true, order: 3 },
+  { id: 'featureShowcase', label: 'Pengalaman Tamu', visible: true, order: 3 },
   { id: 'howItWorks', label: 'Cara Kerja', visible: true, order: 4 },
-  { id: 'testimonials', label: 'Testimoni', visible: true, order: 5 },
   { id: 'pricing', label: 'Harga', visible: true, order: 6 },
-  { id: 'blogShowcase', label: 'Blog', visible: true, order: 7 },
   { id: 'faq', label: 'FAQ', visible: true, order: 8 },
   { id: 'closingCta', label: 'Closing CTA', visible: true, order: 9 },
 ]

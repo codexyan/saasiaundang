@@ -1,7 +1,7 @@
 'use client'
 
 import { Volume2, Trash2, Play, Check } from 'lucide-react'
-import { Field, inputCls } from '../parts/fields'
+import { Field, inputCls, Sakelar } from '../parts/fields'
 import { useEditor } from '../EditorContext'
 
 /**
@@ -32,12 +32,12 @@ export default function MusicPanel() {
           <p className="text-sm font-medium text-gray-700">Aktifkan Musik</p>
           <p className="text-xs text-gray-400 mt-0.5">Tampilkan kontrol musik di undangan</p>
         </div>
-        <button
-          onClick={() => updateMusic({ enabled: !musicCfg.enabled })}
-          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${musicCfg.enabled ? 'bg-purple-600' : 'bg-gray-200'}`}
-        >
-          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${musicCfg.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
-        </button>
+        <Sakelar
+          warna="purple"
+          nyala={musicCfg.enabled}
+          onUbah={() => updateMusic({ enabled: !musicCfg.enabled })}
+          label="Aktifkan musik"
+        />
       </div>
 
       {musicCfg.enabled && (
@@ -49,7 +49,7 @@ export default function MusicPanel() {
               <div className="p-3 rounded-xl border border-purple-200 bg-purple-50 flex items-center gap-3">
                 <button
                   onClick={() => toggleMusicPreview('selected', musicCfg.url!)}
-                  className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-all ${
+                  className={`w-10 h-10 sentuh:w-11 sentuh:h-11 rounded-lg flex items-center justify-center shrink-0 transition-all ${
                     musicPreviewId === 'selected'
                       ? 'bg-purple-700 text-white scale-105'
                       : 'bg-purple-500 text-white hover:bg-purple-600'
@@ -73,7 +73,9 @@ export default function MusicPanel() {
                   </p>
                 </div>
                 <button onClick={() => { musicAudioRef.current?.pause(); setMusicPreviewId(null); updateMusic({ url: '', title: '' }) }}
-                  className="w-7 h-7 rounded-lg bg-red-100 text-red-500 hover:bg-red-200 flex items-center justify-center transition-colors">
+                  aria-label="Hapus musik yang dipilih"
+                  title="Hapus musik"
+                  className="w-7 h-7 sentuh:w-11 sentuh:h-11 rounded-lg bg-red-100 text-red-500 hover:bg-red-200 flex items-center justify-center transition-colors">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -209,14 +211,24 @@ export default function MusicPanel() {
             <p className="text-[10px] font-semibold text-gray-500 mb-3">Pengaturan Putar</p>
 
             <div className="flex items-center justify-between p-3 rounded-xl border border-gray-200 bg-white mb-3">
-              <div>
+              <div className="pr-3">
                 <p className="text-xs font-medium text-gray-700">Autoplay</p>
-                <p className="text-[10px] text-gray-400">Putar otomatis saat undangan dibuka</p>
+                {/* Dikatakan apa adanya, bukan disembunyikan. Peramban HP
+                    memblokir suara yang menyala tanpa sentuhan, jadi tanpa
+                    kalimat ini admin akan menyalakan sakelarnya, membuka
+                    undangannya, tidak mendengar apa apa, lalu mengira musiknya
+                    rusak. */}
+                <p className="text-[10px] text-gray-400 leading-snug">
+                  Musik mulai begitu tamu menekan tombol buka undangan. Peramban HP
+                  memblokir suara yang menyala sendiri sebelum ada sentuhan.
+                </p>
               </div>
-              <button onClick={() => updateMusic({ autoplay: !musicCfg.autoplay })}
-                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${musicCfg.autoplay ? 'bg-purple-600' : 'bg-gray-200'}`}>
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${musicCfg.autoplay ? 'translate-x-6' : 'translate-x-1'}`} />
-              </button>
+              <Sakelar
+                warna="purple"
+                nyala={musicCfg.autoplay}
+                onUbah={() => updateMusic({ autoplay: !musicCfg.autoplay })}
+                label="Putar otomatis"
+              />
             </div>
 
             <div className="flex items-center justify-between p-3 rounded-xl border border-gray-200 bg-white mb-3">
@@ -224,10 +236,12 @@ export default function MusicPanel() {
                 <p className="text-xs font-medium text-gray-700">Loop</p>
                 <p className="text-[10px] text-gray-400">Ulangi musik dari awal setelah selesai</p>
               </div>
-              <button onClick={() => updateMusic({ loop: !musicCfg.loop })}
-                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${musicCfg.loop ? 'bg-purple-600' : 'bg-gray-200'}`}>
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${musicCfg.loop ? 'translate-x-6' : 'translate-x-1'}`} />
-              </button>
+              <Sakelar
+                warna="purple"
+                nyala={musicCfg.loop}
+                onUbah={() => updateMusic({ loop: !musicCfg.loop })}
+                label="Ulangi musik"
+              />
             </div>
 
             <Field label="Volume Default">
@@ -332,7 +346,7 @@ export default function MusicPanel() {
                 const selected = musicCfg.player_size === sz.id
                 return (
                   <button key={sz.id} onClick={() => updateMusic({ player_size: sz.id })}
-                    className={`py-2 rounded-xl text-center transition-all ${selected
+                    className={`py-2 sentuh:min-h-[44px] rounded-xl text-center transition-all ${selected
                       ? 'bg-purple-50 border-2 border-purple-500'
                       : 'bg-gray-50 border border-gray-200 hover:border-gray-300'}`}>
                     <p className={`text-[10px] font-semibold ${selected ? 'text-purple-700' : 'text-gray-700'}`}>{sz.name}</p>
@@ -349,10 +363,12 @@ export default function MusicPanel() {
                 <p className="text-xs font-medium text-gray-700">Tampilkan Judul Lagu</p>
                 <p className="text-[10px] text-gray-400">Pill label di samping tombol player</p>
               </div>
-              <button onClick={() => updateMusic({ show_title: !musicCfg.show_title })}
-                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${musicCfg.show_title ? 'bg-purple-600' : 'bg-gray-200'}`}>
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${musicCfg.show_title ? 'translate-x-6' : 'translate-x-1'}`} />
-              </button>
+              <Sakelar
+                warna="purple"
+                nyala={musicCfg.show_title}
+                onUbah={() => updateMusic({ show_title: !musicCfg.show_title })}
+                label="Tampilkan judul lagu"
+              />
             </div>
           </div>
 

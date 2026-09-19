@@ -48,9 +48,6 @@ export const invitations = {
     })
     return all.map(mapInvitation)
   },
-  async countByUserId(userId: string): Promise<number> {
-    return prisma.invitation.count({ where: { userId } })
-  },
   async findById(id: string): Promise<Invitation | null> {
     const i = await prisma.invitation.findUnique({ where: { id } })
     return i ? mapInvitation(i) : null
@@ -89,7 +86,11 @@ export const invitations = {
         },
       })
       return mapInvitation(i)
-    } catch {
+    } catch (e) {
+      // Dicatat, bukan ditelan diam diam. Kegagalan di sini pernah lolos
+      // sampai ke pemakai sebagai "Tersimpan" padahal tidak ada yang tersimpan,
+      // dan tanpa baris log ini tidak ada satu pun petunjuk kenapa.
+      console.error('invitations.update gagal', id, e instanceof Error ? e.message : e)
       return null
     }
   },

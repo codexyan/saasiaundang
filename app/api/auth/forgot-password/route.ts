@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { randomHex } from '@/lib/random'
 import { prisma } from '@/lib/prisma'
 import { sendNotification } from '@/lib/notifications'
-import { SITE_URL } from '@/lib/config'
+import {
+  createPasswordToken,
+  passwordTokenUrl,
+  validityLabel,
+  PASSWORD_TOKEN_PURPOSE,
+} from '@/lib/password-token'
 import { readJsonBody } from '@/lib/request-body'
 import { allowRequest } from '@/lib/rate-limit'
 import { z } from 'zod'
@@ -52,24 +56,23 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    const token = randomHex(32)
-
-    await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } })
-
-    await prisma.passwordResetToken.create({
-      data: {
-        userId: user.id,
-        email: user.email,
-        token,
-        expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-      },
+    // Hanya token reset lama yang dihapus. Dulu SEMUA token milik pengguna ini
+    // ikut terhapus, termasuk tautan buat password dari pembelian yang belum
+    // sempat dibuka — pembeli yang penasaran menekan "Lupa password" duluan
+    // justru membatalkan satu-satunya tautan yang dikirim kepadanya.
+    await prisma.passwordResetToken.deleteMany({
+      where: { userId: user.id, purpose: PASSWORD_TOKEN_PURPOSE.reset },
     })
 
-    const resetLink = `${SITE_URL}/reset-password?token=${token}`
+    const token = await createPasswordToken(user, PASSWORD_TOKEN_PURPOSE.reset)
+
     await sendNotification({
       type: 'password_reset',
       recipientEmail: user.email,
-      data: { resetLink },
+      data: {
+        resetLink: passwordTokenUrl(token),
+        validityLabel: validityLabel(PASSWORD_TOKEN_PURPOSE.reset),
+      },
     })
 
     return NextResponse.json({

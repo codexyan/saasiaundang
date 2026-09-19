@@ -88,8 +88,9 @@ export default function ImageUploadField({ value, onChange, label, hint, uploadU
           />
           <button
             onClick={() => onChange(undefined)}
-            className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1 transition-colors"
+            className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1 sentuh:w-11 sentuh:h-11 flex items-center justify-center transition-colors"
             title="Hapus foto"
+            aria-label="Hapus foto"
           >
             <X className="w-3.5 h-3.5" />
           </button>

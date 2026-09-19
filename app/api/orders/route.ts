@@ -5,9 +5,10 @@ import { notifyUser } from '@/lib/notifications'
 import { runAfterResponse } from '@/lib/after-response'
 import { randomString } from '@/lib/random'
 import { createMayarPayment } from '@/lib/mayar'
-import { PACKAGES, type PackageTier } from '@/lib/packages'
 import { computePrice, checkCoupon } from '@/lib/tiers'
 import { readJsonBody } from '@/lib/request-body'
+import { normalizeSubdomain } from '@/lib/subdomain'
+import { createOrderStatusToken } from '@/lib/order-status'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,11 +23,6 @@ function generateOrderNumber(): string {
   const m = String(now.getMonth() + 1).padStart(2, '0')
   const d = String(now.getDate()).padStart(2, '0')
   return `ORD-${y}${m}${d}-${randomString(8, ORDER_ALPHABET)}`
-}
-
-/** Kode unik pembeda nominal transfer (1-999). */
-function generateUniqueCode(): number {
-  return (crypto.getRandomValues(new Uint32Array(1))[0] % 999) + 1
 }
 
 /**
@@ -72,6 +68,20 @@ const orderSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    /**
+     * Pemeliharaan menutup pintu pemesanan, bukan cuma menyembunyikan
+     * halamannya. Tanpa pemeriksaan ini, tab yang sudah terbuka sebelum
+     * sakelarnya dinyalakan tetap bisa mengirim pesanan, dan pembeli membayar
+     * ke sistem yang sedang dibongkar.
+     */
+    const pengaturan = await settings.get()
+    if (pengaturan.maintenanceMode) {
+      return NextResponse.json(
+        { error: 'Pemesanan sedang ditutup sebentar karena ada perbaikan. Coba lagi beberapa saat lagi ya.' },
+        { status: 503 },
+      )
+    }
+
     const body = await readJsonBody(req)
     const parsed = orderSchema.safeParse(body)
     if (!parsed.success) {
@@ -92,10 +102,17 @@ export async function POST(req: NextRequest) {
       referred_by, coupon_code,
     } = parsed.data
 
-    const slug = subdomain.toLowerCase().replace(/[^a-z0-9-]/g, '')
-    if (slug.length < 3) {
-      return NextResponse.json({ error: 'Alamat undangan minimal 3 huruf ya.' }, { status: 400 })
+    // Aturan alamat dipindah ke lib/subdomain.ts supaya sama persis dengan
+    // /api/orders/check-subdomain dan middleware. Dulu di sini hanya ada
+    // pembersihan karakter dan minimal 3 huruf, sehingga `www` dan `iaundang`
+    // bisa dipesan padahal tidak pernah terbuka lewat subdomain, dan alamat
+    // bertanda hubung di awal atau akhir ikut tersimpan walau bukan label DNS
+    // yang sah.
+    const subdomainCheck = normalizeSubdomain(subdomain)
+    if (!subdomainCheck.ok) {
+      return NextResponse.json({ error: subdomainCheck.message }, { status: 400 })
     }
+    const slug = subdomainCheck.slug
 
     const slugTaken = await invitations.slugExists(slug)
     const orderTaken = await orders.subdomainExists(slug)
@@ -106,22 +123,18 @@ export async function POST(req: NextRequest) {
     // Harga DITENTUKAN SERVER, bukan dikirim client.
     //
     // Dulu `amount` diambil langsung dari body request dan tidak pernah
-    // dicocokkan dengan paket mana pun — PACKAGES[package_tier] memang dimuat
-    // di bawah, tapi hanya `pkg.name` yang dipakai. Kirim
+    // dicocokkan dengan paket mana pun. Kirim
     // `{ package_tier: "eksklusif", amount: 1000 }` dan pesanan Eksklusif
     // terbentuk seharga Rp 1.000; link pembayaran Mayar ikut nominal itu, dan
     // webhook mencocokkan lewat totalAmount sehingga paket penuh tetap diberikan.
     //
-    // Sumber kebenaran harga adalah settings.priceTiers (bisa diubah admin),
-    // BUKAN konstanta PACKAGES — kalau admin mengubah harga, keduanya berbeda.
-    // Harus salah satu paket yang benar-benar bisa disediakan. settings.priceTiers
-    // bisa memuat tier kustom buatan admin yang tidak ada di PACKAGES; pesanan
-    // dengan tier seperti itu akan gagal saat penyediaan — setelah pelanggan
-    // terlanjur membayar. Halaman /order sendiri hanya menawarkan ketiga ini.
-    if (!(package_tier in PACKAGES)) {
-      return NextResponse.json({ error: 'Paket yang dipilih belum kami kenali. Silakan pilih ulang paketnya.' }, { status: 400 })
-    }
-
+    // Sumber kebenaran paket adalah settings.priceTiers (bisa diubah admin,
+    // termasuk tier kustom yang dibuat lewat panel Paket & Promo), BUKAN
+    // konstanta PACKAGES yang cuma kenal starter/popular/eksklusif. Cek di
+    // bawah ini dulu memeriksa `package_tier in PACKAGES` LEBIH DULU —
+    // artinya tier kustom ditolak di sini walau valid di settings.priceTiers,
+    // sebelum sempat sampai ke pengecekan yang benar. Sekarang settings.priceTiers
+    // satu-satunya yang diperiksa.
     const appSettings = await settings.get()
     const tier = appSettings.priceTiers.find(t => t.id === package_tier)
     if (!tier) {
@@ -141,7 +154,15 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const TIER_RANK: Record<string, number> = { starter: 1, popular: 2, eksklusif: 3 }
+    // Dulu hardcode { starter: 1, popular: 2, eksklusif: 3 }. Tier kustom
+    // buatan admin selalu jatuh ke rank 0 (default `?? 0` di bawah) dan tidak
+    // pernah bisa mengakses template yang mensyaratkan paket manapun selain
+    // "all" — padahal sudah bayar penuh. Sekarang rank diturunkan dari urutan
+    // harga tier yang aktif, jadi tier kustom otomatis dapat posisi yang
+    // masuk akal dibanding tier lain.
+    const TIER_RANK: Record<string, number> = Object.fromEntries(
+      [...appSettings.priceTiers].sort((a, b) => a.price - b.price).map((t, i) => [t.id, i + 1])
+    )
     if (template.required_package !== 'all') {
       const needed = TIER_RANK[template.required_package] ?? 0
       const chosen = TIER_RANK[package_tier] ?? 0
@@ -195,8 +216,26 @@ export async function POST(req: NextRequest) {
 
     const amount = price.final
 
-    const uniqueCode = generateUniqueCode()
-    const totalAmount = amount + uniqueCode
+    // Kode unik dulu ditambahkan ke nominal supaya admin bisa mencocokkan
+    // transfer masuk dengan pesanan. Jalur transfer manual sudah dibuang dan
+    // Mayar mencocokkan sendiri lewat mayarTransactionId, jadi yang tersisa
+    // hanyalah pembeli membayar angka ganjil tanpa alasan. Kolomnya tetap ada
+    // di tabel supaya pesanan lama tidak kehilangan riwayatnya.
+    const uniqueCode = 0
+    const totalAmount = amount
+
+    // Atribusi afiliasi dibaca dari cookie `ref` yang dipasang /api/referral
+    // setelah kodenya divalidasi aktif. Dulu endpoint ini hanya menerima
+    // referred_by dari body, padahal OrderForm tidak pernah mengirimnya dan
+    // cookie itu httpOnly sehingga memang tidak bisa dibaca browser. Akibatnya
+    // referred_by setiap pesanan kosong dan provisionPaidOrder tidak pernah
+    // mencatat komisi satu kali pun. Satu-satunya pembaca cookie ini dulu ada
+    // di POST /api/invitations, jalur undangan gratis yang sudah dihapus.
+    // Batas 50 karakter mengikuti skema body: nilai cookie bisa dipalsukan
+    // pengunjung, dan kode yang tidak dikenal tetap ditolak di
+    // provisionPaidOrder lewat affiliates.findByCode.
+    const refCookie = req.cookies.get('ref')?.value
+    const referralCode = referred_by || (refCookie && refCookie.length <= 50 ? refCookie : null)
 
     const order = await orders.create({
       order_number: generateOrderNumber(),
@@ -222,7 +261,7 @@ export async function POST(req: NextRequest) {
       notes: '',
       status: 'pending',
       admin_notes: '',
-      referred_by: referred_by || null,
+      referred_by: referralCode,
       mayar_transaction_id: null,
       mayar_payment_link: null,
       payment_method: null,
@@ -253,40 +292,55 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Satu tautan status dipakai dua kali: sebagai tujuan kembali dari Mayar,
+    // dan sebagai jalan melanjutkan pembayaran dari email pesanan dibuat.
+    // Dulu email itu hanya memuat nomor pesanan dan nominal, tanpa satu pun
+    // jalan kembali untuk pembeli yang menutup halaman bayar.
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const statusUrl = `${appUrl}/order/status/${await createOrderStatusToken(order.id)}`
+
     runAfterResponse(
       notifyUser('order_created', order.email, {
         orderNumber: order.order_number,
         amount: order.total_amount.toLocaleString('id-ID'),
+        name: `${groom_name} & ${bride_name}`,
+        statusUrl,
       }),
       `notifyUser(order_created) order=${order.order_number}`
     )
 
     // Call Mayar payment gateway
+    //
+    // Dulu di sini `PACKAGES[package_tier]` dipanggil ulang cuma untuk ambil
+    // nama paket buat deskripsi pembayaran. Untuk tier kustom, itu selalu
+    // undefined, jadi blok `if (pkg)` di bawah membuat SELURUH pembuatan link
+    // Mayar dilewati — pesanan tetap dibuat, tapi pelanggan tidak pernah dapat
+    // link untuk membayar. `tier` di atas sudah divalidasi ada di
+    // settings.priceTiers, jadi tidak butuh pengecekan lagi di sini.
     let paymentUrl: string | null = null
     try {
-      const pkg = PACKAGES[package_tier as PackageTier]
-      if (pkg) {
-        const expiredAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+      const expiredAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
 
-        const mayarPayment = await createMayarPayment({
-          name: `${groom_name} & ${bride_name}`,
-          email: email.toLowerCase(),
-          amount: totalAmount,
-          mobile: phone || '08000000000',
-          redirectUrl: `${appUrl}/dashboard?payment=success&order=${order.id}`,
-          description: `Paket ${pkg.name} - iaundang - ${order.order_number}`,
-          expiredAt,
-        })
+      const mayarPayment = await createMayarPayment({
+        name: `${groom_name} & ${bride_name}`,
+        email: email.toLowerCase(),
+        amount: totalAmount,
+        mobile: phone || '08000000000',
+        // Pembeli baru belum punya sesi saat kembali dari Mayar. Tujuan lama
+        // (/dashboard) dijaga middleware, jadi ia mendarat di /login tanpa
+        // password: buntu persis sesudah uang keluar.
+        redirectUrl: statusUrl,
+        description: `Paket ${tier.label} - iaundang - ${order.order_number}`,
+        expiredAt,
+      })
 
-        await orders.update(order.id, {
-          mayar_transaction_id: mayarPayment.transactionId,
-          mayar_payment_link: mayarPayment.link,
-          payment_method: 'mayar',
-        })
+      await orders.update(order.id, {
+        mayar_transaction_id: mayarPayment.transactionId,
+        mayar_payment_link: mayarPayment.link,
+        payment_method: 'mayar',
+      })
 
-        paymentUrl = mayarPayment.link
-      }
+      paymentUrl = mayarPayment.link
     } catch (err) {
       console.error('Mayar payment creation failed, falling back to manual:', err)
     }

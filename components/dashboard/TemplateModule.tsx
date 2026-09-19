@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Palette, Loader2 } from 'lucide-react'
-import type { Invitation } from '@/lib/types'
+import type { Invitation, PriceTier } from '@/lib/types'
 import { LEGACY_TEMPLATE_IDS } from '@/lib/types'
 import InvitationStudio from '../studio/InvitationStudio'
 import InvitationWizard from './InvitationWizard'
@@ -21,9 +21,10 @@ interface Props {
   allTemplates: TemplateInfo[]
   onInvitationUpdate: (inv: Invitation) => void
   isAdmin?: boolean
+  priceTiers?: PriceTier[]
 }
 
-export default function TemplateModule({ invitation, allTemplates, onInvitationUpdate, isAdmin }: Props) {
+export default function TemplateModule({ invitation, allTemplates, onInvitationUpdate, isAdmin, priceTiers }: Props) {
   const isLegacy = (LEGACY_TEMPLATE_IDS as string[]).includes(invitation.template_id)
 
   const [templateRecord, setTemplateRecord] = useState<import('@/lib/types').TemplateRecord | null>(null)
@@ -101,6 +102,7 @@ export default function TemplateModule({ invitation, allTemplates, onInvitationU
       template={templateRecord}
       onSaved={onInvitationUpdate}
       isAdmin={isAdmin}
+      priceTiers={priceTiers}
     />
   )
 }

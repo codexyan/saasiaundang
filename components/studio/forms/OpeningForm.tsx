@@ -1,26 +1,40 @@
 'use client'
 
-import { DoorOpen, Check } from 'lucide-react'
+import { DoorOpen, Check, Lock} from 'lucide-react'
 import FormField from '../ui/FormField'
 import { StudioInput, StudioTextarea } from '../ui/StudioInput'
 import SectionCard from '../ui/SectionCard'
 import type { OpeningType } from '@/lib/types'
 
+/**
+ * Gaya yang termasuk paket dasar.
+ *
+ * `opening_styles: 'basic'` sudah lama ada di definisi paket dan diiklankan
+ * sebagai pembeda, tapi tidak pernah dibaca di mana pun: paket termurah
+ * mendapat ketujuh belas gaya, sama dengan yang termahal. Kategori Klasik
+ * dipilih sebagai isi paket dasar karena paling netral dan paling aman untuk
+ * tema apa pun.
+ */
+const GAYA_DASAR = new Set<OpeningType>(['fade-reveal', 'envelope', 'scroll-reveal', 'book-open'])
+
 interface OpeningFormProps {
   openingType: OpeningType
   openingGreeting: string
   openingSubtitle: string
-  openingGroomName: string
-  openingBrideName: string
+  /** Teks sapaan milik tema. Dipakai sebagai placeholder dan sebagai isi
+   *  pratinjau selama pembeli belum menulis miliknya sendiri, supaya kotak
+   *  kosong tidak terbaca sebagai "tidak ada sapaan". */
+  greetingTema: string
+  subtitleTema: string
   groomName: string
   brideName: string
-  nameGap: number
   onOpeningTypeChange: (value: OpeningType) => void
   onOpeningGreetingChange: (value: string) => void
   onOpeningSubtitleChange: (value: string) => void
-  onOpeningGroomNameChange: (value: string) => void
-  onOpeningBrideNameChange: (value: string) => void
-  onNameGapChange: (value: number) => void
+  /** Paket pembeli membuka semua gaya pembuka. */
+  semuaGaya: boolean
+  /** Paket termurah yang membuka sisanya. */
+  paketPembuka?: string
 }
 
 type OpeningCategory = 'klasik' | 'romantis' | 'modern' | 'dramatis'
@@ -66,17 +80,15 @@ export default function OpeningForm({
   openingType,
   openingGreeting,
   openingSubtitle,
-  openingGroomName,
-  openingBrideName,
+  greetingTema,
+  subtitleTema,
   groomName,
   brideName,
-  nameGap,
   onOpeningTypeChange,
   onOpeningGreetingChange,
   onOpeningSubtitleChange,
-  onOpeningGroomNameChange,
-  onOpeningBrideNameChange,
-  onNameGapChange,
+  semuaGaya,
+  paketPembuka,
 }: OpeningFormProps) {
   return (
     <SectionCard
@@ -88,8 +100,22 @@ export default function OpeningForm({
       <div className="space-y-1">
         <p className="text-sm font-semibold text-graphite">Gaya Pembuka</p>
         <p className="text-xs text-concrete">Pilih animasi pembuka yang tampil pertama kali saat tamu membuka undangan</p>
+        {!semuaGaya && (
+          <div className="flex items-start gap-2.5 px-3.5 py-3 rounded-card border border-hairline bg-ivory">
+            <Lock size={14} className="text-concrete shrink-0 mt-0.5" />
+            <p className="text-ui-xs text-graphite leading-relaxed">
+              Paket kalian memuat {GAYA_DASAR.size} gaya pembuka.
+              {paketPembuka ? ` Gaya lainnya terbuka di paket ${paketPembuka}.` : ''}
+            </p>
+          </div>
+        )}
         {CATEGORIES.map((cat) => {
           const styles = OPENING_STYLES.filter((s) => s.category === cat.id)
+            // Gaya yang sedang dipakai tetap ditampilkan walau di luar paket:
+            // pilihannya datang dari tema, bukan dari pembeli, dan
+            // menyembunyikannya membuat layar berbohong soal apa yang tampil.
+            .filter((s) => semuaGaya || GAYA_DASAR.has(s.id) || s.id === openingType)
+          if (styles.length === 0) return null
           return (
             <div key={cat.id}>
               <p className="text-ui-2xs font-bold tracking-[0.1em] uppercase text-concrete mb-2 mt-4">
@@ -142,7 +168,7 @@ export default function OpeningForm({
           type="text"
           value={openingGreeting}
           onChange={(e) => onOpeningGreetingChange(e.target.value)}
-          placeholder="Assalamualaikum Warahmatullahi Wabarakatuh"
+          placeholder={greetingTema}
         />
       </FormField>
 
@@ -155,7 +181,7 @@ export default function OpeningForm({
           rows={3}
           value={openingSubtitle}
           onChange={(e) => onOpeningSubtitleChange(e.target.value)}
-          placeholder="Tanpa mengurangi rasa hormat, kami mengundang Bapak/Ibu/Saudara/i untuk menghadiri acara pernikahan kami."
+          placeholder={subtitleTema}
         />
       </FormField>
 
@@ -199,56 +225,6 @@ export default function OpeningForm({
         </div>
       </div>
 
-      {/* Nama Mempelai di Opening */}
-      <div className="space-y-3">
-        <p className="text-sm font-semibold text-graphite">Nama di Pembuka</p>
-        <p className="text-xs text-concrete">
-          Bisa berbeda dari nama di section lain (misal: panggilan, singkatan)
-        </p>
-        <FormField
-          label="Nama Mempelai Pria"
-          hint={`Kosongkan untuk pakai "${groomName || 'nama utama'}"`}
-        >
-          <StudioInput
-            type="text"
-            value={openingGroomName}
-            onChange={(e) => onOpeningGroomNameChange(e.target.value)}
-            placeholder={groomName || 'Nama mempelai pria...'}
-          />
-        </FormField>
-        <FormField
-          label="Nama Mempelai Wanita"
-          hint={`Kosongkan untuk pakai "${brideName || 'nama utama'}"`}
-        >
-          <StudioInput
-            type="text"
-            value={openingBrideName}
-            onChange={(e) => onOpeningBrideNameChange(e.target.value)}
-            placeholder={brideName || 'Nama mempelai wanita...'}
-          />
-        </FormField>
-      </div>
-
-      {/* Jarak Nama */}
-      <FormField
-        label={`Jarak Nama & Konektor (${nameGap}px)`}
-        hint="Atur jarak antara nama pria, simbol &, dan nama wanita"
-      >
-        <input
-          type="range"
-          min={0}
-          max={24}
-          step={1}
-          value={nameGap}
-          onChange={(e) => onNameGapChange(Number(e.target.value))}
-          className="w-full accent-forest-500"
-        />
-        <div className="flex justify-between text-ui-2xs text-concrete mt-1">
-          <span>Rapat</span>
-          <span>Renggang</span>
-        </div>
-      </FormField>
-
       {/* Preview */}
       <div className="p-6 rounded-xl bg-ivory border border-hairline">
         <div className="text-center space-y-3">
@@ -259,21 +235,21 @@ export default function OpeningForm({
             Gaya: {OPENING_STYLES.find(s => s.id === openingType)?.name}
           </p>
           <p className="text-sm font-sans text-graphite leading-relaxed">
-            {openingGreeting || 'Salam pembuka...'}
+            {openingGreeting || greetingTema || 'Salam pembuka...'}
           </p>
           <div className="w-12 h-px bg-gold-dark mx-auto" />
           <p className="text-xs text-concrete leading-relaxed max-w-xs mx-auto">
-            {openingSubtitle || 'Kalimat pembuka...'}
+            {openingSubtitle || subtitleTema || 'Kalimat pembuka...'}
           </p>
-          <div className="mt-3 space-y-0" style={{ lineHeight: 1.2 }}>
-            <p className="text-lg font-bold text-graphite uppercase tracking-wider" style={{ marginBottom: nameGap }}>
-              {openingGroomName || groomName || 'Nama Pria'}
+          <div className="mt-3 space-y-1" style={{ lineHeight: 1.2 }}>
+            <p className="text-lg font-bold text-graphite uppercase tracking-wider">
+              {groomName || 'Nama Pria'}
             </p>
-            <p className="text-sm text-gold-dark" style={{ marginBottom: nameGap }}>
+            <p className="text-sm text-gold-dark">
               &amp;
             </p>
             <p className="text-lg font-bold text-graphite uppercase tracking-wider">
-              {openingBrideName || brideName || 'Nama Wanita'}
+              {brideName || 'Nama Wanita'}
             </p>
           </div>
         </div>

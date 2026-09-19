@@ -121,7 +121,7 @@ export default function LoadingScreenPanel({
                             ...prev,
                             config: { ...prev.config, loading: { ...prev.config.loading, bg_type: bt.id as any } },
                           }))}
-                          className={`py-2 rounded-lg text-[10px] font-semibold transition-all ${
+                          className={`py-2 sentuh:min-h-[44px] rounded-lg text-[10px] font-semibold transition-all ${
                             active
                               ? 'bg-indigo-50 border-2 border-indigo-500 text-indigo-700'
                               : 'bg-gray-50 border border-gray-200 text-gray-500 hover:border-gray-300'
@@ -223,7 +223,9 @@ export default function LoadingScreenPanel({
                                 ...prev,
                                 config: { ...prev.config, loading: { ...prev.config.loading, bg_image_url: undefined } },
                               }))}
-                              className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors"
+                              aria-label="Hapus foto latar loading"
+                              title="Hapus foto"
+                              className="absolute top-2 right-2 w-6 h-6 sentuh:w-11 sentuh:h-11 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors"
                             >
                               <X className="w-3 h-3 text-white" />
                             </button>
@@ -290,7 +292,7 @@ export default function LoadingScreenPanel({
                 {/* Preview Button */}
                 <button
                   onClick={() => setPreviewMode('loading')}
-                  className="flex items-center gap-2 text-sm font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl px-4 py-2.5 transition-colors"
+                  className="flex items-center gap-2 sentuh:min-h-[44px] text-sm font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl px-4 py-2.5 transition-colors"
                 >
                   <Play className="w-4 h-4 fill-current" /> Preview Loading
                 </button>

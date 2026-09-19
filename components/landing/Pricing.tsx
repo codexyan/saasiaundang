@@ -3,9 +3,10 @@
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Check, ArrowRight, ShieldCheck, MessageCircle } from 'lucide-react'
-import { PRICING_CONFIG } from '@/lib/pricing-config'
+import { bolehHapusWatermark } from '@/lib/watermark'
 import { computePrice } from '@/lib/pricing'
 import { SectionContainer } from '@/components/marketing/SectionContainer'
+import { Button } from '@/components/marketing/Button'
 import { EASE, VIEWPORT_ONCE } from '@/lib/motion'
 import type { PriceTier, FlashSale } from '@/lib/types'
 
@@ -117,33 +118,75 @@ function PricingCard({
 
 const TIER_VARIANTS: Record<string, CardVariant> = { starter: 'light', popular: 'dark', eksklusif: 'gold' }
 const TIER_CTA: Record<string, { label: string; hint: string }> = {
-  starter: { label: 'Mulai Gratis', hint: 'Coba dulu, bayar kalau cocok' },
+  // Dulu "Mulai Gratis / Coba dulu, bayar kalau cocok", padahal Starter
+  // berbayar dan tombolnya hanya membuka galeri. Yang gratis adalah demo di
+  // galeri itu, bukan paketnya, jadi hint menyebut demo secara terus terang.
+  starter: { label: 'Pilih Starter', hint: 'Coba demonya gratis dulu' },
   popular: { label: 'Pilih Popular', hint: 'Fitur lengkap untuk acara kalian' },
   eksklusif: { label: 'Pilih Eksklusif', hint: 'Untuk acara besar & eksklusif' },
 }
 
-function buildFeatureList(tier: PriceTier): string[] {
+/**
+ * `cheaperTier` = tier tepat di bawahnya berdasarkan harga, dipakai untuk
+ * baris ringkas "Semua fitur X". Dulu ini hardcode: popular selalu bilang
+ * "Semua fitur Starter", eksklusif selalu "Semua fitur Popular", dan tier
+ * kustom tidak dapat baris itu sama sekali. Sekarang diturunkan dari urutan
+ * harga, jadi tier keempat pun ikut benar.
+ */
+function buildFeatureList(tier: PriceTier, cheaperTier: PriceTier | undefined): string[] {
   const f = tier.features
   if (!f) return []
+  const bawah = cheaperTier?.features
+
+  /**
+   * Hanya sebut fitur yang BENAR BENAR ditambah paket ini.
+   *
+   * Dulu fitur dasar (musik, RSVP, galeri, hitung mundur, ucapan) hanya
+   * ditulis di paket termurah, lalu paket di atasnya cukup bilang "Semua
+   * fitur X". Itu benar selama paket termurah punya semuanya. Begitu musik
+   * dicabut dari Starter, musik hilang dari seluruh halaman harga, padahal
+   * itu justru yang didapat pembeli kalau naik ke Popular.
+   *
+   * Sisanya dulu dicetak tanpa membandingkan, sehingga Eksklusif menulis
+   * "Semua fitur Popular" lalu mengulang empat baris yang sama persis.
+   */
+  const ditambah = (kunci: keyof typeof f) => !!f[kunci] && !(bawah && bawah[kunci])
+
   const list: string[] = []
-  if (tier.id === 'popular') list.push('Semua fitur Starter')
-  else if (tier.id === 'eksklusif') list.push('Semua fitur Popular')
-  else {
-    if (f.music) list.push('Musik pengiring')
-    if (f.rsvp) list.push('RSVP online')
-    if (f.gallery) list.push('Galeri foto')
-    if (f.countdown) list.push('Countdown hari H')
-    if (f.wishes) list.push('Ucapan & doa dari tamu')
+  if (cheaperTier) list.push(`Semua fitur ${cheaperTier.label}`)
+
+  if (ditambah('music')) list.push('Musik pengiring')
+  if (ditambah('custom_music')) list.push('Musik pilihan sendiri')
+  if (ditambah('rsvp')) list.push('RSVP online')
+  if (ditambah('gallery')) list.push('Galeri foto')
+  if (ditambah('countdown')) list.push('Countdown hari H')
+  if (ditambah('wishes')) list.push('Ucapan & doa dari tamu')
+  if (ditambah('gift')) list.push('Amplop digital & rekening')
+  if (ditambah('gift_registry')) list.push('Wishlist hadiah')
+  if (ditambah('story')) list.push('Kisah cinta pasangan')
+  if (ditambah('video')) list.push('Video prewedding')
+  if (ditambah('livestream')) list.push('Live streaming akad')
+  if (ditambah('ig_story')) list.push('Template IG Story')
+  if (ditambah('qrcode')) list.push('Scan barcode kehadiran tamu')
+  if (ditambah('decoration_editing')) {
+    list.push(f.max_decoration_assets < 0
+      ? 'Hias undangan sendiri, tanpa batas'
+      : `Hias undangan sendiri, sampai ${f.max_decoration_assets} ornamen`)
   }
-  if (f.gift) list.push('Amplop digital & rekening')
-  if (f.gift_registry) list.push('Wishlist hadiah')
-  if (f.story && tier.id !== 'starter') list.push('Kisah cinta pasangan')
-  if (f.video && tier.id !== 'starter') list.push('Video prewedding')
-  if (f.qrcode && tier.id === 'eksklusif') list.push('Scan barcode kehadiran tamu')
-  if (f.remove_watermark) list.push('Tanpa watermark')
-  if (f.custom_domain) list.push('Custom domain sendiri')
-  if (f.priority_support) list.push('Priority support via WhatsApp')
-  list.push(`Aktif ${f.validity_days} hari`)
+  if (ditambah('custom_domain')) list.push('Custom domain sendiri')
+  if (ditambah('analytics')) list.push('Statistik kunjungan')
+  if (ditambah('priority_support')) list.push('Priority support via WhatsApp')
+
+  const watermarkBaru = bolehHapusWatermark(f.remove_watermark)
+    && !(bawah && bolehHapusWatermark(bawah.remove_watermark))
+  if (watermarkBaru) list.push('Tanpa watermark')
+
+  // Foto dan tamu selalu disebut: angkanya berbeda di tiap paket dan itu
+  // pertanyaan pertama yang ditanyakan pembeli.
+  list.push(f.max_photos < 0 ? 'Foto tanpa batas' : `${f.max_photos} foto galeri`)
+  list.push(f.max_guests < 0 ? 'Tamu tanpa batas' : `${f.max_guests} tamu terdaftar`)
+
+  // "Aktif N hari" sudah tercetak di bawah harga, jadi tidak diulang di sini.
   return list
 }
 
@@ -153,8 +196,17 @@ interface PricingProps {
 }
 
 export default function Pricing({ priceTiers, flashSales }: PricingProps) {
-  const tiers = priceTiers?.length ? priceTiers : null
+  const tiers = priceTiers?.length ? [...priceTiers].sort((a, b) => a.price - b.price) : null
   const sales = flashSales ?? []
+
+  // Grid dulu dikunci `sm:grid-cols-3` karena tier memang selalu tepat tiga.
+  // Dengan tier kustom jumlahnya bisa berapa saja, jadi kolom mengikuti
+  // jumlah tier (dibatasi 4 supaya kartunya tidak jadi terlalu sempit).
+  const cols = tiers ? Math.min(tiers.length, 4) : 3
+  const gridCols = cols >= 4 ? 'sm:grid-cols-2 lg:grid-cols-4'
+    : cols === 3 ? 'sm:grid-cols-3'
+    : cols === 2 ? 'sm:grid-cols-2'
+    : 'sm:grid-cols-1'
 
   return (
     <SectionContainer
@@ -162,13 +214,11 @@ export default function Pricing({ priceTiers, flashSales }: PricingProps) {
       tone="ivory"
       eyebrow="Harga"
       title="Sekali bayar. Tanpa langganan."
-      lead="Sekali bayar, langsung aktif. Tidak ada biaya bulanan atau biaya tersembunyi."
+      lead="Sekali bayar untuk satu undangan. Tidak ada biaya bulanan, tidak ada biaya tambahan di belakang."
     >
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 max-w-4xl mx-auto items-stretch">
+      <div className={`grid grid-cols-1 ${gridCols} gap-4 sm:gap-5 max-w-4xl mx-auto items-stretch`}>
         {tiers ? (
           tiers
-            .filter(t => ['starter', 'popular', 'eksklusif'].includes(t.id))
-            .sort((a, b) => a.price - b.price)
             .map((tier, i) => {
               // computePrice() — FUNGSI YANG SAMA dengan /api/orders. Halaman
               // ini dulu punya perhitungan diskonnya sendiri, jadi angka yang
@@ -182,15 +232,21 @@ export default function Pricing({ priceTiers, flashSales }: PricingProps) {
               const discounted = breakdown.flashSale ? breakdown.final : null
               const variant = TIER_VARIANTS[tier.id] ?? 'light'
               const cta = TIER_CTA[tier.id] ?? { label: `Pilih ${tier.label}`, hint: '' }
-              const features = buildFeatureList(tier)
-              const highlighted = tier.id === 'popular' ? 'Amplop digital & rekening'
-                : tier.id === 'eksklusif' ? 'Scan barcode kehadiran tamu' : undefined
+              const features = buildFeatureList(tier, tiers[i - 1])
+              // Dulu: hardcode per id. Sekarang fitur unggulan = fitur pertama
+              // yang tier ini punya tapi tier di bawahnya belum.
+              const highlighted = i > 0
+                ? features.find(x => !buildFeatureList(tiers[i - 1], tiers[i - 2]).includes(x) && !x.startsWith('Semua fitur') && !x.startsWith('Aktif '))
+                : undefined
 
+              // Badge dulu tertulis "PALING DIPILIH". Nol pembeli berarti belum
+              // ada yang memilih apa pun, jadi itu klaim tanpa dasar (R-17).
+              // Yang jujur: ini paket yang kami sarankan.
               return (
                 <PricingCard
                   key={tier.id}
                   name={`Paket ${tier.label}`}
-                  badge={tier.id === 'popular' ? 'PALING DIPILIH' : tier.label.toUpperCase()}
+                  badge={tier.highlight ? 'SARAN KAMI' : tier.label.toUpperCase()}
                   price={formatRp(discounted ?? tier.price)}
                   originalPrice={discounted ? formatRp(tier.price) : undefined}
                   discountLabel={breakdown.flashSale ? `−${formatRp(breakdown.flashSale.saved)}` : undefined}
@@ -206,28 +262,47 @@ export default function Pricing({ priceTiers, flashSales }: PricingProps) {
               )
             })
         ) : (
-          <>
-            <PricingCard
-              name="Paket Starter" badge={PRICING_CONFIG.starter.badge}
-              price={PRICING_CONFIG.starter.priceFormatted} duration={PRICING_CONFIG.starter.durationLabel}
-              features={PRICING_CONFIG.starter.features}
-              ctaLabel="Mulai Gratis" ctaHint="Coba dulu, bayar kalau cocok" variant="light" delay={0}
-            />
-            <PricingCard
-              name="Paket Popular" badge={PRICING_CONFIG.popular.badge}
-              price={PRICING_CONFIG.popular.priceFormatted} duration={PRICING_CONFIG.popular.durationLabel}
-              features={PRICING_CONFIG.popular.features} highlightedFeature={PRICING_CONFIG.popular.highlightedFeature}
-              ctaLabel="Pilih Popular" ctaHint="Fitur lengkap untuk acara kalian" variant="dark" popular delay={0.1}
-            />
-            <PricingCard
-              name="Paket Eksklusif" badge={PRICING_CONFIG.eksklusif.badge}
-              price={PRICING_CONFIG.eksklusif.priceFormatted} duration={PRICING_CONFIG.eksklusif.durationLabel}
-              features={PRICING_CONFIG.eksklusif.features} highlightedFeature={PRICING_CONFIG.eksklusif.highlightedFeature}
-              ctaLabel="Pilih Eksklusif" ctaHint="Untuk acara besar & eksklusif" variant="gold" delay={0.2}
-            />
-          </>
+          // Tanpa kartu cadangan. Dulu tiga kartu dengan harga yang ditulis
+          // mati tampil di sini kalau pengaturan paket gagal dibaca, jadi
+          // pembeli bisa melihat harga yang sudah lama tidak berlaku (D-9).
+          <div className="col-span-full text-center py-10">
+            <p className="text-body-base text-concrete">
+              Daftar harga sedang tidak bisa dimuat. Muat ulang halaman ini, atau tanyakan langsung ke kami.
+            </p>
+          </div>
         )}
       </div>
+
+      {/* Pertanyaan yang pasti muncul di kepala pembeli yang sudah melihat
+          pesaing dengan paket gratis. Halaman yang diam soal ini kehilangan
+          mereka tanpa jejak, jadi keberatannya dijawab di tempat keputusan
+          diambil, bukan disembunyikan di FAQ. */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={VIEWPORT_ONCE}
+        transition={{ duration: 0.6, delay: 0.15, ease: EASE }}
+        className="mt-14 sm:mt-16 max-w-3xl mx-auto"
+      >
+        <div className="rounded-card border border-hairline bg-chalk shadow-card p-6 sm:p-8">
+          <h3 className="font-display text-h3 text-forest-deep">Kenapa bayar dulu, padahal ada yang gratis?</h3>
+          <p className="text-body-base text-concrete leading-relaxed mt-3">
+            Ada layanan undangan digital yang gratis selamanya, dan itu pilihan yang masuk akal untuk
+            banyak orang. Kami tidak mengambil jalan itu karena undangan gratis dibayar dengan cara
+            lain: tema yang dipakai ribuan pasangan lain, dan iklan atau tawaran yang menempel di
+            undangan kalian.
+          </p>
+          <p className="text-body-base text-concrete leading-relaxed mt-3">
+            Kami hanya punya tiga tema, dan tiga-tiganya digarap satu per satu. Yang kami minta adalah
+            pembayaran di muka, dan yang kami berikan sebelum kalian membayar adalah kesempatan
+            membuka tema itu dengan nama kalian sendiri, gratis dan tanpa daftar. Kalau hasilnya tidak
+            membuat kalian yakin, jangan bayar.
+          </p>
+          <div className="mt-6 flex flex-col sm:flex-row gap-3">
+            <Button href="/templates" className="w-full sm:w-auto">Lihat tema dengan nama kalian</Button>
+          </div>
+        </div>
+      </motion.div>
 
       {/* Trust badges */}
       <motion.div
@@ -243,9 +318,9 @@ export default function Pricing({ priceTiers, flashSales }: PricingProps) {
           </div>
           <div>
             <p className="text-body-sm font-semibold text-forest-deep leading-snug">
-              Lihat hasilnya dulu, bayar kalau suka
+              Lihat hasilnya dulu sebelum memesan
             </p>
-            <p className="text-body-xs text-concrete mt-0.5">Tanpa risiko, tanpa komitmen</p>
+            <p className="text-body-xs text-concrete mt-0.5">Demo gratis, tanpa daftar</p>
           </div>
         </div>
         <div className="flex items-center gap-3.5 bg-chalk rounded-card px-5 py-4 border border-hairline shadow-card">
@@ -254,9 +329,9 @@ export default function Pricing({ priceTiers, flashSales }: PricingProps) {
           </div>
           <div>
             <p className="text-body-sm font-semibold text-forest-deep leading-snug">
-              Tim kami siap membantu via WhatsApp
+              Dijawab langsung lewat WhatsApp
             </p>
-            <p className="text-body-xs text-concrete mt-0.5">Balas dalam 1 hari kerja</p>
+            <p className="text-body-xs text-concrete mt-0.5">Bukan bot, bukan tiket antre</p>
           </div>
         </div>
       </motion.div>

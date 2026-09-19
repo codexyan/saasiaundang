@@ -52,7 +52,7 @@ const ROSE_GARDEN: TemplateRecord = {
       type: 'flower-bloom',
       duration_ms: 3000,
       show_opening: true,
-      subtitle: 'The Wedding of',
+      subtitle: 'Assalamualaikum Warahmatullahi Wabarakatuh',
       button_text: 'Buka Undangan',
       invitation_text: 'Anda diundang ke pernikahan',
       show_guest_name: true,

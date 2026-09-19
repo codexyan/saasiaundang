@@ -1,6 +1,6 @@
 'use client'
 
-import { motion, useReducedMotion } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { fadeUp } from '@/lib/motion'
 
@@ -38,10 +38,13 @@ export function SectionContainer({
   className,
   children,
 }: SectionContainerProps) {
-  const reduced = useReducedMotion()
   const isDark = tone === 'dark'
   const hasHeader = eyebrow || title || lead
-  const enter = reduced ? {} : fadeUp()
+  // Satu bentuk untuk semua orang, tanpa percabangan server lawan klien.
+  // Setelan "kurangi gerak" ditangani terpusat oleh MotionProvider, yang
+  // mematikan animasi transform tapi tetap menganimasikan opacity, jadi judul
+  // section tidak pernah tersangkut di opacity 0.
+  const enter = fadeUp()
 
   return (
     <section id={id} className={cn('py-20 sm:py-28 lg:py-32 overflow-hidden', TONES[tone], className)}>
@@ -49,7 +52,10 @@ export function SectionContainer({
         {hasHeader && (
           <motion.div
             {...enter}
-            className={cn('mb-12 sm:mb-16', align === 'center' && 'text-center mx-auto max-w-2xl')}
+            // 40 piksel di layar lebar, bukan 64. Judul dan isinya perlu
+            // terbaca sebagai satu kesatuan; jaraknya yang dulu membuat
+            // keduanya tampak seperti dua blok yang tidak berhubungan.
+            className={cn('mb-10 sm:mb-10', align === 'center' && 'text-center mx-auto max-w-2xl')}
           >
             {eyebrow && (
               <p className={cn('text-eyebrow mb-4', isDark ? 'text-gold/70' : 'text-concrete')}>

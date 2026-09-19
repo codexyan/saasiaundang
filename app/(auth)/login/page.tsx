@@ -18,11 +18,41 @@ const schema = z.object({
 })
 type FormData = z.infer<typeof schema>
 
+// Origin bayangan untuk mengurai ?redirect=. Domain .invalid tidak mungkin
+// dimiliki siapa pun, jadi hasil urai yang origin-nya berbeda pasti menunjuk
+// ke situs lain.
+const REDIRECT_BASE = 'https://iaundang.invalid'
+
+/**
+ * Tujuan sesudah masuk, hanya path di situs ini sendiri.
+ *
+ * Dulu nilai ?redirect= diteruskan apa adanya ke router.push. Tautan seperti
+ * /login?redirect=https://situs-lain melempar pengguna yang baru saja
+ * memasukkan password ke situs lain yang bisa meniru halaman iaundang (open
+ * redirect). Nilainya sekarang diurai dengan URL() yang mengikuti aturan
+ * browser, jadi bentuk licin seperti //situs-lain atau /\situs-lain ikut
+ * tertolak.
+ */
+function safeRedirect(value: string | null): string | null {
+  if (!value) return null
+  try {
+    const url = new URL(value, REDIRECT_BASE)
+    if (url.origin !== REDIRECT_BASE) return null
+    return url.pathname + url.search + url.hash
+  } catch {
+    return null
+  }
+}
+
 function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const templateId = searchParams.get('template') || ''
-  const redirect = searchParams.get('redirect') || (templateId ? `/dashboard?template=${templateId}` : '/dashboard')
+  const redirect = safeRedirect(searchParams.get('redirect')) || (templateId ? `/dashboard?template=${templateId}` : '/dashboard')
+  // Pembeli yang kembali dari halaman bayar Mayar tanpa sesi. Middleware kini
+  // membawa /dashboard?payment=success ke sini lewat ?redirect=; tanpa penanda
+  // ini halaman login diam saja soal pembayaran yang baru terjadi.
+  const fromPayment = new URL(redirect, REDIRECT_BASE).searchParams.get('payment') === 'success'
   const [loading, setLoading] = useState(false)
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({

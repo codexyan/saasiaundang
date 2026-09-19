@@ -1,19 +1,20 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useParamUrl } from '@/lib/use-param-url'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import toast from 'react-hot-toast'
 import dynamic from 'next/dynamic'
 import {
   LayoutDashboard, FileEdit, Users, LogOut,
   ExternalLink, Copy, Menu, X, ChevronRight, Eye, Send,
-  Settings, MessageSquare, BarChart3, Gift,
-  Sparkles, Crown, Globe, ArrowUpRight, ShieldCheck, MoreHorizontal,
-} from 'lucide-react'
-import type { Invitation, NewInvitationData } from '@/lib/types'
+  Settings, MessageSquare, BarChart3,
+  Globe, ArrowUpRight, ShieldCheck, MoreHorizontal, Lock} from 'lucide-react'
+import type { Invitation, NewInvitationData, PriceTier } from '@/lib/types'
 import { LEGACY_TEMPLATE_IDS } from '@/lib/types'
 import { getInvitationUrl, isExpired } from '@/lib/utils'
+import { resolveTierDisplay } from '@/lib/packages'
+import { useInvitationUrl } from '@/lib/use-invitation-url'
 import { Button } from '@/components/ui/Button'
 import Logo from '@/components/ui/Logo'
 import RSVPList from './RSVPList'
@@ -25,7 +26,6 @@ import TemplateModule from './TemplateModule'
 import OnboardingWizard from './OnboardingWizard'
 import SupportTickets from './SupportTickets'
 import AnalyticsPanel from './AnalyticsPanel'
-import ReferralPanel from './ReferralPanel'
 
 const InvitationRenderer = dynamic(() => import('@/components/renderer/InvitationRenderer'), { ssr: false })
 
@@ -46,9 +46,15 @@ interface Props {
   allTemplates: TemplateInfo[]
   isAdmin?: boolean
   paymentSuccess?: boolean
+  /** Dari server (settings.get() lewat lib/tiers.ts). Diteruskan ke
+   *  TemplateModule/InvitationStudio dan GuestManager supaya batas fitur
+   *  yang ditegakkan sinkron dengan pengaturan admin yang sebenarnya. */
+  priceTiers?: PriceTier[]
+  /** Tema lengkap untuk undangan milik pengguna ini, dikirim dari server. */
+  invitationTemplates?: import('@/lib/types').TemplateRecord[]
 }
 
-type Tab = 'overview' | 'undangan' | 'guest' | 'rsvp' | 'analytics' | 'referral' | 'subscription' | 'support' | 'settings'
+type Tab = 'overview' | 'undangan' | 'guest' | 'rsvp' | 'analytics' | 'subscription' | 'support' | 'settings'
 
 const NAV: { id: Tab; label: string; icon: React.ElementType; badge?: string }[] = [
   { id: 'overview',     label: 'Beranda',    icon: LayoutDashboard },
@@ -56,7 +62,11 @@ const NAV: { id: Tab; label: string; icon: React.ElementType; badge?: string }[]
   { id: 'guest',        label: 'Tamu',       icon: Send },
   { id: 'rsvp',         label: 'RSVP',       icon: Users },
   { id: 'analytics',    label: 'Analitik',   icon: BarChart3 },
-  { id: 'referral',     label: 'Referral',   icon: Gift },
+  // Tab "Referral" dibuang. Programnya tidak pernah bekerja: tautan referral
+  // kehilangan ?ref saat /order me-redirect ke /templates, kode pengguna
+  // ditolak /api/referral yang hanya mengenal kode afiliasi, dan tidak ada
+  // kode yang mencatat referral atau memberi hadiah. Panelnya menjanjikan
+  // diskon Rp 15.000 yang tidak mungkin terpenuhi.
   { id: 'subscription', label: 'Langganan',  icon: ShieldCheck },
   { id: 'support',      label: 'Bantuan',    icon: MessageSquare },
   { id: 'settings',     label: 'Pengaturan', icon: Settings },
@@ -75,9 +85,19 @@ function getDisplayNames(inv: Invitation): { groom: string; bride: string } {
   return { groom: d.groom_name || '', bride: d.bride_name || '' }
 }
 
-export default function DashboardClient({ user, invitations, selectedTemplateId, allTemplates, isAdmin, paymentSuccess }: Props) {
+export default function DashboardClient({ user, invitations, selectedTemplateId, allTemplates, isAdmin, paymentSuccess, priceTiers, invitationTemplates }: Props) {
   const router = useRouter()
-  const [tab, setTab] = useState<Tab>('overview')
+
+  /**
+   * Menu aktif dan undangan yang sedang dibuka disimpan di URL.
+   *
+   * Sebelumnya keduanya murni state, jadi tautan dari email hanya bisa
+   * mengantar ke dashboard kosong, tombol kembali mengusir orang keluar, dan
+   * menyegarkan halaman membuang posisi kerja.
+   */
+  const [tabUrl, setTabUrl] = useParamUrl('tab', 'overview', (v) => NAV.some(n => n.id === v))
+  const tab = (tabUrl ?? 'overview') as Tab
+  const setTab = (id: Tab) => setTabUrl(id)
 
   // Daftar undangan + penunjuk yang sedang dibuka.
   //
@@ -86,7 +106,13 @@ export default function DashboardClient({ user, invitations, selectedTemplateId,
   // tidak perlu diubah sama sekali. Yang berubah hanya dari mana objek itu
   // berasal.
   const [list, setList] = useState<Invitation[]>(invitations)
-  const [activeId, setActiveId] = useState<string | null>(invitations[0]?.id ?? null)
+  const [undanganUrl, setUndanganUrl] = useParamUrl(
+    'undangan',
+    invitations[0]?.id ?? null,
+    (v) => invitations.some(i => i.id === v),
+  )
+  const activeId = undanganUrl
+  const setActiveId = (id: string | null) => setUndanganUrl(id)
   // `creating` = pengguna menekan "Buat undangan baru" walau sudah punya satu.
   const [creating, setCreating] = useState(false)
 
@@ -97,8 +123,10 @@ export default function DashboardClient({ user, invitations, selectedTemplateId,
   /**
    * Pengganti setInv lama — sengaja bernama sama supaya ketiga pemanggil yang
    * ada (togglePublish, TemplateModule.onInvitationUpdate,
-   * SettingsPanel.onDeleted) tidak perlu diubah. Bersifat UPSERT, karena
-   * OnboardingWizard memakai callback yang sama untuk undangan yang BARU dibuat.
+   * SettingsPanel.onDeleted) tidak perlu diubah. Bersifat UPSERT. Dulu
+   * OnboardingWizard juga memanggilnya untuk undangan gratis yang baru dibuat.
+   * Sekarang wizard hanya mengantar ke /order, jadi undangan baru datang lewat
+   * pembelian dan muncul saat dashboard dimuat ulang.
    */
   function setInv(updated: Invitation | null) {
     if (!updated) {
@@ -113,6 +141,27 @@ export default function DashboardClient({ user, invitations, selectedTemplateId,
     setActiveId(updated.id)
     setCreating(false)
   }
+
+  // Alamat undangan untuk atribut href. Dipakai lewat hook supaya render
+  // server dan klien menghasilkan nilai yang sama; varian localhost baru
+  // dipasang sesudah hydration. Penangan klik di bawah boleh memanggil
+  // getInvitationUrl langsung, karena jalannya sesudah mount.
+  const invUrlAktif = useInvitationUrl(inv?.slug ?? '')
+
+  /**
+   * Fitur paket undangan yang sedang dibuka.
+   *
+   * Dipakai mengunci menu yang memang tidak termasuk paketnya. Sebelum ini
+   * tab Analitik terbuka untuk semua paket padahal `analytics: false` di
+   * Starter, jadi pembedanya diberikan gratis dan tidak ada alasan naik
+   * paket. Admin dikecualikan supaya bisa memeriksa undangan siapa pun.
+   */
+  const fiturPaket = isAdmin
+    ? null
+    : resolveTierDisplay(priceTiers, (inv as unknown as Record<string, unknown> | null)?.package_tier as string | undefined).features
+
+  const menuTerkunci = (id: Tab): boolean =>
+    id === 'analytics' && !!fiturPaket && !fiturPaket.analytics
 
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false)
@@ -172,15 +221,13 @@ export default function DashboardClient({ user, invitations, selectedTemplateId,
       window.open(getInvitationUrl(inv.slug), '_blank')
       return
     }
+    // Tema diambil dari yang dikirim server, bukan dari modul yang ditulis
+    // mati. Sebelumnya hanya Javanese Gold yang cocok, jadi tombol ini diam
+    // saja untuk undangan bertema lain.
     let tmpl = previewTemplate
-    if (!tmpl) {
-      try {
-        const m = await import('@/lib/template-configs/javanese-gold')
-        if (m.default.id === inv.template_id) {
-          tmpl = m.default
-          setPreviewTemplate(tmpl)
-        }
-      } catch { /* ignore */ }
+    if (!tmpl || tmpl.id !== inv.template_id) {
+      tmpl = (invitationTemplates ?? []).find(t => t.id === inv.template_id) ?? null
+      if (tmpl) setPreviewTemplate(tmpl)
     }
     setShowFullPreview(true)
   }
@@ -200,7 +247,11 @@ export default function DashboardClient({ user, invitations, selectedTemplateId,
     ? { cls: 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20', label: 'Aktif', dot: 'bg-emerald-400' }
     : isPaid
     ? { cls: 'bg-sky-500/10 text-sky-400 ring-sky-500/20', label: 'Siap Publish', dot: 'bg-sky-400' }
-    : { cls: 'bg-amber-500/10 text-amber-400 ring-amber-500/20', label: 'Free Trial', dot: 'bg-amber-400' }
+    // Dulu berlabel "Free Trial". Trial sudah tidak ada: undangan hanya lahir
+    // dari pembelian, jadi is_paid false sekarang berarti status lunasnya
+    // dicabut admin lewat panel, atau data lama dari jalur gratis yang sudah
+    // ditutup. Label ini menyebut keadaannya apa adanya.
+    : { cls: 'bg-amber-500/10 text-amber-400 ring-amber-500/20', label: 'Belum Aktif', dot: 'bg-amber-400' }
 
   return (
     <div className="flex h-screen bg-[#f8f7f4] overflow-hidden">
@@ -295,10 +346,18 @@ export default function DashboardClient({ user, invitations, selectedTemplateId,
           <p className="text-[9px] text-white/20 uppercase tracking-[0.2em] font-semibold px-3 mb-2 mt-1">Menu</p>
           {NAV.map(({ id, label, icon: Icon }) => {
             const active = tab === id
+            const terkunci = menuTerkunci(id)
             return (
               <button
                 key={id}
-                onClick={() => navTo(id)}
+                onClick={() => {
+                  if (terkunci) {
+                    toast('Analitik tersedia mulai paket Popular.')
+                    return
+                  }
+                  navTo(id)
+                }}
+                aria-disabled={terkunci}
                 className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all text-left group ${
                   active
                     ? 'bg-white/[0.1] text-white shadow-sm'
@@ -308,7 +367,8 @@ export default function DashboardClient({ user, invitations, selectedTemplateId,
                 {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full bg-amber-400" />}
                 <Icon size={16} strokeWidth={active ? 2 : 1.5} />
                 <span className="flex-1">{label}</span>
-                {active && <ChevronRight size={12} className="text-white/30" />}
+                {terkunci && <Lock size={12} className="text-white/25" />}
+                {active && !terkunci && <ChevronRight size={12} className="text-white/30" />}
               </button>
             )
           })}
@@ -380,33 +440,30 @@ export default function DashboardClient({ user, invitations, selectedTemplateId,
               allTemplates={allTemplates}
               onInvitationUpdate={(updated) => setInv(updated)}
               isAdmin={isAdmin}
+              priceTiers={priceTiers}
             />
           ) : (
             <div className="max-w-4xl mx-auto p-4 md:p-6 lg:p-8">
               {(!inv || creating) && (
                 <OnboardingWizard
-                  invitation={null}
-                  onInvitationCreated={setInv}
                   allTemplates={allTemplates}
+                  userEmail={user.email}
                 />
               )}
 
               {inv && !creating && (
                 <>
                   {!isPaid && !isAdmin && tab === 'overview' && (
-                    <UpgradeBanner
-                      invitation={inv}
-                    />
+                    <UnpaidBanner onOpenSupport={() => setTab('support')} />
                   )}
 
                   {tab === 'overview' && (
-                    <DashboardOverview invitation={inv} onNavigate={(t) => setTab(t as Tab)} onTogglePublish={togglePublish} />
+                    <DashboardOverview invitation={inv} onNavigate={(t) => setTab(t as Tab)} onTogglePublish={togglePublish} template={(invitationTemplates ?? []).find(t => t.id === inv.template_id) ?? null} />
                   )}
-                  {tab === 'guest' && <GuestManager invitation={inv} />}
+                  {tab === 'guest' && <GuestManager invitation={inv} priceTiers={priceTiers} />}
                   {tab === 'rsvp' && <RSVPList invitationId={inv.id} />}
                   {tab === 'analytics' && <AnalyticsPanel invitation={inv} />}
-                  {tab === 'referral' && <ReferralPanel />}
-                  {tab === 'subscription' && <SubscriptionInfo invitation={inv} />}
+                  {tab === 'subscription' && <SubscriptionInfo invitation={inv} onOpenSupport={() => setTab('support')} />}
                   {tab === 'support' && <SupportTickets />}
                   {tab === 'settings' && <SettingsPanel invitation={inv} userEmail={user.email} onDeleted={() => { setInv(null); setTab('overview') }} />}
                 </>
@@ -488,7 +545,7 @@ export default function DashboardClient({ user, invitations, selectedTemplateId,
                 </button>
               )}
               <a
-                href={getInvitationUrl(inv.slug)}
+                href={invUrlAktif}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 text-white/50 hover:text-white text-xs px-3 py-1.5 rounded-lg border border-white/10 hover:border-white/20 transition-colors"
@@ -524,7 +581,7 @@ export default function DashboardClient({ user, invitations, selectedTemplateId,
                     <p className="text-lg mb-2">Preview tidak tersedia</p>
                     <p className="text-sm">Template belum dimuat atau tidak didukung.</p>
                     <a
-                      href={getInvitationUrl(inv.slug)}
+                      href={invUrlAktif}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 mt-4 text-sm text-amber-600 hover:text-amber-700"
@@ -543,11 +600,15 @@ export default function DashboardClient({ user, invitations, selectedTemplateId,
   )
 }
 
-//  Upgrade Banner
-
-function UpgradeBanner({}: {
-  invitation: Invitation
-}) {
+//  Unpaid Banner
+//
+// Dulu bernama UpgradeBanner dan bertuliskan "Mode Free Trial", memajang harga
+// tetap "Mulai Rp 79.000" yang tidak dibaca dari pengaturan paket, dan
+// tombolnya membuka /templates. Trial sudah tidak ada, dan /order tidak bisa
+// membayar undangan yang sudah ada karena subdomainnya ditolak sebagai sudah
+// terpakai, jadi tombol itu buntu. Banner ini menjelaskan keadaannya apa adanya
+// dan mengarahkan ke tab Bantuan.
+function UnpaidBanner({ onOpenSupport }: { onOpenSupport: () => void }) {
   return (
     <div className="mb-6 relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#1a1a1a] to-[#2d2d2d] p-6 text-white">
       <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-amber-500/10 to-transparent rounded-full -translate-y-1/2 translate-x-1/4" />
@@ -556,32 +617,22 @@ function UpgradeBanner({}: {
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
-              <Crown size={16} className="text-amber-400" />
+              <ShieldCheck size={16} className="text-amber-400" />
             </div>
-            <p className="text-sm font-bold text-white/90">Mode Free Trial</p>
+            <p className="text-sm font-bold text-white/90">Pembayaran belum aktif</p>
           </div>
           <p className="text-white/50 text-xs leading-relaxed max-w-md">
-            Anda sedang dalam mode percobaan gratis. Upgrade untuk menghapus watermark, membuka semua fitur, dan mempublikasikan undangan Anda.
+            Undangan ini belum tercatat lunas. Kalau kalian sudah membayar atau merasa ini keliru, kabari kami lewat Bantuan supaya bisa kami cek.
           </p>
-          <div className="flex items-center gap-4 mt-3">
-            <span className="text-[11px] text-white/40 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-400" /> Mulai Rp 79.000
-            </span>
-            <span className="text-[11px] text-white/40 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-400" /> Transfer bank / QRIS
-            </span>
-            <span className="text-[11px] text-white/40 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> Aktif dalam 1x24 jam
-            </span>
-          </div>
         </div>
-        <Link
-          href="/templates"
-          className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-5 py-3 rounded-xl hover:shadow-lg hover:shadow-amber-500/25 transition-all shrink-0 no-underline"
+        <button
+          type="button"
+          onClick={onOpenSupport}
+          className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-5 py-3 rounded-xl hover:shadow-lg hover:shadow-amber-500/25 transition-all shrink-0"
         >
-          <Sparkles size={14} />
-          Pilih Template & Upgrade
-        </Link>
+          <MessageSquare size={14} />
+          Hubungi Bantuan
+        </button>
       </div>
     </div>
   )

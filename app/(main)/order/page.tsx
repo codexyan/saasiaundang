@@ -26,8 +26,12 @@ export default async function OrderPage({ searchParams }: { searchParams: Promis
     redirect('/templates')
   }
 
+  // Dulu di sini ada .filter(t => ['starter','popular','eksklusif'].includes(t.id)),
+  // jadi tier kustom buatan admin lewat panel Paket & Promo tidak pernah sampai
+  // ke form — tidak bisa dipilih, jadi tidak bisa dibeli. API /api/orders sendiri
+  // sudah memvalidasi ke settings.priceTiers, jadi menyaring di sini justru
+  // memutus jalur pembelian untuk tier yang sebenarnya sah.
   const tiers = appSettings.priceTiers
-    .filter(t => ['starter', 'popular', 'eksklusif'].includes(t.id))
     .sort((a, b) => a.price - b.price)
     .map(t => ({
       id: t.id,
@@ -40,10 +44,9 @@ export default async function OrderPage({ searchParams }: { searchParams: Promis
       features: t.features ?? null,
     }))
 
+  // Hanya kontak yang tersisa. Rekening, QRIS, dan instruksi transfer tidak
+  // lagi dikirim ke form karena seluruh pembayaran lewat Mayar.
   const paymentConfig = {
-    bankAccounts: appSettings.bankAccounts.filter(b => b.isActive),
-    qrisImageUrl: appSettings.qrisImageUrl,
-    paymentInstructions: appSettings.paymentInstructions,
     confirmationWhatsapp: appSettings.confirmationWhatsapp,
   }
 

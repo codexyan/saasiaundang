@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss'
+import plugin from 'tailwindcss/plugin'
 
 const config: Config = {
   content: [
@@ -9,7 +10,10 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-geist-sans)', 'Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+        // Plus Jakarta Sans dari DESIGN.md. Undangan tidak ikut berubah:
+        // components/renderer/InvitationRenderer.tsx memasang fontFamily-nya
+        // sendiri di pembungkus root dari konfigurasi tema.
+        sans: ['var(--font-sans)', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
         mono: ['var(--font-geist-mono)', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
       },
       colors: {
@@ -100,7 +104,18 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    // Varian `sentuh:` untuk perangkat yang dipakai dengan jari.
+    //
+    // Panel editor template sengaja rapat di layar lebar: satu layar memuat
+    // puluhan kontrol dan pointernya tetikus, yang presisi. Aturan 44 piksel
+    // berlaku untuk jempol, bukan untuk kursor, jadi ukurannya dinaikkan
+    // hanya kalau penunjuk utamanya kasar. Tailwind 3 belum punya varian ini
+    // bawaan (baru ada di versi 4).
+    plugin(({ addVariant }) => {
+      addVariant('sentuh', '@media (pointer: coarse)')
+    }),
+  ],
 }
 
 export default config
