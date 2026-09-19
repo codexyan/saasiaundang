@@ -68,6 +68,20 @@ const orderSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    /**
+     * Pemeliharaan menutup pintu pemesanan, bukan cuma menyembunyikan
+     * halamannya. Tanpa pemeriksaan ini, tab yang sudah terbuka sebelum
+     * sakelarnya dinyalakan tetap bisa mengirim pesanan, dan pembeli membayar
+     * ke sistem yang sedang dibongkar.
+     */
+    const pengaturan = await settings.get()
+    if (pengaturan.maintenanceMode) {
+      return NextResponse.json(
+        { error: 'Pemesanan sedang ditutup sebentar karena ada perbaikan. Coba lagi beberapa saat lagi ya.' },
+        { status: 503 },
+      )
+    }
+
     const body = await readJsonBody(req)
     const parsed = orderSchema.safeParse(body)
     if (!parsed.success) {
