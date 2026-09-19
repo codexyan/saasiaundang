@@ -232,6 +232,11 @@ export default function EditorPreview() {
               {/*  Opening preview (live OpeningScene)  */}
               <div style={{
                 position: 'absolute', inset: 0, overflow: 'hidden',
+                // isolation memaksa lapisan ini punya stacking context sendiri.
+                // Tanpa itu, z-40 di dalam komponen opening bocor keluar dan
+                // menimpa panggung dekorasi yang duduk di z-30 — persis yang
+                // membuat kanvas dekorasi tidak pernah bisa disentuh.
+                zIndex: 10, isolation: 'isolate',
                 visibility: previewMode === 'opening' && !previewPlaying && !previewLoading ? 'visible' : 'hidden',
                 pointerEvents: previewMode === 'opening' && !previewPlaying && !previewLoading ? 'auto' : 'none',
               }}>
@@ -267,7 +272,7 @@ export default function EditorPreview() {
                   : (target!.decoration_assets ?? [])
 
                 return (
-                  <div style={{ position: 'absolute', inset: 0, zIndex: 30, background: cfg.meta.color_scheme.background }}>
+                  <div style={{ position: 'absolute', inset: 0, zIndex: 30, isolation: 'isolate', background: cfg.meta.color_scheme.background }}>
                     <div style={{ width: 390, zoom, height: tinggiKonten, position: 'relative', overflow: 'hidden' }}>
                       {onOpening ? (
                         <OpeningScene
@@ -311,6 +316,7 @@ export default function EditorPreview() {
               {/*  Invitation preview   scroll-snap, satu section = satu layar  */}
               <div key={previewKey} style={{
                 position: 'absolute', inset: 0,
+                zIndex: 10, isolation: 'isolate',
                 overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'none',
                 scrollSnapType: 'y proximity',
                 WebkitOverflowScrolling: 'touch',
@@ -334,6 +340,7 @@ export default function EditorPreview() {
               <div style={{
                 position: 'absolute',
                 inset: 0,
+                zIndex: 10, isolation: 'isolate',
                 visibility: previewMode === 'loading' && !previewPlaying && !previewLoading ? 'visible' : 'hidden',
                 pointerEvents: previewMode === 'loading' && !previewPlaying && !previewLoading ? 'auto' : 'none',
                 overflow: 'hidden',
@@ -352,7 +359,7 @@ export default function EditorPreview() {
                 <div style={{
                   position: 'absolute',
                   inset: 0,
-                  zIndex: 50,
+                  zIndex: 45, isolation: 'isolate',
                   overflow: 'hidden',
                   borderRadius: '2rem'
                 }}>
@@ -372,7 +379,7 @@ export default function EditorPreview() {
 
               {/*  Cover/Opening preview   click MASUK SEKARANG triggers loading  */}
               {previewPlaying && (
-                <div style={{ position: 'absolute', inset: 0, zIndex: 30, overflow: 'hidden', borderRadius: '2rem' }}>
+                <div style={{ position: 'absolute', inset: 0, zIndex: 45, isolation: 'isolate', overflow: 'hidden', borderRadius: '2rem' }}>
                   <div style={{ width: 390, zoom, height: tinggiKonten, position: 'relative' }}>
                     <AnimatePresence>
                       <OpeningScene

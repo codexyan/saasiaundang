@@ -175,6 +175,10 @@ export default function DecorPanel() {
               onClick={() => {
                 setDecorScope(s.id); setSelectedAssetId(null)
                 setPreviewPlaying(false)
+                // Mode pratinjau ikut pindah. Chip Opening selalu melakukannya,
+                // chip seksi dulu tidak, jadi memilih seksi meninggalkan
+                // pratinjau di mode Opening dan yang tampil tetap sampul.
+                setPreviewMode('invitation')
                 setDecorPreviewKey(k => k + 1)
               }}
             />
