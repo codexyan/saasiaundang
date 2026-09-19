@@ -24,3 +24,19 @@ export function drafValid(draft: unknown): draft is JsonTemplateConfig {
     && Array.isArray(d.sections)
   )
 }
+
+/**
+ * Membuang draf dari record sebelum dikirim ke halaman publik.
+ *
+ * `draft_config` adalah rancangan tema yang BELUM diterbitkan: pekerjaan admin
+ * yang masih berjalan. Halaman depan dan halaman demo mengoper seluruh
+ * TemplateRecord ke komponen klien, jadi draf itu ikut tercetak di sumber
+ * halaman dan bisa dibaca siapa saja yang membuka view-source. Terukur 19 KB
+ * untuk tiga tema, dan tidak satu pun dipakai merender halaman itu.
+ *
+ * Yang benar benar membutuhkan draf cuma panel admin, dan panel admin
+ * mengambil recordnya sendiri lewat rute admin.
+ */
+export function tanpaDraf<T extends { draft_config?: unknown }>(record: T): T {
+  return { ...record, draft_config: null }
+}

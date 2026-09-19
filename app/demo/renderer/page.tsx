@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { templateRecords } from '@/lib/db'
+import { tanpaDraf } from '@/lib/template-draft'
 import JAVANESE_GOLD from '@/lib/template-configs/javanese-gold'
 import DemoShell from './DemoShell'
 import DemoEditorClient from './DemoEditorClient'
@@ -117,13 +118,15 @@ export default async function DemoRendererPage(props: Props) {
     if (aktif.length > 0) template = aktif[0]
   }
 
-  const demoTemplate = {
+  // tanpaDraf: rancangan tema yang belum diterbitkan tidak ikut tercetak di
+  // sumber halaman publik. Lihat alasannya di lib/template-draft.ts.
+  const demoTemplate = tanpaDraf({
     ...template,
     config: {
       ...template.config,
       opening: { ...template.config.opening, show_opening: true },
     },
-  }
+  })
 
   return (
     <DemoShell templateName={template.name} templateId={template.id}>

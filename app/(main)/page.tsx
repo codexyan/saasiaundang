@@ -1,4 +1,5 @@
 import { landingSettings, landingSections, settings, templateRecords } from '@/lib/db'
+import { tanpaDraf } from '@/lib/template-draft'
 import type { PriceTier, FlashSale, TemplateRecord } from '@/lib/types'
 import HeroSection      from '@/components/landing/HeroSection'
 import TemplatePreview  from '@/components/landing/TemplatePreview'
@@ -41,7 +42,10 @@ export default async function LandingPage() {
 
   const priceTiers = appSettings.priceTiers
   const flashSales = appSettings.flashSales
-  const activeTemplates = allTemplates.filter(t => t.status === 'active')
+  // tanpaDraf: seluruh TemplateRecord dioper ke komponen klien, jadi draf
+  // yang belum diterbitkan ikut tercetak di sumber halaman kalau tidak
+  // dibuang di sini. Lihat alasannya di lib/template-draft.ts.
+  const activeTemplates = allTemplates.filter(t => t.status === 'active').map(tanpaDraf)
   // Tanpa nilai cadangan. Nomor contoh yang dulu dipakai di sini menuju ruang
   // kosong, dan kontak palsu lebih merusak kepercayaan daripada kontak yang
   // tidak ditampilkan (D-9).
