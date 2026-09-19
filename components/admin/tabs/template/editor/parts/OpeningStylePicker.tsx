@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { Check } from 'lucide-react'
 import type { OpeningType } from '@/lib/types'
-import { OPENING_TYPES, OPENING_META } from './constants'
+import { gayaPerKategori, cariGayaPembuka } from '@/lib/opening-styles'
 import { useEditor } from '../EditorContext'
 
 const OpeningScene = dynamic(() => import('@/components/renderer/OpeningScene'), { ssr: false })
@@ -33,7 +33,7 @@ const TINGGI_INTIP = 292
  * satu per satu.
  *
  * Emoji dibuang dari kartu. Keterangan gerakan satu baris yang sudah ditulis
- * di OPENING_META jauh lebih memberi tahu daripada gambar amplop kecil.
+ * di lib/opening-styles.ts jauh lebih memberi tahu daripada gambar amplop kecil.
  */
 export default function OpeningStylePicker() {
   const { cfg, previewData, previewGuestName, updateOpening, setPreviewMode, setDecorPreviewKey } = useEditor()
@@ -77,49 +77,58 @@ export default function OpeningStylePicker() {
 
   return (
     <>
-      {/* Dua kolom, tidak lebih. Panel kontrol lebarnya 420 piksel dan
-          sudah dipotong navigasi sub bagian, jadi tiga kolom membuat tiap
-          kartu selebar 78 piksel dan keterangannya pecah jadi empat baris. */}
-      <div className="grid grid-cols-2 gap-1.5">
-        {OPENING_TYPES.map(ot => {
-          const m = OPENING_META[ot]
-          const aktif = cfg.opening.type === ot
-          return (
-            <button
-              key={ot}
-              type="button"
-              onMouseEnter={e => bukaIntip(ot as OpeningType, e.currentTarget)}
-              onMouseLeave={tutupIntip}
-              onFocus={e => bukaIntip(ot as OpeningType, e.currentTarget)}
-              onBlur={tutupIntip}
-              onClick={() => {
-                updateOpening({ type: ot as OpeningType })
-                setPreviewMode('opening')
-                setDecorPreviewKey(k => k + 1)
-                tutupIntip()
-              }}
-              aria-pressed={aktif}
-              className={`relative px-2.5 py-2 sentuh:min-h-[44px] rounded-xl text-left transition-all ${
-                aktif
-                  ? 'bg-indigo-50 border-2 border-indigo-500'
-                  : 'bg-gray-50 border border-gray-200 hover:border-indigo-300 hover:bg-white'
-              }`}
-            >
-              <p className={`text-[11px] font-semibold leading-tight ${aktif ? 'text-indigo-700' : 'text-gray-700'}`}>
-                {m?.label ?? ot}
-              </p>
-              <p className="text-[9px] text-gray-500 leading-snug mt-0.5 pr-3">
-                {m?.desc}
-              </p>
-              {aktif && (
-                <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 rounded-full bg-indigo-500 flex items-center justify-center">
-                  <Check className="w-2 h-2 text-white" />
-                </span>
-              )}
-            </button>
-          )
-        })}
-      </div>
+      {/* Dikelompokkan Klasik, Romantis, Modern, Dramatis. Tujuh belas kartu
+          berderet tanpa kelompok memaksa admin membaca semuanya untuk tahu
+          mana yang sejenis, dan studio pembeli sudah lama mengelompokkannya.
+          Dua kolom, tidak lebih: panel kontrol lebarnya 420 piksel, dan tiga
+          kolom membuat tiap kartu selebar 78 piksel dengan keterangan yang
+          pecah jadi empat baris. */}
+      {gayaPerKategori().map(kel => (
+        <div key={kel.label} className="mb-3 last:mb-0">
+          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">
+            {kel.label}
+          </p>
+          <div className="grid grid-cols-2 gap-1.5">
+            {kel.gaya.map(g => {
+              const aktif = cfg.opening.type === g.id
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  onMouseEnter={e => bukaIntip(g.id, e.currentTarget)}
+                  onMouseLeave={tutupIntip}
+                  onFocus={e => bukaIntip(g.id, e.currentTarget)}
+                  onBlur={tutupIntip}
+                  onClick={() => {
+                    updateOpening({ type: g.id })
+                    setPreviewMode('opening')
+                    setDecorPreviewKey(k => k + 1)
+                    tutupIntip()
+                  }}
+                  aria-pressed={aktif}
+                  className={`relative px-2.5 py-2 sentuh:min-h-[44px] rounded-xl text-left transition-all ${
+                    aktif
+                      ? 'bg-indigo-50 border-2 border-indigo-500'
+                      : 'bg-gray-50 border border-gray-200 hover:border-indigo-300 hover:bg-white'
+                  }`}
+                >
+                  <p className={`text-[11px] font-semibold leading-tight ${aktif ? 'text-indigo-700' : 'text-gray-700'}`}>
+                    {g.nama}
+                  </p>
+                  <p className="text-[9px] text-gray-500 leading-snug mt-0.5 pr-3">
+                    {g.desc}
+                  </p>
+                  {aktif && (
+                    <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 rounded-full bg-indigo-500 flex items-center justify-center">
+                      <Check className="w-2 h-2 text-white" />
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      ))}
 
       <p className="mt-2 text-[9px] text-gray-400 leading-relaxed">
         {kurangiGerak
@@ -157,7 +166,7 @@ export default function OpeningStylePicker() {
             />
           </div>
           <p className="absolute bottom-0 inset-x-0 text-center text-[9px] text-white/70 bg-black/45 py-1">
-            {OPENING_META[intip.tipe]?.label}
+            {cariGayaPembuka(intip.tipe)?.nama}
           </p>
         </div>
       )}

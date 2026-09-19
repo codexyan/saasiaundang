@@ -483,7 +483,7 @@ export default function ContentPanel() {
                     labelnya ("Nama Lengkap Pria", "Tanggal", "Alamat") terbaca
                     seolah sedang menyetel nilai bawaan template. */}
                 <p className="text-[9px] text-gray-400 leading-relaxed mb-2.5 bg-gray-50 border border-gray-100 rounded-lg px-2 py-1.5">
-                  Isian di bawah hanya <strong className="text-gray-500">data contoh untuk pratinjau</strong> —
+                  Isian di bawah hanya <strong className="text-gray-500">data contoh untuk pratinjau</strong>,
                   tidak ikut tersimpan ke template. Yang tersimpan adalah pengaturan
                   gaya, latar, animasi, dan tipografi di atas.
                 </p>

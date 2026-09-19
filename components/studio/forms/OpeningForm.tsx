@@ -5,6 +5,7 @@ import FormField from '../ui/FormField'
 import { StudioInput, StudioTextarea } from '../ui/StudioInput'
 import SectionCard from '../ui/SectionCard'
 import type { OpeningType } from '@/lib/types'
+import { GAYA_PEMBUKA, KATEGORI_PEMBUKA, type KategoriPembuka } from '@/lib/opening-styles'
 
 /**
  * Gaya yang termasuk paket dasar.
@@ -37,44 +38,51 @@ interface OpeningFormProps {
   paketPembuka?: string
 }
 
-type OpeningCategory = 'klasik' | 'romantis' | 'modern' | 'dramatis'
+/**
+ * Warna kartu contoh, satu satunya hal yang khas layar ini.
+ *
+ * Id, nama, keterangan, dan kategorinya diambil dari lib/opening-styles.ts,
+ * daftar yang sama dengan yang dipakai panel admin. Dulu keduanya punya
+ * daftar sendiri sendiri, dan enam belas dari tujuh belas gaya bernama beda
+ * di dua layar untuk barang yang sama persis.
+ */
+const SWATCH: Record<string, React.CSSProperties> = {
+  'fade-reveal':    { background: 'linear-gradient(135deg, #1a1a1a 0%, #3a3a3a 100%)' },
+  'envelope':       { background: 'linear-gradient(135deg, #f5f0eb 0%, #e8ddd0 100%)' },
+  'scroll-reveal':  { background: 'linear-gradient(135deg, #f5f0e0 0%, #e8ddbf 100%)' },
+  'book-open':      { background: 'linear-gradient(135deg, #1a1a0a 0%, #3a3a1a 100%)' },
+  'flower-bloom':   { background: 'linear-gradient(135deg, #3a1a1a 0%, #6b3a3a 100%)' },
+  'petal-fall':     { background: 'linear-gradient(135deg, #2a1a2a 0%, #4a2a4a 100%)' },
+  'veil-lift':      { background: 'linear-gradient(135deg, #f0ebe5 0%, #ddd5c8 100%)' },
+  'lantern-rise':   { background: 'linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 100%)' },
+  'ring-zoom':      { background: 'linear-gradient(135deg, #1a1a2a 0%, #2a2a4a 100%)' },
+  'diamond-split':  { background: 'linear-gradient(135deg, #0a1a2a 0%, #1a3a4a 100%)' },
+  'mosaic-reveal':  { background: 'linear-gradient(135deg, #0a0a0a 0%, #2a2a2a 100%)' },
+  'typewriter':     { background: 'linear-gradient(135deg, #050505 0%, #1a1a1a 100%)' },
+  'gold-shimmer':   { background: 'linear-gradient(135deg, #0a0500 0%, #1a0f00 100%)' },
+  'frosted-blur':   { background: 'linear-gradient(135deg, #f0f0f0 0%, #d8d8d8 100%)' },
+  'curtain':        { background: 'linear-gradient(135deg, #0f0f0f 0%, #2a2a2a 100%)' },
+  'gate-open':      { background: 'linear-gradient(135deg, #1a2a1a 0%, #2c4a2c 100%)' },
+  'parallax-split': { background: 'linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 100%)' },
+}
 
 const OPENING_STYLES: {
   id: OpeningType
   name: string
   desc: string
-  category: OpeningCategory
+  category: KategoriPembuka
   preview: React.CSSProperties
-}[] = [
-  // KLASIK
-  { id: 'fade-reveal',   name: 'Fade Elegan',      desc: 'Muncul perlahan seperti fajar',          category: 'klasik',   preview: { background: 'linear-gradient(135deg, #1a1a1a 0%, #3a3a3a 100%)' } },
-  { id: 'envelope',      name: 'Amplop Surat',     desc: 'Seperti membuka surat cinta',            category: 'klasik',   preview: { background: 'linear-gradient(135deg, #f5f0eb 0%, #e8ddd0 100%)' } },
-  { id: 'scroll-reveal', name: 'Gulungan Kertas',  desc: 'Terbuka seperti gulungan undangan kuno', category: 'klasik',   preview: { background: 'linear-gradient(135deg, #f5f0e0 0%, #e8ddbf 100%)' } },
-  { id: 'book-open',     name: 'Buku Terbuka',     desc: 'Buku pernikahan membuka halaman',         category: 'klasik',   preview: { background: 'linear-gradient(135deg, #1a1a0a 0%, #3a3a1a 100%)' } },
-  // ROMANTIS
-  { id: 'flower-bloom',  name: 'Bunga Mekar',      desc: 'Kelopak bunga mekar dari tengah',        category: 'romantis', preview: { background: 'linear-gradient(135deg, #3a1a1a 0%, #6b3a3a 100%)' } },
-  { id: 'petal-fall',    name: 'Kelopak Jatuh',    desc: 'Hujan kelopak bunga romantis',           category: 'romantis', preview: { background: 'linear-gradient(135deg, #2a1a2a 0%, #4a2a4a 100%)' } },
-  { id: 'veil-lift',     name: 'Selubung Terangkat', desc: 'Kerudung halus terangkat perlahan',    category: 'romantis', preview: { background: 'linear-gradient(135deg, #f0ebe5 0%, #ddd5c8 100%)' } },
-  { id: 'lantern-rise',  name: 'Lentera Naik',     desc: 'Lentera terbang ke langit malam',        category: 'romantis', preview: { background: 'linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 100%)' } },
-  // MODERN
-  { id: 'ring-zoom',     name: 'Zoom Cincin',      desc: 'Cincin dari jauh mendekat',              category: 'modern',   preview: { background: 'linear-gradient(135deg, #1a1a2a 0%, #2a2a4a 100%)' } },
-  { id: 'diamond-split', name: 'Berlian Terbelah', desc: 'Pecahan berlian berpencar elegan',       category: 'modern',   preview: { background: 'linear-gradient(135deg, #0a1a2a 0%, #1a3a4a 100%)' } },
-  { id: 'mosaic-reveal', name: 'Mosaik',           desc: 'Pecahan gambar menyatu menjadi satu',    category: 'modern',   preview: { background: 'linear-gradient(135deg, #0a0a0a 0%, #2a2a2a 100%)' } },
-  { id: 'typewriter',    name: 'Mesin Ketik',      desc: 'Nama diketik perlahan satu per satu',    category: 'modern',   preview: { background: 'linear-gradient(135deg, #050505 0%, #1a1a1a 100%)' } },
-  { id: 'gold-shimmer',  name: 'Kilauan Emas',     desc: 'Partikel emas berterbangan elegan',      category: 'modern',   preview: { background: 'linear-gradient(135deg, #0a0500 0%, #1a0f00 100%)' } },
-  { id: 'frosted-blur',  name: 'Kaca Buram',       desc: 'Kabut foto perlahan menjadi jelas',      category: 'modern',   preview: { background: 'linear-gradient(135deg, #f0f0f0 0%, #d8d8d8 100%)' } },
-  // DRAMATIS
-  { id: 'curtain',       name: 'Tirai Sinema',     desc: 'Tirai terbuka seperti panggung',         category: 'dramatis', preview: { background: 'linear-gradient(135deg, #0f0f0f 0%, #2a2a2a 100%)' } },
-  { id: 'gate-open',     name: 'Gerbang Terbuka',  desc: 'Dua pintu membuka ke dalam',             category: 'dramatis', preview: { background: 'linear-gradient(135deg, #1a2a1a 0%, #2c4a2c 100%)' } },
-  { id: 'parallax-split', name: 'Belah Paralaks',  desc: 'Layar terbelah atas bawah dramatis',     category: 'dramatis', preview: { background: 'linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 100%)' } },
-]
+}[] = GAYA_PEMBUKA.map(g => ({
+  id: g.id,
+  name: g.nama,
+  desc: g.desc,
+  category: g.kategori,
+  preview: SWATCH[g.id] ?? { background: 'linear-gradient(135deg, #1a1a1a 0%, #3a3a3a 100%)' },
+}))
 
-const CATEGORIES: { id: OpeningCategory; label: string }[] = [
-  { id: 'klasik', label: 'Klasik' },
-  { id: 'romantis', label: 'Romantis' },
-  { id: 'modern', label: 'Modern' },
-  { id: 'dramatis', label: 'Dramatis' },
-]
+
+/** Urutan dan labelnya dari sumber bersama, sama dengan panel admin. */
+const CATEGORIES = KATEGORI_PEMBUKA
 
 export default function OpeningForm({
   openingType,

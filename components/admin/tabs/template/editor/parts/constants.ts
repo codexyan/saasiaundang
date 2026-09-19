@@ -122,32 +122,11 @@ export const SECTION_TYPES = ['hero', 'profiles', 'countdown', 'events', 'story'
  * tersorot saat dibuka di editor, dan sekali admin menekan salah satu dari 3
  * pilihan yang ada, gaya aslinya hilang tanpa cara untuk mengembalikannya.
  */
-export const OPENING_TYPES = [
-  'fade-reveal', 'envelope', 'curtain', 'gate-open', 'veil-lift',
-  'flower-bloom', 'petal-fall', 'ring-zoom', 'diamond-split', 'gold-shimmer',
-  'book-open', 'scroll-reveal', 'typewriter', 'lantern-rise',
-  'mosaic-reveal', 'frosted-blur', 'parallax-split',
-] as const
-
-export const OPENING_META: Record<string, { icon: string; label: string; desc: string }> = {
-  'fade-reveal':    { icon: '✨', label: 'Fade Reveal',   desc: 'Muncul lembut, paling netral' },
-  'envelope':       { icon: '✉️', label: 'Amplop',        desc: 'Amplop terbuka, surat naik' },
-  'curtain':        { icon: '🎭', label: 'Tirai',         desc: 'Tirai terbuka ke samping' },
-  'gate-open':      { icon: '🚪', label: 'Gerbang',       desc: 'Dua daun gerbang membuka' },
-  'veil-lift':      { icon: '👰', label: 'Kerudung',      desc: 'Kain tipis terangkat' },
-  'flower-bloom':   { icon: '🌸', label: 'Bunga Mekar',   desc: 'Kelopak mekar dari tengah' },
-  'petal-fall':     { icon: '🌺', label: 'Petal Jatuh',   desc: 'Kelopak berguguran' },
-  'ring-zoom':      { icon: '💍', label: 'Cincin',        desc: 'Cincin membesar lalu larut' },
-  'diamond-split':  { icon: '💎', label: 'Berlian',       desc: 'Belah diagonal berkilau' },
-  'gold-shimmer':   { icon: '🥇', label: 'Kilau Emas',    desc: 'Sapuan cahaya keemasan' },
-  'book-open':      { icon: '📖', label: 'Buku',          desc: 'Halaman buku terbuka' },
-  'scroll-reveal':  { icon: '📜', label: 'Gulungan',      desc: 'Gulungan kertas terbuka' },
-  'typewriter':     { icon: '⌨️', label: 'Mesin Tik',     desc: 'Nama diketik huruf demi huruf' },
-  'lantern-rise':   { icon: '🏮', label: 'Lampion',       desc: 'Lampion naik perlahan' },
-  'mosaic-reveal':  { icon: '🔲', label: 'Mozaik',        desc: 'Kotak-kotak tersingkap' },
-  'frosted-blur':   { icon: '🌫️', label: 'Kabut',         desc: 'Buram menjernih' },
-  'parallax-split': { icon: '⬍', label: 'Parallax',      desc: 'Belah atas-bawah bergeser' },
-}
+/* OPENING_TYPES dan OPENING_META pindah ke lib/opening-styles.ts, satu
+ * daftar untuk panel admin dan studio pembeli sekaligus. Dua salinan
+ * membuat enam belas dari tujuh belas gaya bernama beda di dua layar.
+ * Kolom `icon` ikut dibuang: tujuh belas emoji yang tidak pernah dibaca
+ * sejak kartunya berhenti memakai emoji. */
 
 //  Color Palettes 
 export const COLOR_PALETTES = [

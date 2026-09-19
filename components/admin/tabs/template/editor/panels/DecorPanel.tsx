@@ -152,7 +152,7 @@ export default function DecorPanel() {
 
       if (!lastId) return
       if (writeAssets(added)) setSelectedAssetId(lastId)
-      else toast.error('Dekorasinya tidak bisa dipasang — tujuannya sudah tidak ada.')
+      else toast.error('Dekorasinya tidak bisa dipasang, tujuannya sudah tidak ada.')
     } finally {
       setUploading(false)
     }

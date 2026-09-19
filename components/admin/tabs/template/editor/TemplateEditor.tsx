@@ -472,7 +472,7 @@ export default function TemplateEditor({
         return true
       } catch {
         setSaveState('error')
-        toast.error('Draf gagal disimpan — periksa koneksi.')
+        toast.error('Draf gagal disimpan, periksa koneksi.')
         return false
       }
     })()
@@ -562,7 +562,7 @@ export default function TemplateEditor({
       setShowPublish(false)
       toast.success(
         status === 'active'
-          ? `"${data.record.name}" terbit — pengunjung sudah melihat versi ini`
+          ? `"${data.record.name}" terbit, pengunjung sudah melihat versi ini`
           : 'Perubahan tersimpan sebagai versi terbit (masih draft)',
       )
     } finally {
@@ -802,7 +802,7 @@ export default function TemplateEditor({
                 <>
                   <CircleAlert className="w-3 h-3 text-red-500 shrink-0" />
                   <button onClick={() => saveDraft()} className="text-[10px] text-red-600 font-semibold hover:underline">
-                    Gagal menyimpan — coba lagi
+                    Gagal menyimpan, coba lagi
                   </button>
                 </>
               ) : lastSavedAt ? (

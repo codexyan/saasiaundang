@@ -4,7 +4,6 @@ import { Check } from 'lucide-react'
 import ImageUploadField from '@/components/admin/ImageUploadField'
 import { Field, inputCls, Sakelar } from '../parts/fields'
 import LoadingScreenPanel from '../parts/LoadingScreenPanel'
-import { OPENING_TYPES, OPENING_META } from '../parts/constants'
 import { useEditor } from '../EditorContext'
 import OpeningStylePicker from '../parts/OpeningStylePicker'
 
@@ -51,7 +50,7 @@ export default function OpeningPanel() {
         <p className="text-xs text-gray-400 mt-0.5 leading-snug">
           {showOpening
             ? 'Tamu melihat sampul dulu, lalu menekan tombol untuk membuka undangan'
-            : 'Dimatikan — tamu langsung masuk ke isi undangan'}
+            : 'Dimatikan, tamu langsung masuk ke isi undangan'}
         </p>
       </div>
       <Sakelar
@@ -120,6 +119,236 @@ export default function OpeningPanel() {
           </div>
         </div>
       )}
+
+      {/* Atribut khusus Petal Jatuh, dinaikkan ke sini 19 Sep 2026.
+          Dulu blok ini duduk di dasar panel, terpisah sejauh mungkin dari
+          Bar Progres yang sifatnya persis sama: dua duanya hanya muncul untuk
+          satu gaya tertentu. Sekarang keduanya berkumpul tepat di bawah
+          pemilih gaya, tempat orang baru saja memutuskan gayanya. */}
+      {/*  Petal Fall Attributes (hanya tampil saat type = petal-fall)  */}
+      {cfg.opening.type === 'petal-fall' && (
+        <div>
+          <p className="text-[10px] font-semibold text-gray-500 mb-1">
+            Pengaturan Petal Fall
+          </p>
+          <p className="text-[9px] text-gray-400 mb-3">
+            Sesuaikan efek kelopak jatuh, glow tombol, dan Ken Burns
+          </p>
+          <div className="space-y-3 bg-pink-50/50 border border-pink-200/40 rounded-xl p-3">
+
+            {/* Petal Count */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-semibold text-gray-600">Jumlah Kelopak</span>
+                <span className="text-[10px] text-gray-400 tabular-nums">{cfg.opening.petal_count ?? 22}</span>
+              </div>
+              <input type="range" min={5} max={50} step={1}
+                value={cfg.opening.petal_count ?? 22}
+                onChange={e => updateOpening({ petal_count: Number(e.target.value) })}
+                className="w-full h-1.5 bg-gray-200 rounded-full appearance-none accent-pink-500"
+              />
+            </div>
+
+            {/* Petal Speed */}
+            <div>
+              <span className="text-[10px] font-semibold text-gray-600 block mb-1">Kecepatan Jatuh</span>
+              <div className="flex gap-1.5">
+                {(['slow', 'normal', 'fast'] as const).map(sp => (
+                  <button key={sp} type="button"
+                    onClick={() => updateOpening({ petal_speed: sp })}
+                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+                      (cfg.opening.petal_speed ?? 'normal') === sp
+                        ? 'bg-pink-500 text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    {sp === 'slow' ? 'Lambat' : sp === 'normal' ? 'Normal' : 'Cepat'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Petal Size */}
+            <div>
+              <span className="text-[10px] font-semibold text-gray-600 block mb-1">Ukuran Kelopak</span>
+              <div className="flex gap-1.5">
+                {(['sm', 'md', 'lg'] as const).map(sz => (
+                  <button key={sz} type="button"
+                    onClick={() => updateOpening({ petal_size: sz })}
+                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+                      (cfg.opening.petal_size ?? 'md') === sz
+                        ? 'bg-pink-500 text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    {sz === 'sm' ? 'Kecil' : sz === 'md' ? 'Sedang' : 'Besar'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Petal Shape */}
+            <div>
+              <span className="text-[10px] font-semibold text-gray-600 block mb-1">Bentuk Partikel</span>
+              <div className="grid grid-cols-4 gap-1.5">
+                {([
+                  { id: 'petal', label: 'Kelopak', icon: '🌷' },
+                  { id: 'sakura', label: 'Sakura', icon: '🌸' },
+                  { id: 'leaf', label: 'Daun', icon: '🍃' },
+                  { id: 'snowflake', label: 'Salju', icon: '❄️' },
+                ] as const).map(sh => (
+                  <button key={sh.id} type="button"
+                    onClick={() => updateOpening({ petal_shape: sh.id })}
+                    className={`py-2 rounded-lg text-center transition-all ${
+                      (cfg.opening.petal_shape ?? 'petal') === sh.id
+                        ? 'bg-pink-500 text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span className="text-sm block">{sh.icon}</span>
+                    <span className="text-[8px] font-bold">{sh.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Petal Opacity */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-semibold text-gray-600">Opacity Kelopak</span>
+                <span className="text-[10px] text-gray-400 tabular-nums">{cfg.opening.petal_opacity ?? 30}%</span>
+              </div>
+              <input type="range" min={5} max={80} step={1}
+                value={cfg.opening.petal_opacity ?? 30}
+                onChange={e => updateOpening({ petal_opacity: Number(e.target.value) })}
+                className="w-full h-1.5 bg-gray-200 rounded-full appearance-none accent-pink-500"
+              />
+            </div>
+
+            {/* Petal Sway */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-semibold text-gray-600">Intensitas Ayunan</span>
+                <span className="text-[10px] text-gray-400 tabular-nums">{cfg.opening.petal_sway ?? 50}%</span>
+              </div>
+              <input type="range" min={0} max={100} step={5}
+                value={cfg.opening.petal_sway ?? 50}
+                onChange={e => updateOpening({ petal_sway: Number(e.target.value) })}
+                className="w-full h-1.5 bg-gray-200 rounded-full appearance-none accent-pink-500"
+              />
+            </div>
+
+            {/* Petal Color */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-semibold text-gray-600">Warna Kelopak</span>
+                <span className="text-[10px] text-gray-400">Kosongkan = warna aksen</span>
+              </div>
+              <div className="flex gap-2 items-center">
+                <input type="color"
+                  value={cfg.opening.petal_color ?? cfg.meta.color_scheme.accent}
+                  onChange={e => updateOpening({ petal_color: e.target.value })}
+                  className="w-8 h-8 rounded-lg border border-gray-200 cursor-pointer"
+                />
+                <input type="text"
+                  value={cfg.opening.petal_color ?? ''}
+                  onChange={e => updateOpening({ petal_color: e.target.value || undefined })}
+                  placeholder="auto (accent)"
+                  className="flex-1 px-2 py-1.5 text-[10px] bg-white border border-gray-200 rounded-lg"
+                />
+              </div>
+            </div>
+
+            {/* Scrim Opacity */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-semibold text-gray-600">Kegelapan Overlay</span>
+                <span className="text-[10px] text-gray-400 tabular-nums">{cfg.opening.scrim_opacity ?? 33}%</span>
+              </div>
+              <input type="range" min={0} max={80} step={1}
+                value={cfg.opening.scrim_opacity ?? 33}
+                onChange={e => updateOpening({ scrim_opacity: Number(e.target.value) })}
+                className="w-full h-1.5 bg-gray-200 rounded-full appearance-none accent-gray-500"
+              />
+            </div>
+
+            {/* Toggles row */}
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              {/* Button Glow */}
+              <label className="flex items-center gap-2 cursor-pointer">
+                <button type="button"
+                  onClick={() => updateOpening({ show_button_glow: cfg.opening.show_button_glow === false ? true : false })}
+                  className={`w-9 h-5 rounded-full transition-colors relative ${
+                    cfg.opening.show_button_glow !== false ? 'bg-pink-500' : 'bg-gray-200'
+                  }`}
+                >
+                  <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                    cfg.opening.show_button_glow !== false ? 'translate-x-[18px]' : 'translate-x-0.5'
+                  }`} />
+                </button>
+                <span className="text-[10px] font-semibold text-gray-600">Glow Tombol</span>
+              </label>
+
+              {/* Scroll Hint */}
+              <label className="flex items-center gap-2 cursor-pointer">
+                <button type="button"
+                  onClick={() => updateOpening({ show_scroll_hint: cfg.opening.show_scroll_hint === false ? true : false })}
+                  className={`w-9 h-5 rounded-full transition-colors relative ${
+                    cfg.opening.show_scroll_hint !== false ? 'bg-pink-500' : 'bg-gray-200'
+                  }`}
+                >
+                  <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                    cfg.opening.show_scroll_hint !== false ? 'translate-x-[18px]' : 'translate-x-0.5'
+                  }`} />
+                </button>
+                <span className="text-[10px] font-semibold text-gray-600">Scroll Hint</span>
+              </label>
+
+              {/* Ken Burns */}
+              <label className="flex items-center gap-2 cursor-pointer">
+                <button type="button"
+                  onClick={() => updateOpening({ ken_burns_enabled: cfg.opening.ken_burns_enabled === false ? true : false })}
+                  className={`w-9 h-5 rounded-full transition-colors relative ${
+                    cfg.opening.ken_burns_enabled !== false ? 'bg-pink-500' : 'bg-gray-200'
+                  }`}
+                >
+                  <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                    cfg.opening.ken_burns_enabled !== false ? 'translate-x-[18px]' : 'translate-x-0.5'
+                  }`} />
+                </button>
+                <span className="text-[10px] font-semibold text-gray-600">Ken Burns</span>
+              </label>
+            </div>
+
+            {/* Ken Burns Speed (only if enabled) */}
+            {cfg.opening.ken_burns_enabled !== false && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-semibold text-gray-600">Ken Burns Durasi</span>
+                  <span className="text-[10px] text-gray-400 tabular-nums">{cfg.opening.ken_burns_speed ?? 20}s</span>
+                </div>
+                <input type="range" min={8} max={40} step={2}
+                  value={cfg.opening.ken_burns_speed ?? 20}
+                  onChange={e => updateOpening({ ken_burns_speed: Number(e.target.value) })}
+                  className="w-full h-1.5 bg-gray-200 rounded-full appearance-none accent-pink-500"
+                />
+              </div>
+            )}
+
+            {/* Exit Blur */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-semibold text-gray-600">Exit Blur</span>
+                <span className="text-[10px] text-gray-400 tabular-nums">{cfg.opening.exit_blur ?? 12}px</span>
+              </div>
+              <input type="range" min={0} max={30} step={1}
+                value={cfg.opening.exit_blur ?? 12}
+                onChange={e => updateOpening({ exit_blur: Number(e.target.value) })}
+                className="w-full h-1.5 bg-gray-200 rounded-full appearance-none accent-gray-500"
+              />
+            </div>
+
+          </div>
+        </div>
+      )}
+
 
       {/*  Opening Content  */}
       <div className="pt-4 border-t border-gray-100">
@@ -213,102 +442,12 @@ export default function OpeningPanel() {
             />
           </div>
 
-          {/* Preview nama tamu (hanya di preview cover) */}
-          {cfg.opening.show_guest_name !== false && (
-            <Field label="Nama Tamu (untuk Preview)">
-              <input
-                value={previewGuestName}
-                onChange={e => setPreviewGuestName(e.target.value)}
-                className={inputCls}
-                placeholder="dr. Gia dan Istri"
-              />
-              <p className="text-[10px] text-gray-400 mt-1">
-                Hanya untuk preview admin. Di undangan asli dari URL ?to=
-              </p>
-            </Field>
-          )}
+          {/* Input "Nama Tamu (untuk Preview)" DIBUANG dari sini. Isinya
+              state yang sama persis dengan "Nama Tamu Preview" di blok Bahan
+              Pratinjau, jadi dulu ada dua kotak untuk satu nilai dan mengetik
+              di satu mengubah yang lain. Yang tinggal satu, dan tinggal di
+              blok yang memang berisi bahan pratinjau. */}
         </div>
-      </div>
-
-      {/*  Data Mempelai  */}
-      <div className="pt-4 border-t border-gray-100">
-        <p className="text-[10px] font-semibold text-gray-500 mb-1">
-          Data Mempelai
-        </p>
-        <p className="text-[9px] text-gray-400 mb-3">
-          Isi data contoh untuk preview. User bisa mengubah saat membuat undangan.
-        </p>
-
-        {/* Pria */}
-        <div className="rounded-xl border border-blue-100 bg-blue-50/30 p-3 mb-3">
-          <p className="text-[9px] font-bold text-blue-600 uppercase tracking-widest mb-2">Mempelai Pria</p>
-          <div className="grid grid-cols-2 gap-2">
-            <Field label="Nama Lengkap">
-              <input type="text" value={previewData.groom_name}
-                onChange={e => setPreviewData(d => ({ ...d, groom_name: e.target.value }))}
-                placeholder="Nama lengkap..."
-                className="w-full text-[11px] border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white" />
-            </Field>
-            <Field label="Nama Panggilan">
-              <input type="text" value={previewData.groom_nickname ?? ''}
-                onChange={e => setPreviewData(d => ({ ...d, groom_nickname: e.target.value || undefined }))}
-                placeholder="Panggilan..."
-                className="w-full text-[11px] border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white" />
-            </Field>
-            <Field label="Ayah">
-              <input type="text" value={previewData.groom_father ?? ''}
-                onChange={e => setPreviewData(d => ({ ...d, groom_father: e.target.value || undefined }))}
-                placeholder="Nama ayah..."
-                className="w-full text-[11px] border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white" />
-            </Field>
-            <Field label="Ibu">
-              <input type="text" value={previewData.groom_mother ?? ''}
-                onChange={e => setPreviewData(d => ({ ...d, groom_mother: e.target.value || undefined }))}
-                placeholder="Nama ibu..."
-                className="w-full text-[11px] border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white" />
-            </Field>
-          </div>
-        </div>
-
-        {/* Wanita */}
-        <div className="rounded-xl border border-rose-100 bg-rose-50/30 p-3 mb-3">
-          <p className="text-[9px] font-bold text-rose-600 uppercase tracking-widest mb-2">Mempelai Wanita</p>
-          <div className="grid grid-cols-2 gap-2">
-            <Field label="Nama Lengkap">
-              <input type="text" value={previewData.bride_name}
-                onChange={e => setPreviewData(d => ({ ...d, bride_name: e.target.value }))}
-                placeholder="Nama lengkap..."
-                className="w-full text-[11px] border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white" />
-            </Field>
-            <Field label="Nama Panggilan">
-              <input type="text" value={previewData.bride_nickname ?? ''}
-                onChange={e => setPreviewData(d => ({ ...d, bride_nickname: e.target.value || undefined }))}
-                placeholder="Panggilan..."
-                className="w-full text-[11px] border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white" />
-            </Field>
-            <Field label="Ayah">
-              <input type="text" value={previewData.bride_father ?? ''}
-                onChange={e => setPreviewData(d => ({ ...d, bride_father: e.target.value || undefined }))}
-                placeholder="Nama ayah..."
-                className="w-full text-[11px] border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white" />
-            </Field>
-            <Field label="Ibu">
-              <input type="text" value={previewData.bride_mother ?? ''}
-                onChange={e => setPreviewData(d => ({ ...d, bride_mother: e.target.value || undefined }))}
-                placeholder="Nama ibu..."
-                className="w-full text-[11px] border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white" />
-            </Field>
-          </div>
-        </div>
-
-        {/* Nama tamu preview */}
-        <Field label="Nama Tamu Preview">
-          <input type="text" value={previewGuestName}
-            onChange={e => setPreviewGuestName(e.target.value)}
-            placeholder="dr. Gia dan Istri"
-            className="w-full text-[11px] border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400" />
-          <p className="text-[9px] text-gray-400 mt-1">Untuk preview saja. Di undangan asli dari URL ?to=</p>
-        </Field>
       </div>
 
       {/*  Typography & Layout  */}
@@ -671,229 +810,96 @@ export default function OpeningPanel() {
         </div>
       </div>
 
-      {/*  Petal Fall Attributes (hanya tampil saat type = petal-fall)  */}
-      {cfg.opening.type === 'petal-fall' && (
-        <div>
-          <p className="text-[10px] font-semibold text-gray-500 mb-1">
-            Pengaturan Petal Fall
-          </p>
-          <p className="text-[9px] text-gray-400 mb-3">
-            Sesuaikan efek kelopak jatuh, glow tombol, dan Ken Burns
-          </p>
-          <div className="space-y-3 bg-pink-50/50 border border-pink-200/40 rounded-xl p-3">
+      {/* Bahan Pratinjau, diturunkan ke dasar panel 19 Sep 2026.
+          Blok ini dulu duduk di tengah, di antara dua blok yang benar benar
+          tersimpan, padahal isinya TIDAK tersimpan sama sekali: sembilan
+          field ini menulis ke previewData, useState biasa di TemplateEditor
+          yang hilang setiap halaman dimuat ulang. Namanya dulu "Data
+          Mempelai", yang terbaca seperti pengaturan tema.
+          Sekarang di dasar, dengan nama dan keterangan yang mengatakan apa
+          adanya. */}
+      <div className="pt-4 border-t border-gray-100">
+        <p className="text-[10px] font-semibold text-gray-500 mb-1">
+          Bahan Pratinjau
+        </p>
+        <p className="text-[9px] text-gray-400 mb-3">
+          Nama contoh untuk melihat hasilnya di panel kanan. TIDAK ikut
+          tersimpan ke tema, dan hilang saat halaman dimuat ulang. Pembeli
+          mengisi datanya sendiri saat membuat undangan.
+        </p>
 
-            {/* Petal Count */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-semibold text-gray-600">Jumlah Kelopak</span>
-                <span className="text-[10px] text-gray-400 tabular-nums">{cfg.opening.petal_count ?? 22}</span>
-              </div>
-              <input type="range" min={5} max={50} step={1}
-                value={cfg.opening.petal_count ?? 22}
-                onChange={e => updateOpening({ petal_count: Number(e.target.value) })}
-                className="w-full h-1.5 bg-gray-200 rounded-full appearance-none accent-pink-500"
-              />
-            </div>
-
-            {/* Petal Speed */}
-            <div>
-              <span className="text-[10px] font-semibold text-gray-600 block mb-1">Kecepatan Jatuh</span>
-              <div className="flex gap-1.5">
-                {(['slow', 'normal', 'fast'] as const).map(sp => (
-                  <button key={sp} type="button"
-                    onClick={() => updateOpening({ petal_speed: sp })}
-                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
-                      (cfg.opening.petal_speed ?? 'normal') === sp
-                        ? 'bg-pink-500 text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    {sp === 'slow' ? 'Lambat' : sp === 'normal' ? 'Normal' : 'Cepat'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Petal Size */}
-            <div>
-              <span className="text-[10px] font-semibold text-gray-600 block mb-1">Ukuran Kelopak</span>
-              <div className="flex gap-1.5">
-                {(['sm', 'md', 'lg'] as const).map(sz => (
-                  <button key={sz} type="button"
-                    onClick={() => updateOpening({ petal_size: sz })}
-                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
-                      (cfg.opening.petal_size ?? 'md') === sz
-                        ? 'bg-pink-500 text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    {sz === 'sm' ? 'Kecil' : sz === 'md' ? 'Sedang' : 'Besar'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Petal Shape */}
-            <div>
-              <span className="text-[10px] font-semibold text-gray-600 block mb-1">Bentuk Partikel</span>
-              <div className="grid grid-cols-4 gap-1.5">
-                {([
-                  { id: 'petal', label: 'Kelopak', icon: '🌷' },
-                  { id: 'sakura', label: 'Sakura', icon: '🌸' },
-                  { id: 'leaf', label: 'Daun', icon: '🍃' },
-                  { id: 'snowflake', label: 'Salju', icon: '❄️' },
-                ] as const).map(sh => (
-                  <button key={sh.id} type="button"
-                    onClick={() => updateOpening({ petal_shape: sh.id })}
-                    className={`py-2 rounded-lg text-center transition-all ${
-                      (cfg.opening.petal_shape ?? 'petal') === sh.id
-                        ? 'bg-pink-500 text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <span className="text-sm block">{sh.icon}</span>
-                    <span className="text-[8px] font-bold">{sh.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Petal Opacity */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-semibold text-gray-600">Opacity Kelopak</span>
-                <span className="text-[10px] text-gray-400 tabular-nums">{cfg.opening.petal_opacity ?? 30}%</span>
-              </div>
-              <input type="range" min={5} max={80} step={1}
-                value={cfg.opening.petal_opacity ?? 30}
-                onChange={e => updateOpening({ petal_opacity: Number(e.target.value) })}
-                className="w-full h-1.5 bg-gray-200 rounded-full appearance-none accent-pink-500"
-              />
-            </div>
-
-            {/* Petal Sway */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-semibold text-gray-600">Intensitas Ayunan</span>
-                <span className="text-[10px] text-gray-400 tabular-nums">{cfg.opening.petal_sway ?? 50}%</span>
-              </div>
-              <input type="range" min={0} max={100} step={5}
-                value={cfg.opening.petal_sway ?? 50}
-                onChange={e => updateOpening({ petal_sway: Number(e.target.value) })}
-                className="w-full h-1.5 bg-gray-200 rounded-full appearance-none accent-pink-500"
-              />
-            </div>
-
-            {/* Petal Color */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-semibold text-gray-600">Warna Kelopak</span>
-                <span className="text-[10px] text-gray-400">Kosongkan = warna aksen</span>
-              </div>
-              <div className="flex gap-2 items-center">
-                <input type="color"
-                  value={cfg.opening.petal_color ?? cfg.meta.color_scheme.accent}
-                  onChange={e => updateOpening({ petal_color: e.target.value })}
-                  className="w-8 h-8 rounded-lg border border-gray-200 cursor-pointer"
-                />
-                <input type="text"
-                  value={cfg.opening.petal_color ?? ''}
-                  onChange={e => updateOpening({ petal_color: e.target.value || undefined })}
-                  placeholder="auto (accent)"
-                  className="flex-1 px-2 py-1.5 text-[10px] bg-white border border-gray-200 rounded-lg"
-                />
-              </div>
-            </div>
-
-            {/* Scrim Opacity */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-semibold text-gray-600">Kegelapan Overlay</span>
-                <span className="text-[10px] text-gray-400 tabular-nums">{cfg.opening.scrim_opacity ?? 33}%</span>
-              </div>
-              <input type="range" min={0} max={80} step={1}
-                value={cfg.opening.scrim_opacity ?? 33}
-                onChange={e => updateOpening({ scrim_opacity: Number(e.target.value) })}
-                className="w-full h-1.5 bg-gray-200 rounded-full appearance-none accent-gray-500"
-              />
-            </div>
-
-            {/* Toggles row */}
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              {/* Button Glow */}
-              <label className="flex items-center gap-2 cursor-pointer">
-                <button type="button"
-                  onClick={() => updateOpening({ show_button_glow: cfg.opening.show_button_glow === false ? true : false })}
-                  className={`w-9 h-5 rounded-full transition-colors relative ${
-                    cfg.opening.show_button_glow !== false ? 'bg-pink-500' : 'bg-gray-200'
-                  }`}
-                >
-                  <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-                    cfg.opening.show_button_glow !== false ? 'translate-x-[18px]' : 'translate-x-0.5'
-                  }`} />
-                </button>
-                <span className="text-[10px] font-semibold text-gray-600">Glow Tombol</span>
-              </label>
-
-              {/* Scroll Hint */}
-              <label className="flex items-center gap-2 cursor-pointer">
-                <button type="button"
-                  onClick={() => updateOpening({ show_scroll_hint: cfg.opening.show_scroll_hint === false ? true : false })}
-                  className={`w-9 h-5 rounded-full transition-colors relative ${
-                    cfg.opening.show_scroll_hint !== false ? 'bg-pink-500' : 'bg-gray-200'
-                  }`}
-                >
-                  <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-                    cfg.opening.show_scroll_hint !== false ? 'translate-x-[18px]' : 'translate-x-0.5'
-                  }`} />
-                </button>
-                <span className="text-[10px] font-semibold text-gray-600">Scroll Hint</span>
-              </label>
-
-              {/* Ken Burns */}
-              <label className="flex items-center gap-2 cursor-pointer">
-                <button type="button"
-                  onClick={() => updateOpening({ ken_burns_enabled: cfg.opening.ken_burns_enabled === false ? true : false })}
-                  className={`w-9 h-5 rounded-full transition-colors relative ${
-                    cfg.opening.ken_burns_enabled !== false ? 'bg-pink-500' : 'bg-gray-200'
-                  }`}
-                >
-                  <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-                    cfg.opening.ken_burns_enabled !== false ? 'translate-x-[18px]' : 'translate-x-0.5'
-                  }`} />
-                </button>
-                <span className="text-[10px] font-semibold text-gray-600">Ken Burns</span>
-              </label>
-            </div>
-
-            {/* Ken Burns Speed (only if enabled) */}
-            {cfg.opening.ken_burns_enabled !== false && (
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] font-semibold text-gray-600">Ken Burns Durasi</span>
-                  <span className="text-[10px] text-gray-400 tabular-nums">{cfg.opening.ken_burns_speed ?? 20}s</span>
-                </div>
-                <input type="range" min={8} max={40} step={2}
-                  value={cfg.opening.ken_burns_speed ?? 20}
-                  onChange={e => updateOpening({ ken_burns_speed: Number(e.target.value) })}
-                  className="w-full h-1.5 bg-gray-200 rounded-full appearance-none accent-pink-500"
-                />
-              </div>
-            )}
-
-            {/* Exit Blur */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-semibold text-gray-600">Exit Blur</span>
-                <span className="text-[10px] text-gray-400 tabular-nums">{cfg.opening.exit_blur ?? 12}px</span>
-              </div>
-              <input type="range" min={0} max={30} step={1}
-                value={cfg.opening.exit_blur ?? 12}
-                onChange={e => updateOpening({ exit_blur: Number(e.target.value) })}
-                className="w-full h-1.5 bg-gray-200 rounded-full appearance-none accent-gray-500"
-              />
-            </div>
-
+        {/* Pria */}
+        <div className="rounded-xl border border-blue-100 bg-blue-50/30 p-3 mb-3">
+          <p className="text-[9px] font-bold text-blue-600 uppercase tracking-widest mb-2">Mempelai Pria</p>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Nama Lengkap">
+              <input type="text" value={previewData.groom_name}
+                onChange={e => setPreviewData(d => ({ ...d, groom_name: e.target.value }))}
+                placeholder="Nama lengkap..."
+                className="w-full text-[11px] border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white" />
+            </Field>
+            <Field label="Nama Panggilan">
+              <input type="text" value={previewData.groom_nickname ?? ''}
+                onChange={e => setPreviewData(d => ({ ...d, groom_nickname: e.target.value || undefined }))}
+                placeholder="Panggilan..."
+                className="w-full text-[11px] border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white" />
+            </Field>
+            <Field label="Ayah">
+              <input type="text" value={previewData.groom_father ?? ''}
+                onChange={e => setPreviewData(d => ({ ...d, groom_father: e.target.value || undefined }))}
+                placeholder="Nama ayah..."
+                className="w-full text-[11px] border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white" />
+            </Field>
+            <Field label="Ibu">
+              <input type="text" value={previewData.groom_mother ?? ''}
+                onChange={e => setPreviewData(d => ({ ...d, groom_mother: e.target.value || undefined }))}
+                placeholder="Nama ibu..."
+                className="w-full text-[11px] border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white" />
+            </Field>
           </div>
         </div>
-      )}
+
+        {/* Wanita */}
+        <div className="rounded-xl border border-rose-100 bg-rose-50/30 p-3 mb-3">
+          <p className="text-[9px] font-bold text-rose-600 uppercase tracking-widest mb-2">Mempelai Wanita</p>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Nama Lengkap">
+              <input type="text" value={previewData.bride_name}
+                onChange={e => setPreviewData(d => ({ ...d, bride_name: e.target.value }))}
+                placeholder="Nama lengkap..."
+                className="w-full text-[11px] border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white" />
+            </Field>
+            <Field label="Nama Panggilan">
+              <input type="text" value={previewData.bride_nickname ?? ''}
+                onChange={e => setPreviewData(d => ({ ...d, bride_nickname: e.target.value || undefined }))}
+                placeholder="Panggilan..."
+                className="w-full text-[11px] border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white" />
+            </Field>
+            <Field label="Ayah">
+              <input type="text" value={previewData.bride_father ?? ''}
+                onChange={e => setPreviewData(d => ({ ...d, bride_father: e.target.value || undefined }))}
+                placeholder="Nama ayah..."
+                className="w-full text-[11px] border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white" />
+            </Field>
+            <Field label="Ibu">
+              <input type="text" value={previewData.bride_mother ?? ''}
+                onChange={e => setPreviewData(d => ({ ...d, bride_mother: e.target.value || undefined }))}
+                placeholder="Nama ibu..."
+                className="w-full text-[11px] border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white" />
+            </Field>
+          </div>
+        </div>
+
+        {/* Nama tamu preview */}
+        <Field label="Nama Tamu Preview">
+          <input type="text" value={previewGuestName}
+            onChange={e => setPreviewGuestName(e.target.value)}
+            placeholder="dr. Gia dan Istri"
+            className="w-full text-[11px] border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400" />
+          <p className="text-[9px] text-gray-400 mt-1">Untuk preview saja. Di undangan asli dari URL ?to=</p>
+        </Field>
+      </div>
+
 
       <LoadingScreenPanel
         cfg={cfg}
