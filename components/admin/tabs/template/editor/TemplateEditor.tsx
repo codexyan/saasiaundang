@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import {
   Palette, Type, Layers, Sparkles, Play,
   Rocket, X, Undo2, Redo2, ArrowLeft,
-  Settings2, Loader2, CloudUpload, CircleAlert, RotateCcw,
+  Settings2, Loader2, CloudUpload, CircleAlert, RotateCcw, ExternalLink,
 } from 'lucide-react'
 import type { TemplateMeta, ColorScheme, OpeningConfig, MusicConfig, TemplateCategory, ColorPalette } from '@/lib/types'
 import type { TemplateRecord, NewInvitationData, SectionType } from '@/lib/types'
@@ -94,7 +94,22 @@ export default function TemplateEditor({
   // warna atau mengganti font adalah HASILNYA, bukan kontrolnya. Menaruh
   // kontrol di lembar yang bisa ditarik membuat keduanya bisa dilihat
   // bergantian tanpa berpindah halaman dan tanpa kehilangan posisi gulir.
+  //
+  // Tingginya diingat per peramban: admin yang terbiasa bekerja sambil melihat
+  // pratinjau penuh tidak perlu meringkaskan lembar ini setiap kali membuka
+  // tema lain.
   const [lembar, setLembar] = useState<'ringkas' | 'separuh' | 'penuh'>('separuh')
+
+  useEffect(() => {
+    try {
+      const simpan = window.localStorage.getItem('editor-tinggi-lembar')
+      if (simpan === 'ringkas' || simpan === 'separuh' || simpan === 'penuh') setLembar(simpan)
+    } catch { /* localStorage bisa ditolak di mode privat; abaikan saja */ }
+  }, [])
+
+  useEffect(() => {
+    try { window.localStorage.setItem('editor-tinggi-lembar', lembar) } catch { /* sama */ }
+  }, [lembar])
   const [previewMode, setPreviewMode] = useState<'invitation' | 'opening' | 'loading'>('opening')
   const [previewGuestName, setPreviewGuestName] = useState('Bapak Budi dan Keluarga')
   const [previewData, setPreviewData] = useState<NewInvitationData>(PREVIEW_DATA_DEFAULT)
@@ -629,6 +644,18 @@ export default function TemplateEditor({
             )}
           </div>
         </div>
+        {/* Buka tema ini seperti tamu melihatnya. Dulu hanya ada di menu
+            kartu, jadi harus keluar dari editor dulu untuk memakainya. */}
+        <a
+          href={`/demo/renderer?id=${record.id}`}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Buka pratinjau seperti tamu di tab baru"
+          title="Pratinjau seperti tamu"
+          className="w-11 h-11 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors shrink-0"
+        >
+          <ExternalLink className="w-4 h-4" />
+        </a>
         <button
           onClick={onOpenSettings}
           aria-label="Pengaturan tema: nama, slug, kategori, harga, publikasi"
@@ -642,7 +669,7 @@ export default function TemplateEditor({
       <div className={`z-40 flex flex-col bg-white overflow-hidden min-h-0 transition-[height] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]
         fixed inset-x-0 bottom-0 rounded-t-2xl border-t border-gray-200 shadow-[0_-10px_34px_rgba(0,0,0,0.14)]
         lg:static lg:z-auto lg:w-[420px] lg:shrink-0 lg:h-auto lg:rounded-none lg:border-t-0 lg:border-r lg:shadow-none
-        ${lembar === 'penuh' ? 'h-[88dvh]' : lembar === 'separuh' ? 'h-[56dvh]' : 'h-[92px]'}`}>
+        ${lembar === 'penuh' ? 'h-[88dvh]' : lembar === 'separuh' ? 'h-[56dvh]' : 'h-[116px]'}`}>
 
         {/* Pegangan tarik, hanya di layar sempit. Satu ketukan memutar tinggi
             lembar: separuh, penuh, lalu ringkas. */}
@@ -685,6 +712,16 @@ export default function TemplateEditor({
                 )}
               </div>
             </div>
+            <a
+              href={`/demo/renderer?id=${record.id}`}
+              target="_blank"
+              rel="noreferrer"
+              title="Pratinjau seperti tamu"
+              aria-label="Buka pratinjau seperti tamu di tab baru"
+              className="w-11 h-11 -my-2 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors shrink-0"
+            >
+              <ExternalLink className="w-4 h-4" />
+            </a>
             <button
               onClick={onOpenSettings}
               title="Nama, slug, kategori, harga, publikasi"
@@ -813,7 +850,7 @@ export default function TemplateEditor({
           tertutup lembar kontrol di layar sempit. */}
       <div
         className="flex-1 min-h-0 flex lg:contents"
-        style={{ paddingBottom: lembar === 'penuh' ? '88dvh' : lembar === 'separuh' ? '56dvh' : '92px' }}
+        style={{ paddingBottom: lembar === 'penuh' ? '88dvh' : lembar === 'separuh' ? '56dvh' : '116px' }}
       >
         <EditorPreview />
       </div>

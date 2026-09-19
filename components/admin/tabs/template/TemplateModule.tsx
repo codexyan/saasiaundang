@@ -145,7 +145,10 @@ export default function TemplateModule({
       const data = await res.json().catch(() => null)
       if (!res.ok) { toast.error(data?.error || 'Template gagal diduplikasi'); return }
       upsertLocal(data.record)
-      toast.success(`"${data.record.name}" dibuat`)
+      // Langsung ke editor. Duplikat hampir selalu berarti "mau saya ubah",
+      // dan dulu admin harus mencarinya lagi di grid lalu membukanya sendiri.
+      setEditingId(data.record.id)
+      toast.success(`"${data.record.name}" dibuat, langsung dibuka`)
     } finally { setBusyId(null) }
   }
 

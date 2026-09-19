@@ -87,18 +87,21 @@ export default function OpeningPanel() {
           persis, cuma lebar yang disesuaikan ke konteks.
           Isi di bawah ini MASIH menampilkan kedelapan blok tanpa filter;
           pemindahan konten ke tiap section id di atas terjadi di Phase 3. */}
-      <div className="flex gap-3">
-        <div className="w-32 shrink-0 space-y-0.5">
+      {/* Kolom di layar lebar, baris yang bisa digeser di layar sempit.
+          Sidebar 128 piksel memakan sepertiga lebar HP, dan sisanya tidak
+          cukup untuk kontrol di sebelahnya. */}
+      <div className="flex flex-col lg:flex-row gap-3">
+        <div className="lg:w-32 lg:shrink-0 flex lg:block gap-1 lg:gap-0 lg:space-y-0.5 overflow-x-auto scrollbar-hide -mx-1 px-1 lg:mx-0 lg:px-0">
           {OPENING_NAV.map(n => (
             <button key={n.id} type="button" onClick={() => setOpeningSection(n.id)}
-              className={`w-full flex items-center gap-1.5 px-2.5 py-2 sentuh:min-h-[44px] rounded-lg text-left text-[10px] font-semibold transition-colors ${
+              className={`shrink-0 lg:w-full flex items-center gap-1.5 px-2.5 py-2 sentuh:min-h-[44px] rounded-lg text-left text-[10px] font-semibold transition-colors ${
                 openingSection === n.id
-                  ? 'bg-indigo-50 text-indigo-700'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  ? 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200 lg:ring-0'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50 bg-gray-50 lg:bg-transparent'
               }`}
             >
               <n.icon className="w-3.5 h-3.5 shrink-0" />
-              <span className="leading-tight">{n.label}</span>
+              <span className="leading-tight whitespace-nowrap lg:whitespace-normal">{n.label}</span>
             </button>
           ))}
         </div>
