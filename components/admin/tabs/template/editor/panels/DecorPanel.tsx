@@ -35,6 +35,7 @@ export default function DecorPanel() {
 
   const [uploading, setUploading] = useState(false)
   const [grupOrnamen, setGrupOrnamen] = useState<OrnamentGroup>('Sudut')
+  const [tujuanSalin, setTujuanSalin] = useState<string>('semua')
 
   // Warna ornamen mengikuti warna aksen tema, tapi bisa diganti: satu bentuk
   // yang sama sering dipakai emas di sampul dan putih tipis di seksi gelap.
@@ -195,6 +196,55 @@ export default function DecorPanel() {
       setDecorPreviewKey(k => k + 1)
       toast.success(`${b.label} dipasang di ${scopeLabel}`)
     }
+  }
+
+  /**
+   * Menyalin seluruh dekorasi tujuan yang sedang dibuka ke tujuan lain.
+   *
+   * Tanpa ini, memasang satu ornamen sudut yang sama di enam belas seksi
+   * berarti enam belas kali kerja yang persis sama, dan hasilnya hampir pasti
+   * tidak seragam karena posisinya diatur ulang tiap kali.
+   *
+   * Salinan selalu mendapat id baru: id yang sama di dua seksi akan membuat
+   * penggabungan aset pembeli di lib/decoration-utils.ts salah menebak mana
+   * yang ditimpa.
+   */
+  function asetTujuan(id: string): DecorationAsset[] {
+    if (id === 'opening') return cfg.opening.decoration_assets ?? []
+    return cfg.sections.find(x => x.id === id)?.decoration_assets ?? []
+  }
+
+  function tulisTujuan(id: string, next: DecorationAsset[]) {
+    if (id === 'opening') updateOpening({ decoration_assets: next })
+    else updateSection(id, { decoration_assets: next })
+  }
+
+  function salinKe() {
+    if (assets.length === 0) return
+    const semuaTujuan = [
+      ...(isOpening ? [] : ['opening']),
+      ...sections.filter(x => x.enabled && x.id !== decorScope).map(x => x.id),
+    ]
+    const tujuan = tujuanSalin === 'semua' ? semuaTujuan : [tujuanSalin]
+    if (tujuan.length === 0) return
+
+    for (const id of tujuan) {
+      const ada = asetTujuan(id)
+      const atas = ada.reduce((m, x) => Math.max(m, x.z_layer ?? 0), -1)
+      const salinan = assets.map((x, i) => ({
+        ...x,
+        id: idBaru(String(i)),
+        z_layer: atas + 1 + i,
+      }))
+      tulisTujuan(id, [...ada, ...salinan])
+    }
+
+    setDecorPreviewKey(k => k + 1)
+    toast.success(
+      tujuan.length === 1
+        ? `${assets.length} dekorasi disalin ke 1 tujuan`
+        : `${assets.length} dekorasi disalin ke ${tujuan.length} tujuan`,
+    )
   }
 
   function duplicate(a: DecorationAsset) {
@@ -428,6 +478,38 @@ export default function DecorPanel() {
                 memudahkan mengedit — semuanya tetap tampil di undangan.
               </p>
             )}
+
+            {/* Pakai ulang ke tujuan lain */}
+            <div className="mt-3 pt-3 border-t border-gray-100">
+              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">
+                Pakai ulang
+              </p>
+              <div className="flex gap-1.5">
+                <select
+                  value={tujuanSalin}
+                  onChange={e => setTujuanSalin(e.target.value)}
+                  aria-label="Tujuan salinan dekorasi"
+                  className="flex-1 min-w-0 px-2 py-2 sentuh:min-h-[44px] text-[10px] bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                >
+                  <option value="semua">Semua tujuan lain</option>
+                  {!isOpening && <option value="opening">Opening</option>}
+                  {sections.filter(x => x.enabled && x.id !== decorScope).map(x => (
+                    <option key={x.id} value={x.id}>{SECTION_LABELS[x.type] || x.type}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={salinKe}
+                  aria-label={`Salin ${assets.length} dekorasi dari ${scopeLabel} ke tujuan yang dipilih`}
+                  className="shrink-0 px-3 py-2 sentuh:min-h-[44px] bg-gray-900 text-white text-[10px] font-semibold rounded-lg hover:bg-gray-800 transition-colors"
+                >
+                  Salin
+                </button>
+              </div>
+              <p className="mt-1.5 text-[9px] text-gray-400 leading-relaxed">
+                Menyalin {assets.length} dekorasi di {scopeLabel} apa adanya, termasuk posisi,
+                ukuran, dan animasinya. Yang sudah ada di tujuan tidak dihapus.
+              </p>
+            </div>
           </div>
 
           {/* Properti aset terpilih */}
@@ -469,6 +551,12 @@ function ScopeChip({ active, label, count, onClick }: {
   return (
     <button
       onClick={onClick}
+      aria-pressed={active}
+      /* Nama yang disebutkan pembaca layar dibedakan dari tab editor: tab
+         "Opening" dan chip tujuan "Opening" hidup di layar yang sama, dan
+         dua kontrol bernama sama persis membuat keduanya tertukar. Pengujian
+         otomatis sendiri sempat tertukar. */
+      aria-label={`Dekorasi untuk ${label}${count > 0 ? `, ${count} terpasang` : ''}`}
       className={`px-3 py-1.5 sentuh:min-h-[44px] text-[10px] font-bold rounded-lg transition-all ${
         active ? 'bg-gray-900 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
       }`}
