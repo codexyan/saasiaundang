@@ -22,6 +22,21 @@ export default async function DashboardPage(props: Props) {
     settings.get(),
   ])
 
+  /**
+   * Tema yang benar benar dipakai undangan milik pengguna ini, lengkap
+   * dengan config-nya.
+   *
+   * Dulu dashboard memuat tema untuk pratinjau penuh dari modul yang ditulis
+   * mati di lib/template-configs/javanese-gold, dan hanya dipakai kalau id-nya
+   * kebetulan cocok. Akibatnya tombol Preview diam saja untuk undangan bertema
+   * Rose Garden atau Midnight Luxe. Dikirim dari server saja: jumlahnya
+   * sebanyak tema yang dipakai pengguna, biasanya satu.
+   */
+  const idTemaDipakai = [...new Set(invitationList.map(i => i.template_id))]
+  const temaUndangan = (
+    await Promise.all(idTemaDipakai.map(id => templateRecords.findById(id)))
+  ).filter((t): t is NonNullable<typeof t> => t !== null)
+
   const allTemplates = activeTemplates.map(t => ({
     id: t.id,
     name: t.name,
@@ -46,6 +61,7 @@ export default async function DashboardPage(props: Props) {
       isAdmin={isAdmin(session)}
       paymentSuccess={paymentSuccess}
       priceTiers={appSettings.priceTiers}
+      invitationTemplates={temaUndangan}
     />
   )
 }

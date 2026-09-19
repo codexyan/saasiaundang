@@ -50,6 +50,8 @@ interface Props {
    *  TemplateModule/InvitationStudio dan GuestManager supaya batas fitur
    *  yang ditegakkan sinkron dengan pengaturan admin yang sebenarnya. */
   priceTiers?: PriceTier[]
+  /** Tema lengkap untuk undangan milik pengguna ini, dikirim dari server. */
+  invitationTemplates?: import('@/lib/types').TemplateRecord[]
 }
 
 type Tab = 'overview' | 'undangan' | 'guest' | 'rsvp' | 'analytics' | 'subscription' | 'support' | 'settings'
@@ -83,7 +85,7 @@ function getDisplayNames(inv: Invitation): { groom: string; bride: string } {
   return { groom: d.groom_name || '', bride: d.bride_name || '' }
 }
 
-export default function DashboardClient({ user, invitations, selectedTemplateId, allTemplates, isAdmin, paymentSuccess, priceTiers }: Props) {
+export default function DashboardClient({ user, invitations, selectedTemplateId, allTemplates, isAdmin, paymentSuccess, priceTiers, invitationTemplates }: Props) {
   const router = useRouter()
 
   /**
@@ -219,15 +221,13 @@ export default function DashboardClient({ user, invitations, selectedTemplateId,
       window.open(getInvitationUrl(inv.slug), '_blank')
       return
     }
+    // Tema diambil dari yang dikirim server, bukan dari modul yang ditulis
+    // mati. Sebelumnya hanya Javanese Gold yang cocok, jadi tombol ini diam
+    // saja untuk undangan bertema lain.
     let tmpl = previewTemplate
-    if (!tmpl) {
-      try {
-        const m = await import('@/lib/template-configs/javanese-gold')
-        if (m.default.id === inv.template_id) {
-          tmpl = m.default
-          setPreviewTemplate(tmpl)
-        }
-      } catch { /* ignore */ }
+    if (!tmpl || tmpl.id !== inv.template_id) {
+      tmpl = (invitationTemplates ?? []).find(t => t.id === inv.template_id) ?? null
+      if (tmpl) setPreviewTemplate(tmpl)
     }
     setShowFullPreview(true)
   }
@@ -458,7 +458,7 @@ export default function DashboardClient({ user, invitations, selectedTemplateId,
                   )}
 
                   {tab === 'overview' && (
-                    <DashboardOverview invitation={inv} onNavigate={(t) => setTab(t as Tab)} onTogglePublish={togglePublish} />
+                    <DashboardOverview invitation={inv} onNavigate={(t) => setTab(t as Tab)} onTogglePublish={togglePublish} template={(invitationTemplates ?? []).find(t => t.id === inv.template_id) ?? null} />
                   )}
                   {tab === 'guest' && <GuestManager invitation={inv} priceTiers={priceTiers} />}
                   {tab === 'rsvp' && <RSVPList invitationId={inv.id} />}
