@@ -492,7 +492,10 @@ export default function DecorPanel() {
                     } ${hidden ? 'opacity-50' : ''}`}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={a.url} alt="" className="w-7 h-7 object-contain rounded bg-gray-50 border border-gray-100 shrink-0" />
+                    {/* resolveAssetUrl, bukan url mentah: ornamen bawaan disimpan sebagai
+                        BUILT_IN:<bentuk>@<warna> dan tidak bisa dimuat langsung oleh
+                        tag img, jadi gambar kecilnya tampil rusak. */}
+                    <img src={resolveAssetUrl(a.url)} alt="" className="w-7 h-7 object-contain rounded bg-gray-50 border border-gray-100 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className={`text-[11px] font-semibold truncate ${sel ? 'text-indigo-800' : 'text-gray-700'}`}>
                         {a.label || 'Aset'}

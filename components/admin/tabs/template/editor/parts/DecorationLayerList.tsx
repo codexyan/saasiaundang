@@ -11,6 +11,7 @@
  */
 import { useState } from 'react'
 import { X, Trash2 } from 'lucide-react'
+import { resolveAssetUrl } from '@/lib/built-in-assets'
 
 //  Decoration Layer List 
 
@@ -71,7 +72,7 @@ export default function DecorationLayerList({
 
       {/*  Header  */}
       <div className="flex items-center gap-2.5 px-3 py-2.5 bg-gradient-to-r from-indigo-50 to-violet-50 border-b border-gray-100">
-        <img src={asset.url} alt="" className="w-9 h-9 object-contain rounded-lg border border-indigo-200 bg-white p-0.5 shrink-0" />
+        <img src={resolveAssetUrl(asset.url)} alt="" className="w-9 h-9 object-contain rounded-lg border border-indigo-200 bg-white p-0.5 shrink-0" />
         <div className="flex-1 min-w-0">
           <input
             type="text" value={asset.label ?? ''} placeholder="Nama aset..."
