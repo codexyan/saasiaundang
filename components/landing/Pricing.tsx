@@ -136,27 +136,57 @@ const TIER_CTA: Record<string, { label: string; hint: string }> = {
 function buildFeatureList(tier: PriceTier, cheaperTier: PriceTier | undefined): string[] {
   const f = tier.features
   if (!f) return []
+  const bawah = cheaperTier?.features
+
+  /**
+   * Hanya sebut fitur yang BENAR BENAR ditambah paket ini.
+   *
+   * Dulu fitur dasar (musik, RSVP, galeri, hitung mundur, ucapan) hanya
+   * ditulis di paket termurah, lalu paket di atasnya cukup bilang "Semua
+   * fitur X". Itu benar selama paket termurah punya semuanya. Begitu musik
+   * dicabut dari Starter, musik hilang dari seluruh halaman harga, padahal
+   * itu justru yang didapat pembeli kalau naik ke Popular.
+   *
+   * Sisanya dulu dicetak tanpa membandingkan, sehingga Eksklusif menulis
+   * "Semua fitur Popular" lalu mengulang empat baris yang sama persis.
+   */
+  const ditambah = (kunci: keyof typeof f) => !!f[kunci] && !(bawah && bawah[kunci])
+
   const list: string[] = []
-  if (cheaperTier) {
-    list.push(`Semua fitur ${cheaperTier.label}`)
-  } else {
-    if (f.music) list.push('Musik pengiring')
-    if (f.rsvp) list.push('RSVP online')
-    if (f.gallery) list.push('Galeri foto')
-    if (f.countdown) list.push('Countdown hari H')
-    if (f.wishes) list.push('Ucapan & doa dari tamu')
+  if (cheaperTier) list.push(`Semua fitur ${cheaperTier.label}`)
+
+  if (ditambah('music')) list.push('Musik pengiring')
+  if (ditambah('custom_music')) list.push('Musik pilihan sendiri')
+  if (ditambah('rsvp')) list.push('RSVP online')
+  if (ditambah('gallery')) list.push('Galeri foto')
+  if (ditambah('countdown')) list.push('Countdown hari H')
+  if (ditambah('wishes')) list.push('Ucapan & doa dari tamu')
+  if (ditambah('gift')) list.push('Amplop digital & rekening')
+  if (ditambah('gift_registry')) list.push('Wishlist hadiah')
+  if (ditambah('story')) list.push('Kisah cinta pasangan')
+  if (ditambah('video')) list.push('Video prewedding')
+  if (ditambah('livestream')) list.push('Live streaming akad')
+  if (ditambah('ig_story')) list.push('Template IG Story')
+  if (ditambah('qrcode')) list.push('Scan barcode kehadiran tamu')
+  if (ditambah('decoration_editing')) {
+    list.push(f.max_decoration_assets < 0
+      ? 'Hias undangan sendiri, tanpa batas'
+      : `Hias undangan sendiri, sampai ${f.max_decoration_assets} ornamen`)
   }
-  // Dulu dibatasi `tier.id !== 'starter'` / `=== 'eksklusif'`. Fitur ini
-  // sekarang ditampilkan kalau paketnya memang punya, apa pun id-nya.
-  if (f.gift) list.push('Amplop digital & rekening')
-  if (f.gift_registry) list.push('Wishlist hadiah')
-  if (f.story) list.push('Kisah cinta pasangan')
-  if (f.video) list.push('Video prewedding')
-  if (f.qrcode) list.push('Scan barcode kehadiran tamu')
-  if (bolehHapusWatermark(f.remove_watermark)) list.push('Tanpa watermark')
-  if (f.custom_domain) list.push('Custom domain sendiri')
-  if (f.priority_support) list.push('Priority support via WhatsApp')
-  list.push(`Aktif ${f.validity_days} hari`)
+  if (ditambah('custom_domain')) list.push('Custom domain sendiri')
+  if (ditambah('analytics')) list.push('Statistik kunjungan')
+  if (ditambah('priority_support')) list.push('Priority support via WhatsApp')
+
+  const watermarkBaru = bolehHapusWatermark(f.remove_watermark)
+    && !(bawah && bolehHapusWatermark(bawah.remove_watermark))
+  if (watermarkBaru) list.push('Tanpa watermark')
+
+  // Foto dan tamu selalu disebut: angkanya berbeda di tiap paket dan itu
+  // pertanyaan pertama yang ditanyakan pembeli.
+  list.push(f.max_photos < 0 ? 'Foto tanpa batas' : `${f.max_photos} foto galeri`)
+  list.push(f.max_guests < 0 ? 'Tamu tanpa batas' : `${f.max_guests} tamu terdaftar`)
+
+  // "Aktif N hari" sudah tercetak di bawah harga, jadi tidak diulang di sini.
   return list
 }
 

@@ -27,7 +27,11 @@ export const BUILT_IN_CATEGORIES: TemplateCategory[] = [
 ]
 
 const STARTER_FEATURES: TierFeatures = {
-  max_photos: 6, max_guests: 100, music: true, custom_music: false,
+  // Musik dicabut dari Starter 19 Sep 2026. `music: true` tanpa
+  // `custom_music` berarti pembeli hanya boleh memilih dari perpustakaan,
+  // dan perpustakaannya kosong (0 baris di music_tracks), jadi fiturnya
+  // bernilai nol sambil tetap tertulis di halaman harga.
+  max_photos: 6, max_guests: 100, music: false, custom_music: false,
   opening_animation: true, opening_styles: 'basic',
   hero: true, profiles: true, events: true, quote: true,
   countdown: true, gallery: true, rsvp: true, wishes: true,

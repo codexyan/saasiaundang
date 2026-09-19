@@ -7,6 +7,7 @@ import { getComponentStyle, btnStyle, cardRadius, inputBorderStyle } from '@/lib
 import { inputCls } from '../parts/fields'
 import { HEADING_FONTS, BODY_FONTS } from '../parts/constants'
 import { useEditor } from '../EditorContext'
+import { FONT_PAIRS } from '@/lib/font-pairs'
 
 /**
  * Tab "Tampilan" — warna, palet, tipografi, dan gaya komponen.
@@ -349,24 +350,7 @@ export default function AppearancePanel() {
           <ChevronDown className="w-3.5 h-3.5 text-gray-400 transition-transform group-open:rotate-180 shrink-0" />
         </summary>
         <div className="grid grid-cols-1 gap-2 mt-3 mb-4">
-          {([
-            { heading: 'Geist', body: 'Geist',                name: 'Clean Swiss',   desc: 'Sans-serif monokromatik bersih' },
-            { heading: 'Cinzel',           body: 'Raleway',             name: 'Royal Formal',       desc: 'Romawi agung + modern ringan' },
-            { heading: 'Cormorant Garamond', body: 'Montserrat',        name: 'Refined Modern',     desc: 'Garamond halus + geometris tegas' },
-            { heading: 'Great Vibes',      body: 'Lato',                name: 'Romantic Script',    desc: 'Kaligrafi romantis + body netral' },
-            { heading: 'Bodoni Moda',      body: 'DM Sans',             name: 'High Fashion',       desc: 'Editorial mode + sans-serif kontemporer' },
-            { heading: 'Cinzel Decorative', body: 'EB Garamond',        name: 'Grand Luxury',       desc: 'Dekoratif megah + serif klasik' },
-            { heading: 'Alex Brush',       body: 'Cormorant Garamond',  name: 'Calligraphy Suite',  desc: 'Kaligrafi anggun + serif elegan' },
-            { heading: 'Italiana',         body: 'Spectral',            name: 'Italian Romance',    desc: 'Italia dramatis + serif hangat' },
-            { heading: 'Marcellus',        body: 'Lora',                name: 'Timeless Grace',     desc: 'Serif klasik + serif lembut' },
-            { heading: 'Prata',            body: 'Josefin Sans',        name: 'Chic Contrast',      desc: 'Didone tajam + sans geometris' },
-            { heading: 'Sacramento',       body: 'Work Sans',           name: 'Garden Party',       desc: 'Script kasual elegan + sans modern' },
-            { heading: 'Allura',           body: 'Crimson Text',        name: 'Dreamy Vintage',     desc: 'Script bermimpi + serif klasik' },
-            { heading: 'Gilda Display',    body: 'Nunito',              name: 'Art Deco',           desc: 'Display 1920-an + sans-serif lunak' },
-            { heading: 'Tenor Sans',       body: 'Gentium Book Plus',   name: 'Understated Luxe',   desc: 'Sans elegan + serif sastra' },
-            { heading: 'Cormorant SC',     body: 'Raleway',             name: 'Monumental',         desc: 'Small caps formal + sans ringan' },
-            { heading: 'Philosopher',      body: 'Source Serif 4',      name: 'Intellectual',       desc: 'Unik intelektual + serif modern' },
-          ] as const).map(pair => {
+          {FONT_PAIRS.map(pair => {
             const active = cfg.meta.font.heading === pair.heading && cfg.meta.font.body === pair.body
             return (
               <button key={pair.name} type="button"

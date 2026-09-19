@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { useParamUrl } from '@/lib/use-param-url'
+import { temaEfektif } from '@/lib/effective-template'
 import toast from 'react-hot-toast'
 import dynamic from 'next/dynamic'
 import { Reorder, useDragControls, motion, AnimatePresence } from 'framer-motion'
@@ -9,7 +10,7 @@ import {
   CheckSquare, MessageSquare, BookOpen, Eye, X, Loader2, Check, RefreshCw,
   User, Calendar, Sparkles, Music, Quote, Image, Gift, FileText,
   Maximize2, ExternalLink, Lock, Video, Radio, Instagram, QrCode, ShoppingBag,
-  GripVertical, ArrowUpDown, Palette,
+  GripVertical, ArrowUpDown, Palette, Type,
 } from 'lucide-react'
 import type { Invitation, NewInvitationData, TemplateRecord, OpeningType, TierFeatures, PriceTier } from '@/lib/types'
 import type { PackageTier } from '@/lib/packages'
@@ -35,6 +36,7 @@ import IGStoryForm from './forms/IGStoryForm'
 import QRCodeForm from './forms/QRCodeForm'
 import GiftRegistryForm from './forms/GiftRegistryForm'
 import ColorPaletteForm from './forms/ColorPaletteForm'
+import TypographyForm from './forms/TypographyForm'
 import InfoCard from './ui/InfoCard'
 import FormField from './ui/FormField'
 import { StudioInput, StudioTextarea } from './ui/StudioInput'
@@ -143,6 +145,11 @@ function buildNavGroups(
       label: 'Tampilan',
       rawItems: [
         item('warna', 'Tema Warna', Palette, 'Tampilan'),
+        // Tanpa kunci paket: warna dan huruf adalah yang membuat undangan
+        // terasa milik pembeli, dan itu satu satunya sumbu yang bisa kita
+        // menangkan. Menguncinya di paket termahal membuang keunggulan
+        // sendiri di depan pembeli yang sedang membandingkan.
+        item('huruf', 'Huruf', Type, 'Tampilan'),
         item('opening', 'Pembuka', Sparkles, 'Tampilan'),
         item('loading', 'Loading', Loader2, 'Tampilan'),
       ],
@@ -306,27 +313,32 @@ export default function InvitationStudio({ invitation, template, onSaved, isAdmi
       .filter((s): s is NavItem => s !== undefined)
   }, [sectionOrder, SECTIONS])
 
-  const previewTemplate = useMemo<TemplateRecord>(() => ({
-    ...template,
+  const previewTemplate = useMemo<TemplateRecord>(() => {
+    // Warna dan font pilihan pembeli dipakai lewat jalur yang sama persis
+    // dengan halaman tamu, supaya pratinjau tidak pernah berbohong.
+    const dasar = temaEfektif(template, data, gating.features as TierFeatures)
+    return {
+    ...dasar,
     config: {
-      ...template.config,
+      ...dasar.config,
       opening: {
-        ...template.config.opening,
+        ...dasar.config.opening,
         type: (data.opening_type || template.config.opening.type) as OpeningType,
         subtitle: data.opening_greeting || template.config.opening.subtitle,
         invitation_text: data.opening_subtitle || template.config.opening.invitation_text,
       },
       loading: {
-        ...template.config.loading,
+        ...dasar.config.loading,
         ...(data.loading_config ?? {}),
       },
-      sections: template.config.sections.filter(s => {
+      sections: dasar.config.sections.filter(s => {
         const featureKey = SECTION_TYPE_FEATURE[s.type]
         if (!featureKey) return true
         return !!gating.features[featureKey]
       }),
     },
-  }), [template, data.opening_type, data.opening_greeting, data.opening_subtitle, data.loading_config, gating.features])
+    }
+  }, [template, data, gating.features])
 
   useEffect(() => {
     setPreviewKey(k => k + 1)
@@ -434,6 +446,17 @@ export default function InvitationStudio({ invitation, template, onSaved, isAdmi
             text_color: colors.text,
             background_color: colors.background,
           })}
+        />
+      )
+      case 'huruf': return (
+        <TypographyForm
+          headingTema={template.config.meta.font.heading}
+          bodyTema={template.config.meta.font.body}
+          heading={data.font_heading}
+          body={data.font_body}
+          onChange={(patch) => updateData(patch)}
+          warnaLatar={data.primary_color ?? template.config.meta.color_scheme.primary}
+          warnaTeks={data.text_color ?? template.config.meta.color_scheme.text}
         />
       )
       case 'musik': return (

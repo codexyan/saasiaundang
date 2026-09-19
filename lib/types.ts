@@ -740,6 +740,9 @@ export interface NewInvitationData {
   accent_color?: string
   text_color?: string
   background_color?: string
+  /** Pilihan font pembeli. Kosong berarti ikut font tema. */
+  font_heading?: string
+  font_body?: string
   // Opening
   opening_type?: OpeningType
   opening_greeting?: string

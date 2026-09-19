@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { invitations, galleries, wishes, guests, templateRecords } from '@/lib/db'
+import { temaEfektif } from '@/lib/effective-template'
 import { isExpired } from '@/lib/utils'
 import type { PackageTier } from '@/lib/packages'
 import { resolveTierFeatures } from '@/lib/tiers'
@@ -114,7 +115,13 @@ export default async function InvitationPage(props0: Props) {
         // benar-benar dikirim ke server.
         mode="live"
         invitationData={invitation.data as unknown as NewInvitationData}
-        template={template}
+        // Warna dan font pilihan pembeli, plus batas paket, digabungkan di
+        // satu tempat. Lihat lib/effective-template.ts.
+        template={temaEfektif(
+          template,
+          invitation.data as unknown as NewInvitationData,
+          tierFeatures,
+        )}
         initialWishes={invWishes}
         musicUrl={(invitation.data as unknown as NewInvitationData).music_url}
       />

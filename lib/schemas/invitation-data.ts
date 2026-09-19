@@ -123,6 +123,12 @@ export const newInvitationDataSchema = z.object({
   text_color: colorValue.optional(),
   background_color: colorValue.optional(),
 
+  // ── Tipografi ───────────────────────────────────────────────────────
+  // Nama keluarga Google Fonts. Renderer menyusun tautan fonts.googleapis
+  // langsung dari nilai ini.
+  font_heading: shortText.optional(),
+  font_body: shortText.optional(),
+
   // ── Sampul (opening) ────────────────────────────────────────────────
   opening_type: shortText.optional(),
   opening_greeting: longText.optional(),
