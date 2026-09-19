@@ -1,18 +1,12 @@
 'use client'
 
-import { useState } from 'react'
-import { Check, Sparkles, MessageSquare, Heart, Type, Camera } from 'lucide-react'
+import { Check } from 'lucide-react'
 import ImageUploadField from '@/components/admin/ImageUploadField'
 import { Field, inputCls, Sakelar } from '../parts/fields'
 import LoadingScreenPanel from '../parts/LoadingScreenPanel'
 import { OPENING_TYPES, OPENING_META } from '../parts/constants'
 import { useEditor } from '../EditorContext'
 import OpeningStylePicker from '../parts/OpeningStylePicker'
-
-/** Lima kelompok navigasi internal panel Opening, meniru pola `settingsSection`
- *  di ArticlesTab.tsx (SettingsPanel). Cuma soal presentasi, tidak mengubah
- *  data yang tersimpan di EditorContext. */
-type OpeningSection = 'gaya' | 'konten' | 'data' | 'tipografi' | 'foto'
 
 /**
  * Tab "Opening" — halaman sampul yang dilihat tamu sebelum undangan terbuka,
@@ -30,17 +24,25 @@ export default function OpeningPanel() {
   // mengaturnya dari mana pun.
   const showOpening = cfg.opening.show_opening !== false
 
-  // Navigasi sub bagian, sama persis mekanismenya dengan NAV di
-  // ArticlesTab.tsx: array of { id, icon, label }, active state lewat
-  // perbandingan langsung, klik memanggil setter.
-  const [openingSection, setOpeningSection] = useState<OpeningSection>('gaya')
-  const OPENING_NAV: { id: OpeningSection; icon: typeof Sparkles; label: string }[] = [
-    { id: 'gaya', icon: Sparkles, label: 'Gaya & Efek' },
-    { id: 'konten', icon: MessageSquare, label: 'Konten' },
-    { id: 'data', icon: Heart, label: 'Data Mempelai' },
-    { id: 'tipografi', icon: Type, label: 'Tipografi & Layout' },
-    { id: 'foto', icon: Camera, label: 'Foto & Transisi' },
-  ]
+  /*
+   * Navigasi sub bagian DICABUT 19 Sep 2026.
+   *
+   * Lima tombol "Gaya & Efek / Konten / Data Mempelai / Tipografi & Layout /
+   * Foto & Transisi" pernah berdiri di sini, tapi tidak pernah menyaring apa
+   * pun: `openingSection` cuma menentukan tombol mana yang berwarna, dan
+   * kedelapan blok selalu ditampilkan semuanya. Komentar aslinya menyebut
+   * penyaringannya akan menyusul di "Phase 3", dan Phase 3 tidak pernah
+   * dikerjakan.
+   *
+   * Akibatnya menu itu berbohong: menekan "Konten" menyorot "Konten" tapi
+   * yang terlihat tetap "Gaya Tampilan", sehingga admin mengira dirinya salah
+   * klik. Satu di antaranya bahkan menjanjikan sesuatu yang tidak ada sama
+   * sekali: kata "Transisi" tidak pernah muncul lagi di panel ini.
+   *
+   * Menu yang menyaring memang lebih baik daripada satu gulungan panjang,
+   * tapi menu yang tidak menyaring lebih buruk daripada tidak ada menu.
+   * Dicabut dulu, dibangun beneran belakangan (R-26).
+   */
 
   const openingToggle = (
     <div className="flex items-center justify-between p-4 rounded-xl border border-gray-200 bg-white">
@@ -82,32 +84,7 @@ export default function OpeningPanel() {
 
       {openingToggle}
 
-      {/* Kerangka navigasi sub bagian (Phase 2). Sidebar dipersempit ke w-32
-          dibanding w-48 di ArticlesTab karena panel ini hidup di kolom
-          sempit editor, bukan halaman admin penuh — mekanismenya sama
-          persis, cuma lebar yang disesuaikan ke konteks.
-          Isi di bawah ini MASIH menampilkan kedelapan blok tanpa filter;
-          pemindahan konten ke tiap section id di atas terjadi di Phase 3. */}
-      {/* Kolom di layar lebar, baris yang bisa digeser di layar sempit.
-          Sidebar 128 piksel memakan sepertiga lebar HP, dan sisanya tidak
-          cukup untuk kontrol di sebelahnya. */}
-      <div className="flex flex-col lg:flex-row gap-3">
-        <div className="lg:w-32 lg:shrink-0 flex lg:block gap-1 lg:gap-0 lg:space-y-0.5 overflow-x-auto scrollbar-hide -mx-1 px-1 lg:mx-0 lg:px-0">
-          {OPENING_NAV.map(n => (
-            <button key={n.id} type="button" onClick={() => setOpeningSection(n.id)}
-              className={`shrink-0 lg:w-full flex items-center gap-1.5 px-2.5 py-2 sentuh:min-h-[44px] rounded-lg text-left text-[10px] font-semibold transition-colors ${
-                openingSection === n.id
-                  ? 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200 lg:ring-0'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50 bg-gray-50 lg:bg-transparent'
-              }`}
-            >
-              <n.icon className="w-3.5 h-3.5 shrink-0" />
-              <span className="leading-tight whitespace-nowrap lg:whitespace-normal">{n.label}</span>
-            </button>
-          ))}
-        </div>
-
-        <div className="flex-1 min-w-0 space-y-5">
+      <div className="space-y-5">
 
       {/*  Pilih Gaya Opening  */}
       <div>
@@ -925,9 +902,7 @@ export default function OpeningPanel() {
         setPreviewKey={setPreviewKey}
       />
 
-        </div>
       </div>
-
     </div>
   )
 }
