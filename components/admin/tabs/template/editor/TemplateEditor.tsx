@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import type { TemplateMeta, ColorScheme, OpeningConfig, MusicConfig, TemplateCategory, ColorPalette } from '@/lib/types'
 import type { TemplateRecord, NewInvitationData, SectionType } from '@/lib/types'
+import { drafValid } from '@/lib/template-draft'
 import ConfirmDialog from '@/components/admin/ui/ConfirmDialog'
 import StatusBadge from '@/components/admin/ui/StatusBadge'
 
@@ -73,7 +74,9 @@ export default function TemplateEditor({
   // Editor selalu menggarap draf. Kalau belum ada draf, mulai dari versi terbit.
   const [config, setConfig] = useState<TemplateRecord>(() => {
     const base = deepClone(record)
-    if (record.draft_config) base.config = deepClone(record.draft_config)
+    // Bentuknya yang diperiksa, bukan truthy-nya. Draf `{}` peninggalan versi
+    // lama pernah meruntuhkan seluruh editor di sini.
+    if (drafValid(record.draft_config)) base.config = deepClone(record.draft_config)
     return base
   })
   const [activeTab, _setActiveTab] = useState<ConfigTab>('tampilan')
@@ -125,7 +128,7 @@ export default function TemplateEditor({
   const [publishing, setPublishing] = useState(false)
   const [showPublish, setShowPublish] = useState(false)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
-  const [hasPendingDraft, setHasPendingDraft] = useState(!!record.draft_config)
+  const [hasPendingDraft, setHasPendingDraft] = useState(drafValid(record.draft_config))
   const [previewKey, setPreviewKey] = useState(0)
   const [showFullscreen, setShowFullscreen] = useState(false)
 
@@ -395,7 +398,7 @@ export default function TemplateEditor({
 
   /** Snapshot terakhir yang SUDAH tersimpan di server. Pembanding untuk
    *  memutuskan perlu-tidaknya autosave berikutnya. */
-  const savedSnapshotRef = useRef(JSON.stringify(record.draft_config ?? record.config))
+  const savedSnapshotRef = useRef(JSON.stringify(drafValid(record.draft_config) ? record.draft_config : record.config))
   /** Simpan yang sedang berjalan. Dipegang sebagai PROMISE, bukan boolean:
    *  pemanggil yang datang di tengah simpan (mis. menekan Terbitkan tepat saat
    *  autosave jalan) harus MENUNGGU hasilnya, bukan langsung menyerah dan

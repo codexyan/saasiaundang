@@ -1,6 +1,7 @@
 'use client'
 
 import type { TemplateRecord } from '@/lib/types'
+import { drafValid } from '@/lib/template-draft'
 
 /**
  * Miniatur sampul template.
@@ -19,7 +20,7 @@ export default function TemplateThumb({ record, config }: {
   /** Pakai draft kalau ada, supaya kartu mencerminkan yang sedang digarap. */
   config?: TemplateRecord['config']
 }) {
-  const cfg = config ?? record.draft_config ?? record.config
+  const cfg = config ?? (drafValid(record.draft_config) ? record.draft_config : record.config)
   const scheme = cfg?.meta?.color_scheme
   const primary = scheme?.primary ?? '#1a1a2e'
   const accent = scheme?.accent ?? '#d4a574'

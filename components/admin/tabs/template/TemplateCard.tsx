@@ -9,6 +9,7 @@ import type { TemplateRecord } from '@/lib/types'
 import { BUILT_IN_TEMPLATE_IDS } from '@/lib/built-in-data'
 import StatusBadge from '@/components/admin/ui/StatusBadge'
 import TemplateThumb from './TemplateThumb'
+import { drafValid } from '@/lib/template-draft'
 
 export interface TemplateCardActions {
   onEditDesign: (rec: TemplateRecord) => void
@@ -66,9 +67,11 @@ export default function TemplateCard({
     }
   }, [menuOpen])
 
-  const working = record.draft_config ?? record.config
+  const working = drafValid(record.draft_config) ? record.draft_config : record.config
   const sectionCount = (working?.sections ?? []).filter(s => s.enabled).length
-  const hasPendingDraft = !!record.draft_config
+  // Lencana "Belum terbit" ikut bentuk draf, bukan sekadar kolomnya terisi.
+  // Draf kosong peninggalan versi lama dulu membuat lencana ini berbohong.
+  const hasPendingDraft = drafValid(record.draft_config)
   const isBuiltIn = (BUILT_IN_TEMPLATE_IDS as readonly string[]).includes(record.id)
   const inUse = record.usage_count > 0
 
