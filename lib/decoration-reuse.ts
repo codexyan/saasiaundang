@@ -36,3 +36,25 @@ export function asetTerpakaiDiTema(
   }
   return [...perUrl.values()]
 }
+
+/**
+ * Berapa dekorasi yang dipasang di seluruh sebuah konfigurasi tema.
+ *
+ * Dipakai membandingkan draf dengan versi terbit sebelum menekan Terbitkan.
+ * Tanpa perbandingan itu, draf yang kebetulan tidak memuat dekorasi akan
+ * menghapus dekorasi yang sudah tampil di undangan orang, tanpa satu pun
+ * peringatan. Keadaan itu benar benar ada di produksi 19 Sep 2026: config
+ * Javanese Gold memuat satu dekorasi di halaman sampul, drafnya nol.
+ */
+export function hitungDekorasi(
+  konfigurasi: {
+    opening?: { decoration_assets?: DecorationAsset[] }
+    sections?: Pick<SectionConfig, 'decoration_assets'>[]
+  } | null | undefined,
+): number {
+  if (!konfigurasi) return 0
+  const diOpening = konfigurasi.opening?.decoration_assets?.length ?? 0
+  const diSeksi = (konfigurasi.sections ?? []).reduce(
+    (n, s) => n + (s.decoration_assets?.length ?? 0), 0)
+  return diOpening + diSeksi
+}

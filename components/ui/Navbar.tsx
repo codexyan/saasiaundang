@@ -193,7 +193,10 @@ export default function Navbar({ adaArtikel = false }: { adaArtikel?: boolean })
                   </div>
                   <button
                     onClick={handleLogout}
-                    className={`hidden md:inline-flex text-label-lg px-2.5 py-1.5 rounded-lg transition-colors duration-200 ${
+                    /* min-h 44px: tombol ini hanya muncul untuk pengunjung yang
+                       sedang masuk, jadi audit halaman publik tidak pernah
+                       melihatnya sampai ada sesi yang dipakai menguji. */
+                    className={`hidden md:inline-flex items-center min-h-[44px] text-label-lg px-2.5 py-1.5 rounded-lg transition-colors duration-200 ${
                       atasHero ? 'text-chalk/75 hover:text-chalk' : 'text-concrete hover:text-forest-deep hover:bg-forest-50'
                     }`}
                   >

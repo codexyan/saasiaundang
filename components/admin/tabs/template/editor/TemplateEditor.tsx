@@ -11,6 +11,7 @@ import {
 import type { TemplateMeta, ColorScheme, OpeningConfig, MusicConfig, TemplateCategory, ColorPalette } from '@/lib/types'
 import type { TemplateRecord, NewInvitationData, SectionType } from '@/lib/types'
 import { drafValid } from '@/lib/template-draft'
+import { hitungDekorasi } from '@/lib/decoration-reuse'
 import ConfirmDialog from '@/components/admin/ui/ConfirmDialog'
 import StatusBadge from '@/components/admin/ui/StatusBadge'
 
@@ -339,6 +340,11 @@ export default function TemplateEditor({
       config: { ...prev.config, opening: { ...prev.config.opening, ...patch } },
     }))
   }, [])
+
+  // Dibandingkan sebelum menerbitkan, lihat peringatan di modal Terbitkan.
+  const dekorDraf = hitungDekorasi(cfg)
+  const dekorTerbit = hitungDekorasi(record.config)
+  const dekorHilang = Math.max(0, dekorTerbit - dekorDraf)
 
   const musicCfg: MusicConfig = { ...DEFAULT_MUSIC_CFG, ...cfg.music }
 
@@ -890,10 +896,29 @@ export default function TemplateEditor({
                   <span className="font-semibold text-gray-800">{sections.filter(s => s.enabled).length}</span>
                 </div>
                 <div className="flex justify-between gap-4">
+                  <span className="text-gray-400">Dekorasi terpasang</span>
+                  <span className="font-semibold text-gray-800">{dekorDraf}</span>
+                </div>
+                <div className="flex justify-between gap-4">
                   <span className="text-gray-400">Undangan memakai tema ini</span>
                   <span className="font-semibold text-gray-800">{record.usage_count}</span>
                 </div>
               </div>
+
+              {/* Peringatan kehilangan dekorasi.
+                  Draf dan versi terbit adalah dua salinan terpisah, dan draf
+                  lama bisa saja dibuat sebelum dekorasinya dipasang. Tanpa
+                  perbandingan ini, menekan Terbitkan menghapus hiasan yang
+                  sudah tampil di undangan orang tanpa satu pun tanda. Keadaan
+                  itu memang ada di produksi: satu tema menyimpan dekorasi di
+                  versi terbitnya sementara drafnya nol. */}
+              {dekorHilang > 0 && (
+                <p className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 leading-relaxed">
+                  Versi yang sekarang terbit memuat {dekorTerbit} dekorasi, sedangkan draf ini
+                  memuat {dekorDraf}. Menerbitkan akan menghapus {dekorHilang} dekorasi dari
+                  undangan yang sudah tampil. Batalkan dulu kalau itu bukan yang kamu mau.
+                </p>
+              )}
 
               {record.usage_count > 0 && (
                 <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 leading-relaxed">

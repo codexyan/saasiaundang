@@ -68,6 +68,26 @@ const DEFAULT_SETTINGS: AppSettings = {
   maintenanceMode: false,
 }
 
+/**
+ * Nomor contoh yang beredar di data lama.
+ *
+ * `628123456789` bukan milik siapa pun. Selama nilainya tersimpan, setiap
+ * tautan WhatsApp di beranda, halaman syarat, halaman privasi, dan halaman
+ * status pesanan menuju ruang kosong, dan pengunjung yang menekannya mengira
+ * layanannya tidak menjawab. Lebih baik tidak ada tombol sama sekali.
+ *
+ * Disaring saat DIBACA, bukan ditulis ulang di database: yang salah adalah
+ * memajangnya, bukan menyimpannya, dan kolom kosong di panel admin justru
+ * mengundang pemiliknya mengisi nomor yang benar.
+ */
+const NOMOR_CONTOH = new Set(['628123456789', '6281234567890', '08123456789'])
+
+function nomorWaSah(nomor?: string): string {
+  const bersih = (nomor ?? '').replace(/[^0-9]/g, '')
+  if (!bersih || NOMOR_CONTOH.has(bersih)) return ''
+  return bersih
+}
+
 export const settings = {
   // Dipanggil di puluhan lokasi (landing, order, templates, panel admin) tanpa
   // dedup sama sekali sebelumnya. Aman di-cache(): dicek seluruh pemanggil
@@ -102,7 +122,16 @@ export const settings = {
       ...storedTiers.filter(t => !BUILT_IN_PRICE_TIERS.find(b => b.id === t.id) && !deletedTierIds.has(t.id)),
     ]
 
-    return { ...DEFAULT_SETTINGS, ...stored, categories, colorPalettes, priceTiers, deletedCategoryIds: stored.deletedCategoryIds ?? [], deletedTierIds: stored.deletedTierIds ?? [], flashSales: stored.flashSales ?? [], coupons: stored.coupons ?? [], bankAccounts: stored.bankAccounts ?? [] }
+    return {
+      ...DEFAULT_SETTINGS, ...stored, categories, colorPalettes, priceTiers,
+      confirmationWhatsapp: nomorWaSah(stored.confirmationWhatsapp),
+      contactWhatsapp: nomorWaSah(stored.contactWhatsapp),
+      deletedCategoryIds: stored.deletedCategoryIds ?? [],
+      deletedTierIds: stored.deletedTierIds ?? [],
+      flashSales: stored.flashSales ?? [],
+      coupons: stored.coupons ?? [],
+      bankAccounts: stored.bankAccounts ?? [],
+    }
   }),
   async save(data: AppSettings): Promise<void> {
     await prisma.appSetting.upsert({
