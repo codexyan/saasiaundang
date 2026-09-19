@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
 import { Layers, Plus, Loader2, Eye, EyeOff, Lock, Unlock, Trash2, Copy } from 'lucide-react'
 import type { DecorationAsset } from '@/lib/types'
@@ -9,6 +9,7 @@ import {
   builtInUrl, resolveAssetUrl,
   type BuiltInOrnament, type OrnamentBundle, type OrnamentGroup,
 } from '@/lib/built-in-assets'
+import { asetTerpakaiDiTema } from '@/lib/decoration-reuse'
 import DecorationLayerList from '../parts/DecorationLayerList'
 import { SECTION_LABELS } from '../parts/constants'
 import { useEditor } from '../EditorContext'
@@ -70,6 +71,22 @@ export default function DecorPanel() {
   const assets: DecorationAsset[] = isOpening
     ? (cfg.opening.decoration_assets ?? [])
     : (scopeSection?.decoration_assets ?? [])
+
+  /**
+   * Aset yang sudah dipakai di mana pun dalam tema ini.
+   *
+   * Sebelumnya satu berkas yang sudah diunggah hanya hidup di satu tujuan.
+   * Memakainya lagi di seksi lain berarti mengunggah berkas yang sama sekali
+   * lagi, dan menumpuk salinan di storage untuk gambar yang identik.
+   *
+   * Tidak perlu tabel baru: daftarnya diturunkan dari konfigurasi tema itu
+   * sendiri, jadi selalu cocok dengan kenyataan dan ikut hilang begitu aset
+   * terakhir yang memakainya dihapus.
+   */
+  const asetTerpakai = useMemo(
+    () => asetTerpakaiDiTema(cfg.opening.decoration_assets, cfg.sections),
+    [cfg.opening.decoration_assets, cfg.sections],
+  )
 
   const scopeLabel = isOpening
     ? 'Opening'
@@ -177,6 +194,21 @@ export default function DecorPanel() {
     if (!tujuanSah()) return
     const atas = assets.reduce((m, a) => Math.max(m, a.z_layer ?? 0), -1)
     const aset = asetDariBentuk(o.id, o.label, o, atas + 1, 200)
+    if (writeAssets([...assets, aset])) {
+      setSelectedAssetId(aset.id)
+      setDecorPreviewKey(k => k + 1)
+    }
+  }
+
+  function pasangUlang(contoh: DecorationAsset) {
+    if (!tujuanSah()) return
+    const atas = assets.reduce((m, a) => Math.max(m, a.z_layer ?? 0), -1)
+    const aset: DecorationAsset = {
+      ...contoh,
+      id: idBaru(),
+      label: contoh.label ?? 'Aset',
+      z_layer: atas + 1,
+    }
     if (writeAssets([...assets, aset])) {
       setSelectedAssetId(aset.id)
       setDecorPreviewKey(k => k + 1)
@@ -383,6 +415,33 @@ export default function DecorPanel() {
           ))}
         </div>
       </div>
+
+      {/* Sudah dipakai di tema ini */}
+      {asetTerpakai.length > 0 && (
+        <div>
+          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+            Sudah dipakai di tema ini
+          </p>
+          <div className="grid grid-cols-6 gap-1.5">
+            {asetTerpakai.map(a => (
+              <button
+                key={a.url}
+                onClick={() => pasangUlang(a)}
+                aria-label={`Pakai lagi ${a.label || 'aset'} di ${scopeLabel}`}
+                title={`Pakai lagi ${a.label || 'aset'}`}
+                className="aspect-square rounded-lg border border-gray-200 hover:border-indigo-400 overflow-hidden flex items-center justify-center p-1 transition-colors"
+                style={{ backgroundColor: cfg.meta.color_scheme.primary }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={resolveAssetUrl(a.url)} alt="" className="max-w-full max-h-full object-contain" />
+              </button>
+            ))}
+          </div>
+          <p className="mt-1.5 text-[9px] text-gray-400 leading-relaxed">
+            Berkas yang sudah diunggah untuk tema ini. Memakainya lagi tidak mengunggah ulang.
+          </p>
+        </div>
+      )}
 
       {/* Tambah aset */}
       <label className={`flex items-center justify-center gap-1.5 text-[10px] font-bold text-indigo-700 bg-indigo-50 border-2 border-dashed border-indigo-300 rounded-xl py-3 transition-colors ${uploading ? 'opacity-60 cursor-wait' : 'cursor-pointer hover:bg-indigo-100'}`}>
